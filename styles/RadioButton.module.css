@@ -1,0 +1,111 @@
+.container {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.inputRadio {
+  opacity: 0;
+  position: absolute;
+  text-decoration: none;
+}
+
+.label {
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  font-family: "Cyber", sans-serif;
+  font-weight: 500;
+  font-style: italic;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  padding: 0 30px;
+  position: relative;
+  transition: box-shadow 350ms;
+  z-index: 2;
+  text-decoration: none;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s ease;
+}
+.label a {
+  text-decoration: none; /* Remove underline */
+
+  z-index: 100;
+  position: relative;
+}
+
+.label:hover {
+  transform: scale(1.1);
+  /* box-shadow: 0 0 20px 5px #68c9b2; Consistent hover glow */
+}
+
+.label::before {
+  background-color: #1b1724;
+  background-image: repeating-linear-gradient(
+    0deg,
+    #181a29,
+    #181a29 1px,
+    #202436 1px,
+    #202436 2px
+  );
+  border-radius: 10px;
+  box-shadow: 0 0 0 0 #68c9b2;
+  content: "";
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: skew(-15deg);
+  width: 100%;
+  z-index: -1;
+  transition: box-shadow 350ms;
+}
+
+.label:hover::before {
+  /* box-shadow: 0 0 20px 5px #68c9b2; */
+  text-decoration: none;
+  box-shadow: 0 0 20px 5px blueviolet, 0 0 20px 10px teal;
+}
+
+.label span {
+  position: relative; /* Ensure span stays above */
+  z-index: 3; /* Above SVG and ::before */
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.inputRadio:checked + .label::before {
+  box-shadow: 0 0 20px 5px blue, 0 0 20px 10px fuchsia;
+  text-decoration: none;
+}
+
+.inputRadio:checked + .label span {
+  color: #1b1724; /* Ensure visible text color */
+  font-weight: bold;
+  text-decoration: none;
+}
+.inputRadio:checked + .label:hover span {
+  color: #ffffff; /* White color on hover */
+  text-decoration: none;
+}
+.svg {
+  border-radius: 10px;
+  overflow: hidden;
+  position: absolute;
+  transform: skew(-15deg);
+}
+
+.rect {
+  fill: #68c9b2;
+  shape-rendering: crispEdges;
+}
+.text {
+  z-index: 100;
+  text-decoration: none;
+}
+.span {
+  transition: color 350ms;
+  z-index: 1;
+  text-decoration: none;
+}
