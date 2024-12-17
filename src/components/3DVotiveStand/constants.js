@@ -1,24 +1,20 @@
 // constants.js
 import * as THREE from "three";
 
-const MODEL_CENTER = {
-  x: 0,
-  y: 6.405741747673449,
-  z: 4.440892098500626e-16, // effectively 0
-};
-const center = new THREE.Vector3(
-  MODEL_CENTER.x,
-  MODEL_CENTER.y,
-  MODEL_CENTER.z
-);
+// const MODEL_CENTER = {
+//   x: 0,
+//   y: 6.405741747673449,
+//   z: 4.440892098500626e-16, // effectively 0
+// };
+// const center = new THREE.Vector3(
+//   MODEL_CENTER.x,
+//   MODEL_CENTER.y,
+//   MODEL_CENTER.z
+// );
 export const DEFAULT_MARKERS = [
   {
     // For the marker position itself
-    position: new THREE.Vector3(
-      -3.5 - MODEL_CENTER.x,
-      12 - MODEL_CENTER.y,
-      2.3 - MODEL_CENTER.z
-    ),
+    position: new THREE.Vector3(0, 5, -3),
     label: "View 1",
     description: "This area shows the front of the model with...",
     cameraView: {

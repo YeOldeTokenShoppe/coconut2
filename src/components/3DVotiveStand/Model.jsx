@@ -26,7 +26,7 @@ function Model({
   moveCamera,
   rotation,
 }) {
-  const gltf = useGLTF("/ultima7.glb");
+  const gltf = useGLTF("/ultima14.glb");
   const { actions, mixer } = useAnimations(gltf.animations, modelRef);
   const { camera } = useThree();
 

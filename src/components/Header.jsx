@@ -154,7 +154,10 @@ function Header() {
           className="header"
           maxW="1200px"
           mb="125px"
-          style={{ position: "relative", zIndex: "100" }}
+          style={{
+            position: "relative",
+            zIndex: "100",
+          }}
         >
           <header id="header">
             <div className="menu-icon" onClick={toggleMenu}></div>

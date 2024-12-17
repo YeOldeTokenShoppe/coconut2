@@ -25,6 +25,16 @@ export default function GalleryPage() {
     }
   }, [burnGalleryLoaded, communionLoaded]);
 
+  useEffect(() => {
+    // Override the body background color
+    document.body.style.backgroundColor = "#f0f0f0"; // Set your desired background color
+
+    // Cleanup function to reset the background color when the component unmounts
+    return () => {
+      document.body.style.backgroundColor = "";
+    };
+  }, []);
+
   return (
     <>
       {isLoading && <Loader />}

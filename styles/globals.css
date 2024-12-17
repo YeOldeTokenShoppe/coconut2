@@ -362,6 +362,7 @@ h6 {
   font-size: 2.5rem;
   object-fit: cover;
   max-width: 3rem;
+
   border-radius: 10px;
   padding: 0.5rem;
   min-width: 0 !important;
@@ -983,13 +984,14 @@ s.box .shimmer {
   position: relative;
   top: 0;
   width: 100%;
+  background-color: transparent !important;
 }
 
 .header {
   justify-content: space-between;
   align-items: center;
   height: 8rem !important;
-  /* background-color: #1b1724; */
+  background-color: transparent !important;
   /* padding: 3vw; */
   width: 100%;
   position: relative;
@@ -4832,7 +4834,7 @@ body {
   height: 100vh;
   position: absolute;
 
-  bottom: -20%;
+  /* bottom: -20%; */
   z-index: 1000;
 }
 

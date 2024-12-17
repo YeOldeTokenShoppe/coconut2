@@ -16,6 +16,19 @@ const nextConfig = {
       config.devtool = "source-map";
     }
 
+    // Add support for .glsl, .vs, and .fs files
+    config.module.rules.push({
+      test: /\.(glsl|vs|fs)$/,
+      use: [
+        {
+          loader: "raw-loader", // Loads GLSL files as strings
+        },
+        {
+          loader: "glslify-loader", // Optional: Preprocess GLSL for imports and macros
+        },
+      ],
+    });
+
     return config;
   },
   experimental: {

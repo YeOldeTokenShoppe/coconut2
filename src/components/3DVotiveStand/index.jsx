@@ -1,7 +1,14 @@
 // index.jsx
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, Center } from "@react-three/drei";
+import PostProcessingEffects from "../PostProcessingEffects";
 import * as THREE from "three";
 import gsap from "gsap";
 import Model from "./Model";
@@ -9,17 +16,19 @@ import { DEFAULT_MARKERS } from "./constants";
 import CameraControlPanel from "../CameraControlPanel";
 import { Box } from "@chakra-ui/react";
 
+import RoomWalls from "./RoomWalls";
+
 function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
   const [userData, setUserData] = useState([]);
   const [tooltipData, setTooltipData] = useState(null);
-  const [modelScale, setModelScale] = useState(0.7);
+  const [modelScale, setModelScale] = useState(7);
   const [activeAnnotation, setActiveAnnotation] = useState(null);
   const [camera, setCamera] = useState(null);
   const [markers, setMarkers] = useState(DEFAULT_MARKERS);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [isResetVisible, setIsResetVisible] = useState(true);
   const [rotation, setRotation] = useState([0, 0, 0]);
-  const scene = new THREE.Scene();
+
   const [lastActiveAnnotation, setLastActiveAnnotation] = useState(null);
   const [isAnnotationVisible, setIsAnnotationVisible] = useState(false);
 
@@ -27,6 +36,9 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
   const modelRef = useRef();
   const sceneRef = useRef();
   const canvasRef = useRef();
+
+  // // Handle window resize
+  // window.addEventListener("resize", onWindowResize, false);
 
   // for camera control panel
   // const [cameraPosition, setCameraPosition] = useState({
@@ -55,6 +67,74 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
 
   // for camera control panel
 
+  // const GodRayEffect = () => {
+  //   const godRaySourceRef = useRef();
+  //   const [lightSource, setLightSource] = useState(null);
+
+  //   useEffect(() => {
+  //     if (godRaySourceRef.current) {
+  //       setLightSource(godRaySourceRef.current);
+  //     }
+  //   }, []);
+
+  //   return (
+  //     <>
+  //       <group rotation={[-0.3, 0, 0.2]} position={[2, 10, 2]}>
+  //         {/* Light source */}
+  //         <mesh position={[3, 15, 0]} ref={godRaySourceRef}>
+  //           <cylinderGeometry args={[0.5, 1, 20]} />
+  //           <meshBasicMaterial
+  //             color="#ffffff"
+  //             opacity={0.001}
+  //             transparent
+  //             side={THREE.DoubleSide}
+  //           />
+  //         </mesh>
+
+  //         {/* Inner sparkles - aligned with light beam */}
+  //         <Sparkles
+  //           count={100}
+  //           scale={[1, 20, 1]} // Matched to cylinder dimensions
+  //           size={0.2}
+  //           speed={0.1}
+  //           noise={1.5}
+  //           opacity={0.6}
+  //           color="#ffd700"
+  //           position={[3, 15, 0]} // Matched to light source position
+  //         />
+
+  //         {/* Outer sparkles - slightly larger */}
+  //         <Sparkles
+  //           count={150}
+  //           scale={[1.5, 20, 1.5]} // Slightly wider than the beam
+  //           size={0.15}
+  //           speed={0.2}
+  //           noise={2}
+  //           opacity={0.4}
+  //           color="#fff8e0"
+  //           position={[3, 15, 0]} // Same position as light source
+  //         />
+  //       </group>
+
+  //       {lightSource && (
+  //         <EffectComposer>
+  //           <GodRays
+  //             sun={lightSource}
+  //             blendFunction={16}
+  //             samples={60}
+  //             density={0.17}
+  //             decay={0.93}
+  //             weight={1.0}
+  //             exposure={0.6}
+  //             clampMax={1}
+  //             maxRadius={0.03}
+  //           />
+  //         </EffectComposer>
+  //       )}
+  //     </>
+  //   );
+  // };
+
   useEffect(() => {
     const updateSize = () => {
       setSize({
@@ -81,7 +161,10 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
   useEffect(() => {
     if (modelRef.current && controlsRef.current) {
       const box = new THREE.Box3().setFromObject(modelRef.current);
+      const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
+      console.log("Scene size:", size);
+      console.log("Scene center:", center);
 
       controlsRef.current.target.copy(center);
       controlsRef.current.update();
@@ -89,9 +172,9 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
   }, [modelRef, controlsRef]);
 
   const MODEL_CENTER = {
-    x: 0,
-    y: 6.405741747673449,
-    z: 4.440892098500626e-16, // effectively 0
+    x: 17,
+    y: 3.5,
+    z: 6.5, // effectively 0
   };
 
   const getViewByScreenSize = () => {
@@ -107,7 +190,7 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
     // Start with mobile view (default case)
     if (width <= 767) {
       return {
-        scale: 1,
+        scale: 7,
         position: [
           center.x + (-13.4 - MODEL_CENTER.x),
           center.y + (6.66 - MODEL_CENTER.y),
@@ -124,7 +207,7 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
     // Tablet
     else if (width <= 1200) {
       return {
-        scale: 1,
+        scale: 7,
         position: [
           center.x + (-2.3 - MODEL_CENTER.x),
           center.y + (6.3 - MODEL_CENTER.y),
@@ -141,7 +224,7 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
     // Desktop
     else {
       return {
-        scale: 1,
+        scale: 7,
         position: [
           center.x + (-1 - MODEL_CENTER.x),
           center.y + (4.1 - MODEL_CENTER.y),
@@ -178,6 +261,7 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
   //   position: new THREE.Vector3(20, 18.8, 40), // Default position
   //   target: new THREE.Vector3(2.9, 6.7, 5.6), // Default target
   // };
+
   const DEFAULT_ANNOTATION_POSITION = {
     xPercent: 50,
     yPercent: 50,
@@ -374,23 +458,39 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
       >
         <Canvas
           camera={{
-            position: [17.3, 3.9, 16.1],
+            position: [17.3, -0.9, 16.1],
             // position: [cameraPosition.x, cameraPosition.y, cameraPosition.z],
 
             fov: 40,
             near: 0.1,
-            far: 1000,
+            far: 200,
           }}
           style={{
             width: "100%",
             height: "100%",
             contain: "layout paint size", // Improve performance and prevent overflow
           }}
+          gl={{
+            antialias: true,
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1,
+          }}
         >
-          <ambientLight intensity={0.6} />
+          <RoomWalls />
+
+          <ambientLight intensity={1} />
+
           <directionalLight position={[0, 5, 0]} castShadow />
+          <pointLight color={"#88B6FF"} position={[10, 3, 0]} intensity={0.9} />
+          <pointLight color={"#88B6FF"} position={[0, 5, 0]} intensity={0.5} />
+          <pointLight
+            color={"#ffffff"}
+            position={[2, 6.4, 1]}
+            intensity={0.25}
+          />
+          <PostProcessingEffects />
           <Model
-            url="/ultima7.glb"
+            url="/ultima14.glb"
             scale={modelScale}
             setIsLoading={setIsLoading}
             controlsRef={controlsRef}
@@ -409,8 +509,8 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
             screenSpacePanning={true}
             panSpeed={3}
             enableZoom={true}
-            zoomSpeed={0.5}
-            maxDistance={40}
+            zoomSpeed={0.3}
+            maxDistance={20}
             minDistance={0}
             enableRotate={true}
             maxAzimuthAngle={Infinity} // Limit horizontal rotation

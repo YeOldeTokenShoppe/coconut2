@@ -396,14 +396,14 @@ function BurnGallery({ setBurnGalleryLoaded }) {
         position="relative"
         height="100vh"
         width="100%"
-        backgroundImage="url('/sgframed.png')"
-        backgroundSize={{ base: "8rem auto", md: "13rem auto" }}
-        backgroundRepeat={"no-repeat"}
-        backgroundPosition="10% 5rem"
+        // backgroundImage="url('/sgframed.png')"
+        // backgroundSize={{ base: "8rem auto", md: "13rem auto" }}
+        // backgroundRepeat={"no-repeat"}
+        // backgroundPosition="10% 5rem"
       >
         <Grid gap={0} width="100%">
           <GridItem width="100%" zIndex={5}>
-            {/* <Scene visible={isChandelierVisible} /> */}
+            <Scene visible={isChandelierVisible} />
           </GridItem>
 
           <GridItem width="100%" zIndex={4}>
