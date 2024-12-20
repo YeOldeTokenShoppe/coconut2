@@ -2,18 +2,18 @@ import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { gsap } from "gsap";
-import { useUser } from "@clerk/nextjs";
+import { useUser, SignedIn, SignedOut } from "@clerk/nextjs";
 
 const RocketSimulator = () => {
+  const { user } = useUser(); // Access the logged-in user
+  const userAvatarUrl = user ? user.imageUrl : "/brett.jpg";
   const containerRef = useRef(null);
   const [countdown, setCountdown] = useState(20);
   let currentFace = 1; // Track the current face
   let toggled = false; // Track the toggle state for visibility
 
-  const { user } = useUser(); // Access the logged-in user
-  const userAvatarUrl = user ? user.imageUrl : "/brett.jpg";
-
   useEffect(() => {
+    console.log("user", user);
     if (!containerRef.current) return;
 
     const container = containerRef.current;
@@ -137,7 +137,18 @@ const RocketSimulator = () => {
 
     // Load the texture for the first face
     const textureLoader = new THREE.TextureLoader();
-    const faceTexture1 = textureLoader.load(userAvatarUrl);
+    const userAvatarUrl = user ? user.imageUrl : "/brett.jpg";
+
+    const faceTexture1 = textureLoader.load(
+      userAvatarUrl,
+      () => console.log("Avatar texture loaded successfully:", userAvatarUrl),
+      undefined,
+      (err) => {
+        console.error("Error loading avatar texture:", err);
+        // Optional: Load a fallback texture if needed
+        textureLoader.load("/brett.jpg");
+      }
+    );
     // const faceTexture2 = textureLoader.load("/face.jpg"); // Replace with your first image path
 
     // Create the first face mesh
@@ -509,7 +520,7 @@ const RocketSimulator = () => {
       renderer.domElement.removeEventListener("mouseup", mouseup);
       container.removeChild(renderer.domElement);
     };
-  }, []);
+  }, [user, userAvatarUrl]);
   useEffect(() => {
     if (!containerRef.current) return;
 

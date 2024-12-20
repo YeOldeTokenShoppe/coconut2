@@ -55,28 +55,46 @@ export const Annotations = ({
         )}px`,
         backgroundColor: "rgba(0, 0, 0, 0.8)",
         color: "#fff",
+        borderRadius: "5%",
         zIndex: 100000,
         opacity: isResetVisible ? 1 : 0,
         visibility: isResetVisible ? "visible" : "hidden",
         display: isVisible ? "flex" : "none",
         transition: "opacity 0.5s ease, visibility 0s linear 0.5s",
-        pointerEvents: isResetVisible ? "all" : "none",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "20px",
+        pointerEvents: isVisible ? "all" : "none",
+        border: "2px solid goldenrod",
       }}
     >
-      <p style={{ margin: 0, padding: 0 }}>{text}</p>
+      <p style={{ margin: 0, paddingBottom: "10px" }}>{text}</p>
       <button
         onClick={(e) => {
           e.stopPropagation();
           onReset();
         }}
         style={{
+          position: "relative",
+          zIndex: 100001,
+          pointerEvents: "all",
+          cursor: "pointer",
           padding: "10px",
-          marginTop: "10px",
+          marginTop: "auto", // Push the button to the bottom
           backgroundColor: "goldenrod",
           color: "#fff",
           border: "none",
           borderRadius: "8px",
-          cursor: "pointer",
+          width: "70px",
+          height: "30px",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          fontSize: "16px",
+          fontWeight: "bold",
+          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+          transition: "background-color 0.3s ease, transform 0.3s ease",
         }}
       >
         OK

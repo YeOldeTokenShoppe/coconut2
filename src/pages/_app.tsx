@@ -40,8 +40,11 @@ function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
   const isGalleryPage = router.pathname === "/gallery";
-  const isScenePage = router.pathname === "/scene";
+  const isIndexPage = router.pathname === "/";
   const isNumerologyPage = router.pathname === "/numerology";
+  const isCommunionPage = router.pathname === "/communion";
+  const isScenePage = router.pathname === "/scene"; // Add this line
+  const isRocketPage = router.pathname === "/rocket";
 
   // Dynamically choose the theme
   const theme = isGalleryPage
@@ -53,7 +56,8 @@ function MyApp({ Component, pageProps }: AppProps) {
   let HeaderComponent = null;
   if (isNumerologyPage) {
     HeaderComponent = Header2;
-  } else {
+  } else if (!isIndexPage && !isScenePage && !isRocketPage && !isScenePage) {
+    // Modify this line
     HeaderComponent = Header;
   }
 

@@ -28,7 +28,7 @@ export const DEFAULT_MARKERS = [
       // Move this outside cameraView
       phone: { xPercent: 35, yPercent: 70 },
       tablet: { xPercent: 50, yPercent: 70 },
-      desktop: { xPercent: 80, yPercent: 30 },
+      desktop: { xPercent: 60, yPercent: 65 },
     },
   },
 
@@ -86,12 +86,12 @@ export const DEFAULT_MARKERS = [
       // Move this outside cameraView
       phone: { xPercent: 30, yPercent: 70 },
       tablet: { xPercent: 50, yPercent: 70 },
-      desktop: { xPercent: 20, yPercent: 30 },
+      desktop: { xPercent: 48, yPercent: 60 },
     },
   },
 
   {
-    position: new THREE.Vector3(1.65, 1.12, 0.45),
+    position: new THREE.Vector3(1.7, 1.12, 0.6),
     label: "View 4",
     description: "Lasciate ogni speranza....",
     cameraView: {
@@ -102,9 +102,9 @@ export const DEFAULT_MARKERS = [
         fov: 67.6,
       },
       tablet: {
-        position: () => new THREE.Vector3(6.6, 6.4, -0.6),
-        target: () => new THREE.Vector3(50, 4.8, 6.8),
-        fov: 98,
+        position: () => new THREE.Vector3(5.51, 5.6, 1.6),
+        target: () => new THREE.Vector3(23, 5.6, -0.55),
+        fov: 79.7,
       },
       desktop: {
         position: () => new THREE.Vector3(1.2, 7.3, 3),
@@ -116,7 +116,7 @@ export const DEFAULT_MARKERS = [
       // Move this outside cameraView
       phone: { xPercent: 30, yPercent: 65 },
       tablet: { xPercent: 50, yPercent: 70 },
-      desktop: { xPercent: 20, yPercent: 30 },
+      desktop: { xPercent: 70, yPercent: 30 },
     },
   },
 ];

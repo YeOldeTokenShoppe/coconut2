@@ -20,6 +20,8 @@ export const createMarkerFace = (index) => {
     side: THREE.DoubleSide,
   });
   const markerMesh = new THREE.Mesh(markerGeometry, markerMaterial);
+  markerMesh.position.z = 0.001; // Slight separation to prevent z-fighting
+  markerMesh.renderOrder = 1; // Ensure it renders after the border
   container.add(markerMesh);
 
   // Marker Border (with emissive glow)
@@ -31,6 +33,8 @@ export const createMarkerFace = (index) => {
     side: THREE.DoubleSide,
   });
   const borderMesh = new THREE.Mesh(borderGeometry, borderMaterial);
+  borderMesh.position.z = 0; // Default position
+  borderMesh.renderOrder = 0; // Render before the marker circle
   container.add(borderMesh);
 
   // Number Texture
@@ -62,7 +66,7 @@ export const createMarkerFace = (index) => {
   container.onBeforeRender = () => {
     // Pulse Effect (scale oscillation)
     pulseTime += 0.05; // Adjust speed
-    const scale = 1 + Math.sin(pulseTime) * 0.2; // Adjust amplitude
+    const scale = 1 + Math.sin(pulseTime) * 0.15; // Adjust amplitude
     borderMesh.scale.set(scale, scale, scale);
 
     // Glow Effect (emissive intensity oscillation)

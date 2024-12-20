@@ -4889,19 +4889,21 @@ body {
   /* top: 0;
   left: 0; */
   width: 20rem;
-  height: 15rem;
+  min-width: 10rem;
+  height: auto;
+  min-height: 10rem;
   align-items: center;
   justify-content: center;
   z-index: 9999;
   margin-left: 15px;
   margin-top: 15px;
   padding: 1em;
-  width: 200px;
+  width: 8rem;
   color: #fff;
   border-radius: 0.5em;
-  line-height: 40px;
+  line-height: 1.5rem;
   font-weight: 200;
-  font-size: 14px;
+  font-size: 1rem;
   background: #00000077;
   transform: scale(0.9);
   border: 1px solid #ffffff77;
