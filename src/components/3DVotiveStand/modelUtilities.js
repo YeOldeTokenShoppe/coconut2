@@ -12,7 +12,6 @@ export const createMarkerFace = (index) => {
   container.isMarker = true;
   container.markerIndex = index;
   container.scale.set(0.15, 0.15, 0.15);
-
   // Marker Circle
   const markerGeometry = new THREE.CircleGeometry(0.15, 32);
   const markerMaterial = new THREE.MeshBasicMaterial({

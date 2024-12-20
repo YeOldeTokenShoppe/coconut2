@@ -373,7 +373,7 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
 
           <PostProcessingEffects />
           <Model
-            url="/ultima15.glb"
+            url="/ultima20.glb"
             scale={modelScale}
             setIsLoading={setIsLoading}
             controlsRef={controlsRef}
