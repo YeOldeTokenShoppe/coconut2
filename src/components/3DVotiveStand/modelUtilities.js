@@ -1,24 +1,20 @@
 // modelUtils.js
 import * as THREE from "three";
 export const createMarkerFace = (index) => {
-  // Scale factor to make markers smaller relative to the scene
-  const SCALE_FACTOR = 0.1; // Adjust this to control overall marker size
-
-  // Base marker container
   const container = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.4 * SCALE_FACTOR, 0.4 * SCALE_FACTOR),
+    new THREE.PlaneGeometry(0.4, 0.4),
     new THREE.MeshBasicMaterial({
       transparent: true,
-      opacity: 1,
+      opacity: 0,
       side: THREE.DoubleSide,
     })
   );
-
   container.isMarker = true;
   container.markerIndex = index;
+  container.scale.set(0.15, 0.15, 0.15);
 
   // Marker Circle
-  const markerGeometry = new THREE.CircleGeometry(0.15 * SCALE_FACTOR, 32);
+  const markerGeometry = new THREE.CircleGeometry(0.15, 32);
   const markerMaterial = new THREE.MeshBasicMaterial({
     color: 0x000000,
     side: THREE.DoubleSide,
@@ -27,11 +23,7 @@ export const createMarkerFace = (index) => {
   container.add(markerMesh);
 
   // Marker Border (with emissive glow)
-  const borderGeometry = new THREE.RingGeometry(
-    0.16 * SCALE_FACTOR,
-    0.2 * SCALE_FACTOR,
-    32
-  );
+  const borderGeometry = new THREE.RingGeometry(0.16, 0.2, 32);
   const borderMaterial = new THREE.MeshStandardMaterial({
     color: 0xffff00, // Base yellow color
     emissive: 0xffff00, // Yellow glow
@@ -47,16 +39,13 @@ export const createMarkerFace = (index) => {
   canvas.height = 64;
   const context = canvas.getContext("2d");
   context.fillStyle = "white";
-  context.font = `bold ${40 * SCALE_FACTOR}px Arial`;
+  context.font = "bold 40px Arial";
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillText((index + 1).toString(), 32, 32);
 
   const numberTexture = new THREE.CanvasTexture(canvas);
-  const numberGeometry = new THREE.PlaneGeometry(
-    0.2 * SCALE_FACTOR,
-    0.2 * SCALE_FACTOR
-  );
+  const numberGeometry = new THREE.PlaneGeometry(0.2, 0.2);
   const numberMaterial = new THREE.MeshBasicMaterial({
     map: numberTexture,
     transparent: true,
@@ -64,7 +53,7 @@ export const createMarkerFace = (index) => {
     depthWrite: false,
   });
   const numberMesh = new THREE.Mesh(numberGeometry, numberMaterial);
-  numberMesh.position.z = 0.01 * SCALE_FACTOR;
+  numberMesh.position.z = 0.01;
   container.add(numberMesh);
 
   // Add pulsing and glowing effect
@@ -73,7 +62,7 @@ export const createMarkerFace = (index) => {
   container.onBeforeRender = () => {
     // Pulse Effect (scale oscillation)
     pulseTime += 0.05; // Adjust speed
-    const scale = 1 + Math.sin(pulseTime) * 0.2 * SCALE_FACTOR; // Adjust amplitude
+    const scale = 1 + Math.sin(pulseTime) * 0.2; // Adjust amplitude
     borderMesh.scale.set(scale, scale, scale);
 
     // Glow Effect (emissive intensity oscillation)

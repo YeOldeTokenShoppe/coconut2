@@ -30,8 +30,8 @@ function RoomWalls() {
   const heightOffset = 7;
 
   const offsets = {
-    back: { x: -4, y: 1 },
-    left: { x: 2, y: -2 },
+    back: { x: -2, y: 1 },
+    left: { x: 2, y: 1 },
     right: { x: -1, y: 0 },
   };
 
@@ -44,7 +44,7 @@ function RoomWalls() {
   useEffect(() => {
     const loader = new GLTFLoader();
 
-    loader.load("/portal2.glb", (gltf) => {
+    loader.load("/portal4.glb", (gltf) => {
       const scene = gltf.scene;
 
       // Setup door
@@ -55,8 +55,6 @@ function RoomWalls() {
       // Find portalLight and create a new material for it
       const portalLight = scene.getObjectByName("portalLight");
       if (portalLight) {
-        console.log("Found portalLight mesh:", portalLight);
-
         // Create ShaderMaterial
         const shaderMaterial = new THREE.ShaderMaterial({
           uniforms: {

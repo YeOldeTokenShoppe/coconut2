@@ -261,8 +261,8 @@ a {
 }
 
 body {
-  color: #e7e8e8 !important;
-  background: #1b1724 !important;
+  /* color: #e7e8e8 !important;
+  background: #1b1724 !important; */
 }
 
 .custom-button {
@@ -738,6 +738,12 @@ s.box .shimmer {
 #footer2 {
   text-align: center;
   background: transparent;
+  margin-top: 2rem !important;
+}
+#footer3 {
+  text-align: center;
+  /* background: linear-gradient(to bottom, #000000, #593a41); */
+  background: #000000;
   margin-top: 2rem !important;
 }
 

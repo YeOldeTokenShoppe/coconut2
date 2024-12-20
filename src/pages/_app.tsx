@@ -14,15 +14,18 @@ import "../../styles/sparkle.css";
 import "../../styles/musicPlayer.css";
 import "../../styles/coin.css";
 import "../../styles/NeonSign.css";
+import "../../styles/ScenePage.css";
 import type { AppProps } from "next/app";
 import { ThirdwebProvider } from "../utilities/thirdweb";
 import { ChakraProvider, extendTheme } from "@chakra-ui/react";
-
+import { defaultTheme, galleryTheme, sceneTheme } from "../utilities/theme";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Header from "../components/Header";
 import Header2 from "../components/Header2";
 import styles from "../../styles/MusicPlayer.module.css";
+import Communion from "../components/Communion";
+import Communion3 from "../components/Communion3";
 
 import {
   ClerkProvider,
@@ -33,51 +36,32 @@ import {
 } from "@clerk/nextjs";
 import { shadesOfPurple } from "@clerk/themes";
 
-const theme = extendTheme({
-  breakpoints: {
-    sm: "30em",
-    md: "38em",
-    lg: "62em",
-    xl: "80em",
-  },
-  styles: {
-    global: {
-      "html, body": {
-        backgroundColor: "#1b1724",
-        color: "white",
-        fontFamily: "'Miltonian Tattoo', sans-serif",
-        fontSize: "xxl-large",
-      },
-    },
-  },
-});
-
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
-  const isIndexPage = router.pathname === "/";
+  const isGalleryPage = router.pathname === "/gallery";
+  const isScenePage = router.pathname === "/scene";
   const isNumerologyPage = router.pathname === "/numerology";
-  const isCommunionPage = router.pathname === "/communion";
-  const isScenePage = router.pathname === "/scene"; // Add this line
-  const isRocketPage = router.pathname === "/rocket";
+
+  // Dynamically choose the theme
+  const theme = isGalleryPage
+    ? galleryTheme
+    : isScenePage
+    ? sceneTheme
+    : defaultTheme;
 
   let HeaderComponent = null;
   if (isNumerologyPage) {
     HeaderComponent = Header2;
-  } else if (!isIndexPage && !isScenePage && !isRocketPage && !isScenePage) {
-    // Modify this line
+  } else {
     HeaderComponent = Header;
   }
 
   return (
     <>
-      <ClerkProvider
-        appearance={{
-          baseTheme: shadesOfPurple,
-        }}
-      >
+      <ClerkProvider>
         <ThirdwebProvider>
-          <ChakraProvider>
+          <ChakraProvider theme={theme}>
             <Head>
               <title>𝓞𝖚𝖗 𝕷𝖆𝖉𝖞 𝔬𝔣 𝕻𝖊𝖗𝖕𝖊𝖙𝖚𝖆𝖑 𝕻𝖗𝖔𝖋𝖎𝖙</title>
               <meta name="description" content="A token to believe in." />
@@ -87,19 +71,17 @@ function MyApp({ Component, pageProps }: AppProps) {
               />
             </Head>
             <div
-              className={
-                isIndexPage || isCommunionPage || isScenePage ? "" : ""
-              } // Modify this line
+              className={isScenePage ? "scene-page" : ""}
+              style={{
+                width: "100%",
+                margin: "0",
+              }}
             >
-              <div
-                style={{
-                  width: "100%",
-                  margin: "0",
-                }}
-              >
-                {HeaderComponent && <HeaderComponent />}
-                <Component {...pageProps} />
-              </div>
+              {/* Render the Header dynamically */}
+              {HeaderComponent && <HeaderComponent />}
+
+              {/* Render the main page content */}
+              <Component {...pageProps} />
             </div>
           </ChakraProvider>
         </ThirdwebProvider>

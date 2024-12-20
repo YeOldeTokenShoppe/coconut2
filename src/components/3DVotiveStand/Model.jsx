@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import { useGLTF, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
-import { DEFAULT_MARKERS } from "./constants";
+import { DEFAULT_MARKERS } from "./markers";
 import {
   createMarkerFace,
   setupVideoTextures,
@@ -26,25 +26,32 @@ function Model({
   moveCamera,
   rotation,
 }) {
-  const gltf = useGLTF("/ultima14.glb");
+  const gltf = useGLTF("/ultima15.glb");
   const { actions, mixer } = useAnimations(gltf.animations, modelRef);
   const { camera } = useThree();
 
   useEffect(() => {
     if (!modelRef.current) return;
 
-    // Compute the bounding box and center the model
     const box = new THREE.Box3().setFromObject(modelRef.current);
     const center = box.getCenter(new THREE.Vector3());
-    modelRef.current.position.sub(center); // Offset model to center it
+    modelRef.current.position.sub(center); // Center the model
     modelRef.current.position.y += box.getSize(new THREE.Vector3()).y / 2; // Adjust for ground alignment
 
-    // Update the OrbitControls target
-    if (controlsRef?.current) {
-      controlsRef.current.target.copy(center); // Set OrbitControls target to the center
-      controlsRef.current.update(); // Refresh OrbitControls
+    // Only update OrbitControls if not modified by the GUI
+    if (controlsRef?.current && !controlsRef.current.targetSetByGUI) {
+      controlsRef.current.target.copy(center);
+      controlsRef.current.update();
     }
   }, [controlsRef]);
+
+  useEffect(() => {
+    if (modelRef.current) {
+      const box = new THREE.Box3().setFromObject(modelRef.current);
+      const center = box.getCenter(new THREE.Vector3());
+      console.log("Model center:", center);
+    }
+  }, [modelRef]);
 
   useEffect(() => {
     setCamera(camera);

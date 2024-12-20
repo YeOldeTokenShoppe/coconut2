@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import BurnGallery from "../components/BurnGallery";
 import NavBar from "../components/NavBar.client";
-import Communion from "../components/Communion";
+import Communion3 from "../components/Communion3";
 import Loader from "../components/Loader";
 
 export default function GalleryPage() {
@@ -25,15 +25,15 @@ export default function GalleryPage() {
     }
   }, [burnGalleryLoaded, communionLoaded]);
 
-  useEffect(() => {
-    // Override the body background color
-    document.body.style.backgroundColor = "#f0f0f0"; // Set your desired background color
+  // useEffect(() => {
+  //   // Override the body background color
+  //   document.body.style.backgroundColor = "#1b1724"; // Set your desired background color
 
-    // Cleanup function to reset the background color when the component unmounts
-    return () => {
-      document.body.style.backgroundColor = "";
-    };
-  }, []);
+  //   // Cleanup function to reset the background color when the component unmounts
+  //   return () => {
+  //     document.body.style.backgroundColor = "#1b1724";
+  //   };
+  // }, []);
 
   return (
     <>
@@ -53,7 +53,7 @@ export default function GalleryPage() {
           <NavBar />
         </div> */}
         <div style={{ marginTop: "1rem" }}>
-          <Communion setCommunionLoaded={setCommunionLoaded} />
+          <Communion3 setCommunionLoaded={setCommunionLoaded} />
         </div>
       </div>
     </>

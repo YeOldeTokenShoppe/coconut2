@@ -7,133 +7,56 @@ import React, {
   useMemo,
 } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Center } from "@react-three/drei";
-import PostProcessingEffects from "../PostProcessingEffects";
+import { OrbitControls, Center, useHelper } from "@react-three/drei";
+import { PointLightHelper } from "three";
+import { RectAreaLightHelper } from "three/examples/jsm/helpers/RectAreaLightHelper.js";
+import PostProcessingEffects from "./PostProcessingEffects";
 import * as THREE from "three";
 import gsap from "gsap";
 import Model from "./Model";
-import { DEFAULT_MARKERS } from "./constants";
-import CameraControlPanel from "../CameraControlPanel";
+import { DEFAULT_MARKERS } from "./markers";
+import { DEFAULT_CAMERA } from "./defaultCamera";
+import { CONTROL_SETTINGS } from "./controlSettings";
+import { Annotations, ANNOTATION_SETTINGS } from "./annotations";
+import { MODEL_SETTINGS } from "./modelConfig";
+import { getScreenCategory } from "./screenCategories";
 import { Box } from "@chakra-ui/react";
-
+import CameraGUI from "./CameraGUI";
 import RoomWalls from "./RoomWalls";
+import dynamic from "next/dynamic";
 
 function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
   const [userData, setUserData] = useState([]);
   const [tooltipData, setTooltipData] = useState(null);
   const [modelScale, setModelScale] = useState(7);
-  const [activeAnnotation, setActiveAnnotation] = useState(null);
+
   const [camera, setCamera] = useState(null);
   const [markers, setMarkers] = useState(DEFAULT_MARKERS);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [isResetVisible, setIsResetVisible] = useState(true);
   const [rotation, setRotation] = useState([0, 0, 0]);
-
-  const [lastActiveAnnotation, setLastActiveAnnotation] = useState(null);
+  const [activeAnnotation, setActiveAnnotation] = useState(null);
   const [isAnnotationVisible, setIsAnnotationVisible] = useState(false);
+  const [isInteractionInProgress, setIsInteractionInProgress] = useState(false);
 
-  const controlsRef = useRef(null);
   const modelRef = useRef();
   const sceneRef = useRef();
   const canvasRef = useRef();
-
-  // // Handle window resize
-  // window.addEventListener("resize", onWindowResize, false);
+  const scene = new THREE.Scene();
 
   // for camera control panel
-  // const [cameraPosition, setCameraPosition] = useState({
-  //   x: 17.3,
-  //   y: 3.9,
-  //   z: 16.1,
-  // });
-  // const [cameraTarget, setCameraTarget] = useState({
-  //   x: 0.1,
-  //   y: 6.657,
-  //   z: -0.6,
-  // });
+  const cameraRef = useRef(null); // Reference to the camera
+  const controlsRef = useRef(null); // Reference to OrbitControls
 
-  // useEffect(() => {
-  //   if (camera && controlsRef.current) {
-  //     // Update camera position when state changes
-  //     camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
-  //     controlsRef.current.target.set(
-  //       cameraTarget.x,
-  //       cameraTarget.y,
-  //       cameraTarget.z
-  //     );
-  //     controlsRef.current.update();
-  //   }
-  // }, [camera, cameraPosition, cameraTarget]);
+  const [screenCategory, setScreenCategory] = useState("desktop");
 
-  // for camera control panel
+  const currentSettings = DEFAULT_CAMERA[screenCategory];
+  useEffect(() => {
+    setScreenCategory(getScreenCategory());
+  }, []);
 
-  // const GodRayEffect = () => {
-  //   const godRaySourceRef = useRef();
-  //   const [lightSource, setLightSource] = useState(null);
-
-  //   useEffect(() => {
-  //     if (godRaySourceRef.current) {
-  //       setLightSource(godRaySourceRef.current);
-  //     }
-  //   }, []);
-
-  //   return (
-  //     <>
-  //       <group rotation={[-0.3, 0, 0.2]} position={[2, 10, 2]}>
-  //         {/* Light source */}
-  //         <mesh position={[3, 15, 0]} ref={godRaySourceRef}>
-  //           <cylinderGeometry args={[0.5, 1, 20]} />
-  //           <meshBasicMaterial
-  //             color="#ffffff"
-  //             opacity={0.001}
-  //             transparent
-  //             side={THREE.DoubleSide}
-  //           />
-  //         </mesh>
-
-  //         {/* Inner sparkles - aligned with light beam */}
-  //         <Sparkles
-  //           count={100}
-  //           scale={[1, 20, 1]} // Matched to cylinder dimensions
-  //           size={0.2}
-  //           speed={0.1}
-  //           noise={1.5}
-  //           opacity={0.6}
-  //           color="#ffd700"
-  //           position={[3, 15, 0]} // Matched to light source position
-  //         />
-
-  //         {/* Outer sparkles - slightly larger */}
-  //         <Sparkles
-  //           count={150}
-  //           scale={[1.5, 20, 1.5]} // Slightly wider than the beam
-  //           size={0.15}
-  //           speed={0.2}
-  //           noise={2}
-  //           opacity={0.4}
-  //           color="#fff8e0"
-  //           position={[3, 15, 0]} // Same position as light source
-  //         />
-  //       </group>
-
-  //       {lightSource && (
-  //         <EffectComposer>
-  //           <GodRays
-  //             sun={lightSource}
-  //             blendFunction={16}
-  //             samples={60}
-  //             density={0.17}
-  //             decay={0.93}
-  //             weight={1.0}
-  //             exposure={0.6}
-  //             clampMax={1}
-  //             maxRadius={0.03}
-  //           />
-  //         </EffectComposer>
-  //       )}
-  //     </>
-  //   );
-  // };
+  const commonSettings = DEFAULT_CAMERA.common;
+  const [isGuiMode, setIsGuiMode] = useState(false);
 
   useEffect(() => {
     const updateSize = () => {
@@ -159,86 +82,64 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
     initializeScene();
   }, [setIsLoading]);
   useEffect(() => {
-    if (modelRef.current && controlsRef.current) {
-      const box = new THREE.Box3().setFromObject(modelRef.current);
-      const size = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      console.log("Scene size:", size);
-      console.log("Scene center:", center);
+    const initializeCamera = () => {
+      if (!cameraRef.current || !controlsRef.current) return;
 
-      controlsRef.current.target.copy(center);
-      controlsRef.current.update();
+      const screenCategory = getScreenCategory();
+
+      // Calculate center of model or use default
+      const center = new THREE.Vector3();
+      if (modelRef.current) {
+        const box = new THREE.Box3().setFromObject(modelRef.current);
+        box.getCenter(center);
+      }
+
+      // Get default camera settings
+      const defaultCameraSettings = DEFAULT_CAMERA[screenCategory];
+      const cameraPosition = defaultCameraSettings.position;
+      const targetPosition = defaultCameraSettings.target;
+
+      // Set camera position
+      cameraRef.current.position.set(
+        cameraPosition[0],
+        cameraPosition[1],
+        cameraPosition[2]
+      );
+
+      // Set OrbitControls target
+      controlsRef.current.target.set(
+        targetPosition[0],
+        targetPosition[1],
+        targetPosition[2]
+      );
+
+      controlsRef.current.update(); // Ensure changes are applied
+    };
+
+    // Run initialization
+    initializeCamera();
+  }, [
+    modelRef.current,
+    cameraRef.current,
+    controlsRef.current,
+    screenCategory,
+  ]);
+  const handleGuiStart = () => {
+    if (controlsRef.current) {
+      const guiSettings = CONTROL_SETTINGS.guiMode;
+      Object.assign(controlsRef.current, guiSettings);
     }
-  }, [modelRef, controlsRef]);
-
-  const MODEL_CENTER = {
-    x: 17,
-    y: 3.5,
-    z: 6.5, // effectively 0
+    setIsGuiMode(true);
   };
 
-  const getViewByScreenSize = () => {
-    const width = window.innerWidth;
-
-    const center = new THREE.Vector3(
-      MODEL_CENTER.x,
-      MODEL_CENTER.y,
-      MODEL_CENTER.z
-    );
-    // Calculate center dynamically for each view
-
-    // Start with mobile view (default case)
-    if (width <= 767) {
-      return {
-        scale: 7,
-        position: [
-          center.x + (-13.4 - MODEL_CENTER.x),
-          center.y + (6.66 - MODEL_CENTER.y),
-          center.z + (25 - MODEL_CENTER.z),
-        ],
-        target: [
-          center.x + (1.4 - MODEL_CENTER.x),
-          center.y + (2.8 - MODEL_CENTER.y),
-          center.z + (-0.52 - MODEL_CENTER.z),
-        ],
-        fov: 40,
-      };
+  const handleGuiEnd = () => {
+    if (controlsRef.current) {
+      const defaultSettings = CONTROL_SETTINGS.default;
+      Object.assign(controlsRef.current, defaultSettings);
     }
-    // Tablet
-    else if (width <= 1200) {
-      return {
-        scale: 7,
-        position: [
-          center.x + (-2.3 - MODEL_CENTER.x),
-          center.y + (6.3 - MODEL_CENTER.y),
-          center.z + (26.4 - MODEL_CENTER.z),
-        ],
-        target: [
-          center.x + (0 - MODEL_CENTER.x),
-          center.y + (6.7 - MODEL_CENTER.y),
-          center.z + (-0.52 - MODEL_CENTER.z),
-        ],
-        fov: 40,
-      };
-    }
-    // Desktop
-    else {
-      return {
-        scale: 7,
-        position: [
-          center.x + (-1 - MODEL_CENTER.x),
-          center.y + (4.1 - MODEL_CENTER.y),
-          center.z + (25.2 - MODEL_CENTER.z),
-        ],
-        target: [
-          center.x + (0 - MODEL_CENTER.x),
-          center.y + (6.1 - MODEL_CENTER.y),
-          center.z + (-0.523 - MODEL_CENTER.z),
-        ],
-        fov: 40,
-      };
-    }
+    setIsGuiMode(false);
   };
+
   // Animate function for billboarding
   useEffect(() => {
     const animate = () => {
@@ -256,16 +157,6 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
 
     animate(); // Start the animation loop
   }, [camera]);
-
-  // const DEFAULT_CAMERA_VIEW = {
-  //   position: new THREE.Vector3(20, 18.8, 40), // Default position
-  //   target: new THREE.Vector3(2.9, 6.7, 5.6), // Default target
-  // };
-
-  const DEFAULT_ANNOTATION_POSITION = {
-    xPercent: 50,
-    yPercent: 50,
-  };
 
   const handlePointerMove = (event) => {
     if (!camera) return;
@@ -309,93 +200,43 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
       }
     }
   };
-
   const moveCamera = (view) => {
     if (!view?.cameraView) return;
 
-    if (onCameraMove) {
-      onCameraMove();
-    }
-
-    const screenCategory =
-      window.innerWidth > 1200
-        ? "desktop"
-        : window.innerWidth > 767
-        ? "tablet"
-        : "phone";
-
-    const center = new THREE.Vector3();
-    if (modelRef.current) {
-      const box = new THREE.Box3().setFromObject(modelRef.current);
-      box.getCenter(center);
-    }
-
+    const screenCategory = getScreenCategory();
     const cameraView = {
-      position: view.cameraView[screenCategory].position(center),
-      target: view.cameraView[screenCategory].target(center),
+      position: view.cameraView[screenCategory].position(),
+      target: view.cameraView[screenCategory].target(),
+      fov: view.cameraView[screenCategory].fov ?? currentSettings.fov,
     };
-
-    const annotationPosition =
-      view.annotationPosition?.[screenCategory] || DEFAULT_ANNOTATION_POSITION;
-
-    // Hide annotation immediately when starting new camera move
-    setIsAnnotationVisible(false);
-
-    // Animate to new position
-    gsap.to(camera.position, {
-      x: cameraView.position.x,
-      y: cameraView.position.y,
-      z: cameraView.position.z,
-      duration: 1.5,
-      ease: "power2.inOut",
-      onUpdate: () => controlsRef.current.update(),
-      onComplete: () => {
-        // Show annotation with a delay after camera movement completes
-        setTimeout(() => {
-          setIsAnnotationVisible(true);
-        }, 200); // 200ms delay after camera arrives
-      },
-    });
-
-    gsap.to(controlsRef.current.target, {
-      x: cameraView.target.x,
-      y: cameraView.target.y,
-      z: cameraView.target.z,
-      duration: 1.5,
-      ease: "power2.inOut",
-      onUpdate: () => controlsRef.current.update(),
-    });
-
+    // Notify the parent that the camera is moving
+    onCameraMove();
+    // Set the annotation content but don't show it yet
     setActiveAnnotation({
       text: view.description,
       position: {
-        xPercent: annotationPosition.xPercent,
-        yPercent: annotationPosition.yPercent,
+        screen: {
+          xPercent:
+            view.annotationPosition?.[screenCategory]?.xPercent ??
+            ANNOTATION_SETTINGS.defaultScreenPosition.xPercent,
+          yPercent:
+            view.annotationPosition?.[screenCategory]?.yPercent ??
+            ANNOTATION_SETTINGS.defaultScreenPosition.yPercent,
+        },
       },
     });
-    setIsResetVisible(true);
-  };
-
-  const resetCamera = () => {
-    if (!camera || !controlsRef.current) return;
-
-    if (onResetView) {
-      onResetView();
-    }
-
-    // Immediately hide annotation on reset
     setIsAnnotationVisible(false);
 
-    const { scale, position, target, fov } = getViewByScreenSize();
-    const timeline = gsap.timeline();
+    const masterTimeline = gsap.timeline();
 
-    timeline
+    // Camera movement timeline
+    masterTimeline
       .to(
         camera.position,
         {
-          x: position[0],
-          y: position[1],
-          z: position[2],
+          x: cameraView.position.x,
+          y: cameraView.position.y,
+          z: cameraView.position.z,
           duration: 1.5,
           ease: "power2.inOut",
         },
@@ -404,76 +245,122 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
       .to(
         controlsRef.current.target,
         {
-          x: target[0],
-          y: target[1],
-          z: target[2],
+          x: cameraView.target.x,
+          y: cameraView.target.y,
+          z: cameraView.target.z,
           duration: 1.5,
           ease: "power2.inOut",
         },
         0
       )
-      .eventCallback("onUpdate", () => controlsRef.current.update());
+      .to(
+        camera,
+        {
+          fov: cameraView.fov,
+          duration: 1.5,
+          ease: "power2.inOut",
+        },
+        0
+      )
+      // Add a delay after camera movement before showing annotation
+      .call(() => setIsAnnotationVisible(true), [], "+=0.3"); // 0.3 seconds after camera movement
 
-    setActiveAnnotation(null);
-    setLastActiveAnnotation(null);
-    setIsResetVisible(false);
-  };
-  useEffect(() => {
-    const updateView = () => {
-      if (!camera || !controlsRef.current) return;
-
-      const { scale, position, target, fov } = getViewByScreenSize();
-
-      setModelScale(scale);
-      camera.position.set(...position);
-      camera.fov = fov;
-      camera.updateProjectionMatrix();
-
-      // Set target directly - no need for initial/orbit separation
-      controlsRef.current.target.set(...target);
+    masterTimeline.eventCallback("onUpdate", () => {
       controlsRef.current.update();
-    };
+      camera.updateProjectionMatrix();
+    });
+  };
 
-    updateView();
-    window.addEventListener("resize", updateView);
-    return () => window.removeEventListener("resize", updateView);
-  }, [camera, controlsRef]);
+  const resetCamera = () => {
+    if (!camera || !controlsRef.current) return;
+
+    // Hide annotation first
+    setIsAnnotationVisible(false);
+    setActiveAnnotation(null);
+
+    const defaultPosition = DEFAULT_CAMERA[screenCategory].position;
+    const defaultTarget = DEFAULT_CAMERA[screenCategory].target;
+
+    const resetTimeline = gsap.timeline();
+
+    resetTimeline
+      .to(
+        camera.position,
+        {
+          x: defaultPosition[0],
+          y: defaultPosition[1],
+          z: defaultPosition[2],
+          duration: 1.5,
+          ease: "power2.inOut",
+        },
+        0
+      )
+      .to(
+        controlsRef.current.target,
+        {
+          x: defaultTarget[0],
+          y: defaultTarget[1],
+          z: defaultTarget[2],
+          duration: 1.5,
+          ease: "power2.inOut",
+        },
+        0
+      )
+      .to(
+        camera,
+        {
+          fov: DEFAULT_CAMERA[screenCategory].fov,
+          duration: 1.5,
+          ease: "power2.inOut",
+        },
+        0
+      );
+
+    resetTimeline.eventCallback("onUpdate", () => {
+      controlsRef.current.update();
+      camera.updateProjectionMatrix();
+    });
+  };
 
   return (
     <>
-      {/* <Box position="absolute" top={8} right={0} zIndex={"100000"}>
-        <CameraControlPanel camera={camera} controls={controlsRef.current} />
-      </Box> */}
       <div
         className="votiveContainer"
         style={{
           position: "absolute",
           top: 0,
-          // inset: 0,  // This sets left, right, top, bottom to 0
           margin: "auto",
           height: "100vh",
           width: "100%",
           maxWidth: "100vw",
+          pointerEvents: "none", // Add this to allow clicking through to annotations
         }}
       >
+        {/* <CameraGUI
+          cameraRef={cameraRef}
+          controlsRef={controlsRef}
+          onGuiStart={handleGuiStart}
+          onGuiEnd={handleGuiEnd}
+          activeAnnotation={activeAnnotation}
+          style={{ pointerEvents: "auto" }} // Add this
+        /> */}
         <Canvas
-          camera={{
-            position: [17.3, -0.9, 16.1],
-            // position: [cameraPosition.x, cameraPosition.y, cameraPosition.z],
-
-            fov: 40,
-            near: 0.1,
-            far: 200,
-          }}
           style={{
+            backgroundColor: "#1b1724",
+            opacity: 0.9,
             width: "100%",
             height: "100%",
-            contain: "layout paint size", // Improve performance and prevent overflow
           }}
-          gl={{
-            antialias: true,
-            toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 1,
+          camera={{
+            position: DEFAULT_CAMERA[screenCategory].position,
+            fov: DEFAULT_CAMERA[screenCategory].fov,
+            near: commonSettings.near,
+            far: commonSettings.far,
+          }}
+          gl={commonSettings.gl}
+          onCreated={({ camera }) => {
+            cameraRef.current = camera;
+            setCamera(camera);
           }}
         >
           <RoomWalls />
@@ -481,16 +368,12 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
           <ambientLight intensity={1} />
 
           <directionalLight position={[0, 5, 0]} castShadow />
-          <pointLight color={"#88B6FF"} position={[10, 3, 0]} intensity={0.9} />
-          <pointLight color={"#88B6FF"} position={[0, 5, 0]} intensity={0.5} />
-          <pointLight
-            color={"#ffffff"}
-            position={[2, 6.4, 1]}
-            intensity={0.25}
-          />
+
+          <pointLight position={[2, 1, 3]} intensity={5} color={"#88B6FF"} />
+
           <PostProcessingEffects />
           <Model
-            url="/ultima14.glb"
+            url="/ultima15.glb"
             scale={modelScale}
             setIsLoading={setIsLoading}
             controlsRef={controlsRef}
@@ -502,9 +385,26 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
             userData={userData}
             moveCamera={moveCamera}
           />
+          {/* use this version only when using gui */}
 
           <OrbitControls
             ref={controlsRef}
+            {...CONTROL_SETTINGS.default}
+            onStart={() => {
+              console.log("OrbitControls ready");
+              if (!isGuiMode) {
+                // Apply default settings when not in GUI mode
+                const defaultSettings = CONTROL_SETTINGS.default;
+                Object.assign(controlsRef.current, defaultSettings);
+                controlsRef.current.update(); // Ensure controls are updated
+              }
+            }}
+          />
+
+          {/* <OrbitControls
+            ref={controlsRef}
+            rotation={true}
+            rotateSpeed={0.3}
             enablePan={true}
             screenSpacePanning={true}
             panSpeed={3}
@@ -517,106 +417,63 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
             minAzimuthAngle={-Infinity} // Limit horizontal rotation
             maxPolarAngle={Math.PI / 2} // Limit vertical rotation
             minPolarAngle={0} // Limit vertical rotation
-          />
+          /> */}
         </Canvas>
-      </div>
-      {activeAnnotation && (
-        <div
-          className={`annotation ${!isResetVisible ? "hidden" : ""}`}
-          style={{
-            position: "absolute",
-            left: `${Math.max(
-              Math.min(
-                (activeAnnotation.position.xPercent / 100) * size.width,
-                size.width - 100
-              ),
-              10
-            )}px`,
-            top: `${Math.max(
-              Math.min(
-                (activeAnnotation.position.yPercent / 100) * size.height,
-                size.height - 100
-              ),
-              10
-            )}px`,
-            backgroundColor: "rgba(0, 0, 0, 0.8)",
-            color: "#fff",
-            zIndex: 99999,
-            opacity: isAnnotationVisible ? 1 : 0,
-            visibility: isResetVisible ? "visible" : "hidden",
-            transition: "opacity 0.5s ease", // Smooth fade in
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "20px",
-            height: "auto",
-          }}
-        >
-          <p>{activeAnnotation.text}</p>
-          <button
-            onClick={resetCamera}
-            style={{
-              padding: "10px",
-              marginTop: "10px",
-              backgroundColor: "goldenrod",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              width: "70px",
-              height: "30px",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              alignContent: "center",
 
-              fontSize: "16px",
-              fontWeight: "bold",
-              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-              transition: "background-color 0.3s ease, transform 0.3s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#daa520";
-              e.target.style.transform = "scale(1.05)";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "goldenrod";
-              e.target.style.transform = "scale(1)";
+        {activeAnnotation && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              pointerEvents: "none", // Add this
             }}
           >
-            OK
-          </button>
-        </div>
-      )}
-
-      {tooltipData?.map((tooltip, index) => (
-        <div
-          key={index}
-          className="tooltip-container"
-          style={{
-            position: "absolute",
-            left: `${tooltip.position.x}px`,
-            top: `${tooltip.position.y - 50}px`,
-            transform: "translate(-50%, -100%)",
-            transition: "all 0.2s ease-in-out",
-            backgroundColor: "rgba(0, 0, 0, 0.9)",
-            color: "white",
-            padding: "8px 12px",
-            borderRadius: "4px",
-            pointerEvents: "none",
-            zIndex: 1000,
-            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-            fontSize: "14px",
-            fontWeight: "600",
-            letterSpacing: "0.02em",
-            minWidth: "100px",
-            textAlign: "center",
-          }}
-        >
-          {tooltip.userName}
-        </div>
-      ))}
+            <Annotations
+              text={activeAnnotation?.text}
+              isResetVisible={isResetVisible}
+              isVisible={isAnnotationVisible}
+              position={activeAnnotation?.position}
+              onReset={() => {
+                resetCamera();
+                onResetView(); // Notify parent to show the chandelier
+              }}
+              onMoveCamera={onCameraMove} // Notify parent to hide the chandelier
+              containerSize={size}
+              camera={camera}
+            />
+          </div>
+        )}
+        {tooltipData?.map((tooltip, index) => (
+          <div
+            key={index}
+            className="tooltip-container"
+            style={{
+              position: "absolute",
+              left: `${tooltip.position.x}px`,
+              top: `${tooltip.position.y - 50}px`,
+              transform: "translate(-50%, -100%)",
+              transition: "all 0.2s ease-in-out",
+              backgroundColor: "rgba(0, 0, 0, 0.9)",
+              color: "white",
+              padding: "8px 12px",
+              borderRadius: "4px",
+              pointerEvents: "none",
+              zIndex: 1000,
+              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+              fontSize: "14px",
+              fontWeight: "600",
+              letterSpacing: "0.02em",
+              minWidth: "100px",
+              textAlign: "center",
+            }}
+          >
+            {tooltip.userName}
+          </div>
+        ))}
+      </div>
     </>
   );
 }
