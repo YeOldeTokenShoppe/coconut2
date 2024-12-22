@@ -13,51 +13,51 @@ export const DEFAULT_MARKERS = [
         fov: 32.1,
       },
       tablet: {
-        position: () => new THREE.Vector3(7.1, 18, 8.8),
-        target: () => new THREE.Vector3(-4.5, 2, -0.55),
-        fov: 20,
+        position: () => new THREE.Vector3(-1.11, 10.68, 4.52),
+        target: () => new THREE.Vector3(-5.2, 2, -0.55),
+        fov: 38.6,
       },
       desktop: {
         // Use absolute coordinates
-        position: () => new THREE.Vector3(-5.7, 10.5, 7.3),
-        target: () => new THREE.Vector3(-3.3, 3.2, -0.1),
-        fov: 32.1,
+        position: () => new THREE.Vector3(-5.7, 11.5, 7.3),
+        target: () => new THREE.Vector3(-3.6, 3.6, -0.1),
+        fov: 23.1,
       },
     },
     annotationPosition: {
       // Move this outside cameraView
       phone: { xPercent: 35, yPercent: 70 },
-      tablet: { xPercent: 50, yPercent: 70 },
-      desktop: { xPercent: 60, yPercent: 65 },
+      tablet: { xPercent: 40, yPercent: 70 },
+      desktop: { xPercent: 55, yPercent: 65 },
     },
   },
 
   {
-    position: new THREE.Vector3(0.39, 0.88, -0.1),
+    position: new THREE.Vector3(0.39, 0.88, 0),
     label: "View 2",
     description: "This perspective reveals...",
     cameraView: {
       phone: {
-        position: () => new THREE.Vector3(1.3, 2.8, 7.3),
-        target: () => new THREE.Vector3(2.2, 5.9, -0.1),
+        position: () => new THREE.Vector3(1.3, 5, 7.3),
+        target: () => new THREE.Vector3(2.4, 6.4, -0.1),
         fov: 20,
       },
       tablet: {
-        position: () => new THREE.Vector3(1.1, 1.8, 6.3),
-        target: () => new THREE.Vector3(2.1, 5.9, -0.55),
+        position: () => new THREE.Vector3(1.38, 2.9, 4.41),
+        target: () => new THREE.Vector3(2.7, 8.3, -0.55),
         fov: 20,
       },
       desktop: {
-        position: () => new THREE.Vector3(1.8, 3, 3),
-        target: () => new THREE.Vector3(2.4, 6.1, -0.6),
-        fov: 25.5,
+        position: () => new THREE.Vector3(1.8, 4.2, 4.37),
+        target: () => new THREE.Vector3(2.4, 6.7, 0),
+        fov: 23.7,
       },
     },
     annotationPosition: {
       // Move this outside cameraView
       phone: { xPercent: 30, yPercent: 65 },
       tablet: { xPercent: 50, yPercent: 70 },
-      desktop: { xPercent: 20, yPercent: 30 },
+      desktop: { xPercent: 55, yPercent: 50 },
     },
   },
   {
@@ -67,18 +67,18 @@ export const DEFAULT_MARKERS = [
     cameraView: {
       phone: {
         // Use absolute coordinates
-        position: () => new THREE.Vector3(3.9, 1.8, 6.7),
-        target: () => new THREE.Vector3(1, 1, 1.7),
-        fov: 54.3,
+        position: () => new THREE.Vector3(1.1, 1.8, 6.7),
+        target: () => new THREE.Vector3(4.6, 2.3, 1.7),
+        fov: 56.6,
       },
       tablet: {
-        position: () => new THREE.Vector3(0.6, 3.7, 9.5),
-        target: () => new THREE.Vector3(1.6, 0.3, -0.55),
-        fov: 30.8,
+        position: () => new THREE.Vector3(0.6, 3.7, 14.4),
+        target: () => new THREE.Vector3(4.8, 2.2, -0.55),
+        fov: 20,
       },
       desktop: {
         position: () => new THREE.Vector3(2.8, 4.5, 10.4),
-        target: () => new THREE.Vector3(1.7, 0.7, 0),
+        target: () => new THREE.Vector3(2.4, 2.4, 0),
         fov: 23.5,
       },
     },
@@ -91,7 +91,7 @@ export const DEFAULT_MARKERS = [
   },
 
   {
-    position: new THREE.Vector3(1.7, 1.12, 0.6),
+    position: new THREE.Vector3(1.6, 1, 0.4),
     label: "View 4",
     description: "Lasciate ogni speranza....",
     cameraView: {
@@ -107,16 +107,20 @@ export const DEFAULT_MARKERS = [
         fov: 79.7,
       },
       desktop: {
-        position: () => new THREE.Vector3(1.2, 7.3, 3),
-        target: () => new THREE.Vector3(22.3, 7.3, 0.6),
-        fov: 62.8,
+        position: () => new THREE.Vector3(6.54, 6.1, 1.8),
+        target: () => new THREE.Vector3(22.3, 6.1, 0.6),
+        fov: 97.7,
       },
     },
     annotationPosition: {
       // Move this outside cameraView
       phone: { xPercent: 30, yPercent: 65 },
-      tablet: { xPercent: 50, yPercent: 70 },
-      desktop: { xPercent: 70, yPercent: 30 },
+      tablet: { xPercent: 60, yPercent: 50 },
+      desktop: { xPercent: 60, yPercent: 50 },
+    },
+    extraButton: {
+      label: "Take me there!",
+      url: "/rocket",
     },
   },
 ];

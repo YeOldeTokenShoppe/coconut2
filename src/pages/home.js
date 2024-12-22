@@ -26,7 +26,7 @@ export default function Home() {
     <>
       {" "}
       {isLoading && <Loader />}
-      <div style={{ position: "relative", zIndex: 1 }}>
+      <div style={{ position: "relative", zIndex: 1, marginTop: "4rem" }}>
         <Hero setHeroLoaded={setHeroLoaded} />
 
         <NavBar />

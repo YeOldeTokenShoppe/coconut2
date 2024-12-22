@@ -19,7 +19,7 @@ export default function ThesisPage() {
   }, [thesisLoaded, communionLoaded]);
 
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{ marginTop: "4rem", position: "relative" }}>
       {/* Always render the content, but control visibility with CSS */}
       <div
         style={{
@@ -29,7 +29,7 @@ export default function ThesisPage() {
         }}
       >
         <Thesis setThesisLoaded={setThesisLoaded} />
-        <div style={{ paddingTop: "5rem" }}>
+        <div style={{ paddingTop: "1rem" }}>
           <NavBar />
         </div>
         <Communion setCommunionLoaded={setCommunionLoaded} />

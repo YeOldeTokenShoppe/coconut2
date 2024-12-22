@@ -9,14 +9,14 @@ export const DEFAULT_CAMERA = {
   },
   tablet: {
     scale: 7,
-    position: [-13.35, 8.25, 19.16],
-    target: [-0.07, 5.6, -0.55],
-    fov: 40,
+    position: [4.3, 3.88, 8.06],
+    target: [0.7, 5.3, -0.55],
+    fov: 67.8,
   },
   desktop: {
     scale: 7,
-    position: [-12.9, 5.5, 18.5],
-    target: [0, 5.5, 0],
+    position: [-8.4, 5.5, 16.01],
+    target: [1.2, 5.5, 0],
     fov: 40,
   },
   common: {

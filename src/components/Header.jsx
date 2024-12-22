@@ -166,7 +166,7 @@ function Header() {
                 <div id="logo">
                   <img
                     className="logo"
-                    src="./newheart1.png"
+                    src="./rl80logo.png"
                     width="10rem"
                     height="10rem"
                     alt="Logo"

@@ -9,8 +9,8 @@
   align-items: center;
   justify-content: center;
   height: 10rem;
-  box-sizing: border-box;
-  font-family: "Noto Sans JP", sans-serif;
+  /* box-sizing: border-box;
+  font-family: "Noto Sans JP", sans-serif; */
   font-optical-sizing: auto;
   font-style: normal;
   background-color: none;

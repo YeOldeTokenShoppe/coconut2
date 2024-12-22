@@ -1,5 +1,6 @@
 // config/annotationConfig.js
 import * as THREE from "three";
+import gsap from "gsap";
 import "../3DVotiveStand/index.jsx";
 
 export const ANNOTATION_SETTINGS = {
@@ -27,11 +28,13 @@ export const Annotations = ({
   text,
   isResetVisible, //this prop is for Chandelier visibility
   isVisible, //this prop is for annotations
+  setIsVisible,
   position,
   onReset,
   onMoveCamera,
   containerSize,
   camera,
+  extraButton,
 }) => {
   if (!position || !position.screen) {
     console.warn("Invalid position passed to Annotations:", position);
@@ -99,6 +102,60 @@ export const Annotations = ({
       >
         OK
       </button>
+      {extraButton && (
+        <a
+          href={"/rocket"}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => {
+            e.preventDefault();
+
+            setIsVisible(false);
+
+            const forward = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            const targetPosition = camera.position
+              .clone()
+              .add(forward.multiplyScalar(10));
+
+            gsap.to(camera.position, {
+              x: targetPosition.x,
+              y: targetPosition.y,
+              z: targetPosition.z,
+              duration: 4,
+              ease: "power2.inOut",
+              onUpdate: () => {
+                camera.updateProjectionMatrix();
+              },
+              onComplete: () => {
+                // Instead of window.open, create and click a temporary link
+                const link = document.createElement("a");
+                link.href = extraButton.url;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                setTimeout(onReset, 100); // Small delay before reset
+              },
+            });
+          }}
+          style={{
+            marginTop: "10px",
+            padding: "10px",
+            backgroundColor: "#e60bd7",
+            color: "#fff",
+            textDecoration: "none",
+            borderRadius: "8px",
+            fontSize: "16px",
+            fontWeight: "bold",
+            display: "inline-block",
+          }}
+        >
+          {extraButton.label}
+        </a>
+      )}
     </div>
   );
 };

@@ -117,13 +117,15 @@ function Header() {
       saveUserDataToFirestore();
     }
   }, [isLoaded, isSignedIn, user]);
+  // Update menu width based on screen size
   useEffect(() => {
     const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-      if (window.innerWidth <= 760) {
-        setMenuWidth("100%");
-      } else {
-        setMenuWidth("35%");
+      if (typeof window !== "undefined") {
+        if (window.innerWidth <= 760) {
+          setMenuWidth("100%");
+        } else {
+          setMenuWidth("35%");
+        }
       }
     };
 
@@ -156,7 +158,7 @@ function Header() {
                 <div id="logo">
                   <img
                     className="logo"
-                    src="./newheart1.png"
+                    src="./rl80logo.png"
                     width="10rem"
                     height="10rem"
                     alt="Logo"
@@ -170,7 +172,7 @@ function Header() {
                 <Menu
                   isOpen={menuOpen}
                   onStateChange={({ isOpen }) => setMenuOpen(isOpen)}
-                  width="35%"
+                  width={menuWidth}
                 >
                   <Link
                     href="/home"

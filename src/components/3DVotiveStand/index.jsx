@@ -200,7 +200,7 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
       }
     }
   };
-  const moveCamera = (view) => {
+  const moveCamera = (view, markerIndex) => {
     if (!view?.cameraView) return;
 
     const screenCategory = getScreenCategory();
@@ -224,7 +224,9 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
             ANNOTATION_SETTINGS.defaultScreenPosition.yPercent,
         },
       },
+      extraButton: markerIndex === 3 ? view.extraButton : null, // Add hyperlink for the 4th marker
     });
+
     setIsAnnotationVisible(false);
 
     const masterTimeline = gsap.timeline();
@@ -348,8 +350,10 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
           style={{
             backgroundColor: "#1b1724",
             opacity: 0.9,
-            width: "100%",
-            height: "100%",
+            width: "100vw", // Full viewport width
+            height: "100vh", // Full viewport height
+            maxWidth: "none", // Override parent constraints
+            maxHeight: "none",
           }}
           camera={{
             position: DEFAULT_CAMERA[screenCategory].position,
@@ -365,15 +369,15 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
         >
           <RoomWalls />
 
-          <ambientLight intensity={1} />
+          <ambientLight intensity={0.5} />
 
           <directionalLight position={[0, 5, 0]} castShadow />
 
-          <pointLight position={[2, 1, 3]} intensity={5} color={"#88B6FF"} />
+          {/* <pointLight position={[2, 1, 3]} intensity={5} color={"#88B6FF"} /> */}
 
           <PostProcessingEffects />
           <Model
-            url="/ultima20.glb"
+            url="/slimUltima.glb"
             scale={modelScale}
             setIsLoading={setIsLoading}
             controlsRef={controlsRef}
@@ -428,13 +432,14 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
               left: 0,
               width: "100%",
               height: "100%",
-              pointerEvents: "none", // Add this
+              pointerEvents: "none", // Allow clicking through to annotations
             }}
           >
             <Annotations
               text={activeAnnotation?.text}
               isResetVisible={isResetVisible}
               isVisible={isAnnotationVisible}
+              setIsVisible={setIsAnnotationVisible}
               position={activeAnnotation?.position}
               onReset={() => {
                 resetCamera();
@@ -443,6 +448,7 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
               onMoveCamera={onCameraMove} // Notify parent to hide the chandelier
               containerSize={size}
               camera={camera}
+              extraButton={activeAnnotation?.extraButton} // Pass the extraButton data
             />
           </div>
         )}
