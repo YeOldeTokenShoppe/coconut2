@@ -33,18 +33,26 @@ function PostProcessingEffects() {
     );
     composer.current.addPass(bloomPass);
 
-    return () => composer.current?.dispose();
+    const handleResize = () => {
+      composer.current.setSize(size.width, size.height);
+    };
+
+    handleResize(); // Initial size setup
+
+    // Cleanup
+    return () => {
+      composer.current?.dispose();
+      composer.current = null;
+    };
   }, [gl, scene, camera, size]);
 
-  // Handle resize
-  useEffect(() => {
-    composer.current?.setSize(size.width, size.height);
-  }, [size]);
-
-  // Replace default render with composer
   useFrame(() => {
-    if (composer.current) {
-      composer.current.render();
+    if (composer.current && scene && camera) {
+      try {
+        composer.current.render();
+      } catch (error) {
+        console.error("Composer render error:", error);
+      }
     }
   }, 1);
 

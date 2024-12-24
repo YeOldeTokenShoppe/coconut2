@@ -24,10 +24,12 @@ import { Box } from "@chakra-ui/react";
 import CameraGUI from "./CameraGUI";
 import RoomWalls from "./RoomWalls";
 import dynamic from "next/dynamic";
+import styled from "styled-components";
 
 function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
   const [userData, setUserData] = useState([]);
-  const [tooltipData, setTooltipData] = useState(null);
+  const [tooltipData, setTooltipData] = useState([]);
+
   const [modelScale, setModelScale] = useState(7);
 
   const [camera, setCamera] = useState(null);
@@ -158,8 +160,11 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
     animate(); // Start the animation loop
   }, [camera]);
 
+  let previousTooltipData = []; // Track previous tooltip data to prevent unnecessary updates
+
   const handlePointerMove = (event) => {
-    if (!camera) return;
+    console.log("Pointer move event triggered"); // Debug log
+    if (!camera || !modelRef.current) return;
 
     const canvas = event.target;
     const rect = canvas.getBoundingClientRect();
@@ -171,35 +176,106 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
-    // Find all marker meshes
+    // Collect interactive objects
+    const interactiveObjects = [];
     const markerObjects = [];
-    modelRef.current?.traverse((object) => {
+
+    modelRef.current.traverse((object) => {
+      // Collect markers
       if (object.isMarker || object.parent?.isMarker) {
         markerObjects.push(object);
       }
+      // Collect all candle-related objects
+      if (
+        object.name.startsWith("ZCandle") ||
+        object.name.startsWith("CandleBase") ||
+        object.name.startsWith("ZFlame")
+      ) {
+        interactiveObjects.push(object);
+      }
     });
 
-    const intersects = raycaster.intersectObjects(markerObjects, true);
-
-    if (intersects.length > 0) {
-      // Find the marker by traversing up the parent chain
-      let markerObject = intersects[0].object;
+    // Check marker intersections first
+    const markerIntersects = raycaster.intersectObjects(markerObjects, true);
+    if (markerIntersects.length > 0) {
+      let markerObject = markerIntersects[0].object;
       while (markerObject && !markerObject.isMarker) {
         markerObject = markerObject.parent;
       }
 
-      if (markerObject && markerObject.markerIndex !== undefined) {
+      if (markerObject?.markerIndex !== undefined) {
         const markerData = markers?.[markerObject.markerIndex];
+        if (markerData && event.type === "click") {
+          moveCamera(markerData, markerObject.markerIndex);
+        }
+      }
+      setTooltipData([]); // Clear tooltips when over markers
+      return;
+    }
 
-        if (markerData) {
-          console.log("Marker clicked:", markerObject.markerIndex);
-          if (event.type === "click") {
-            moveCamera(markerData, markerObject.markerIndex);
+    // Then check candle intersections
+    // Then check candle intersections
+    const candleIntersects = raycaster.intersectObjects(
+      interactiveObjects,
+      true
+    );
+    if (candleIntersects.length > 0) {
+      const intersectedObject = candleIntersects[0].object;
+
+      // Extract candle number from any candle-related object
+      const candleNumber = intersectedObject.name.match(/\d+/)?.[0];
+      if (candleNumber) {
+        // Find the corresponding ZCandle object
+        let zCandle = null;
+        modelRef.current.traverse((object) => {
+          if (object.name === `ZCandle${candleNumber}`) {
+            zCandle = object;
           }
+        });
+
+        console.log(
+          "Found ZCandle:",
+          zCandle?.name,
+          "userData:",
+          zCandle?.userData
+        );
+
+        if (zCandle && zCandle.userData?.isMelting) {
+          // Get world position for tooltip
+          const worldPos = new THREE.Vector3();
+          zCandle.getWorldPosition(worldPos);
+
+          // Add offset to position tooltip above candle
+          worldPos.y += 0.5; // Adjust this value as needed
+
+          // Project to screen space
+          worldPos.project(camera);
+
+          const x = (0.5 + worldPos.x / 2) * canvas.clientWidth;
+          const y = (0.5 - worldPos.y / 2) * canvas.clientHeight;
+
+          console.log("Setting tooltip for:", {
+            candleName: zCandle.name,
+            userName: zCandle.userData?.userName,
+            position: { x, y },
+          });
+
+          setTooltipData([
+            {
+              userName: zCandle.userData?.userName || "Anonymous",
+              position: { x, y },
+            },
+          ]);
+          return;
         }
       }
     }
+
+    // Clear tooltips if no intersection
+    setTooltipData([]);
   };
+  //
+
   const moveCamera = (view, markerIndex) => {
     if (!view?.cameraView) return;
 
@@ -326,6 +402,58 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
 
   return (
     <>
+      <style>{`
+.tooltip-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Ensure it doesn't block interactions */
+  background-color: transparent; /* Ensure no background color */
+}
+    
+  .tooltip-container {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none; /* Prevent interaction when not active */
+  background-color: transparent; /* Ensure no residual background */
+  padding: 0; /* Remove padding when inactive */
+  visibility: hidden; /* Fully hide when inactive */
+  opacity: 0; /* Ensure visual invisibility */
+}
+    
+    .avatar-container {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid white;
+      overflow: hidden;
+      cursor: pointer; /* Indicate interactivity */
+    }
+    
+    .tooltip-text {
+      position: absolute;
+      left: 50%;
+      bottom: 100%;
+      transform: translateX(-50%);
+      margin-bottom: 8px;
+      padding: 4px 8px;
+      background-color: "rgba(0, 0, 0, 0.7)";
+      color: white;
+      font-size: 12px;
+      white-space: nowrap;
+      border-radius: 4px;
+      opacity: 0; /* Initially hidden */
+      transition: opacity 0.2s ease;
+      pointer-events: none; /* Prevent tooltip from blocking interaction */
+    }
+    
+    .tooltip-container:hover .tooltip-text {
+      opacity: 1; /* Show tooltip on hover */
+    }
+    `}</style>
+      ;
       <div
         className="votiveContainer"
         style={{
@@ -347,9 +475,11 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
           style={{ pointerEvents: "auto" }} // Add this
         /> */}
         <Canvas
+          onPointerMove={handlePointerMove}
+          onPointerOut={() => setTooltipData([])} // Clear tooltips when pointer leaves canvas
           style={{
-            backgroundColor: "#1b1724",
-            opacity: 0.9,
+            // backgroundColor: "#1b1724",
+            // opacity: 0.9,
             width: "100vw", // Full viewport width
             height: "100vh", // Full viewport height
             maxWidth: "none", // Override parent constraints
@@ -375,7 +505,6 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
 
           {/* <pointLight position={[2, 1, 3]} intensity={5} color={"#88B6FF"} /> */}
 
-          <PostProcessingEffects />
           <Model
             url="/slimUltima.glb"
             scale={modelScale}
@@ -388,6 +517,7 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
             markers={markers}
             userData={userData}
             moveCamera={moveCamera}
+            setTooltipData={setTooltipData}
           />
           {/* use this version only when using gui */}
 
@@ -422,6 +552,7 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
             maxPolarAngle={Math.PI / 2} // Limit vertical rotation
             minPolarAngle={0} // Limit vertical rotation
           /> */}
+          <PostProcessingEffects />
         </Canvas>
 
         {activeAnnotation && (
@@ -452,33 +583,33 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
             />
           </div>
         )}
-        {tooltipData?.map((tooltip, index) => (
-          <div
-            key={index}
-            className="tooltip-container"
-            style={{
-              position: "absolute",
-              left: `${tooltip.position.x}px`,
-              top: `${tooltip.position.y - 50}px`,
-              transform: "translate(-50%, -100%)",
-              transition: "all 0.2s ease-in-out",
-              backgroundColor: "rgba(0, 0, 0, 0.9)",
-              color: "white",
-              padding: "8px 12px",
-              borderRadius: "4px",
-              pointerEvents: "none",
-              zIndex: 1000,
-              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-              fontSize: "14px",
-              fontWeight: "600",
-              letterSpacing: "0.02em",
-              minWidth: "100px",
-              textAlign: "center",
-            }}
-          >
-            {tooltip.userName}
-          </div>
-        ))}
+        <div className="tooltip-wrapper">
+          {tooltipData.map((tooltip, index) => (
+            <div
+              key={index}
+              className="tooltip-container"
+              style={{
+                position: "absolute",
+                padding: "8px 12px",
+                left: `${tooltip.position.x}px`,
+                top: `${tooltip.position.y}px`,
+                transform: "translate(-50%, -100%)",
+                backgroundColor: "rgba(0, 0, 0, 0.9)",
+                color: "white",
+                borderRadius: "4px",
+                zIndex: 1000,
+                fontSize: "14px",
+                fontWeight: "600",
+                opacity: tooltip.userName ? 1 : 0,
+                visibility: tooltip.userName ? "visible" : "hidden",
+                pointerEvents: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {tooltip.userName}
+            </div>
+          ))}
+        </div>
       </div>
     </>
   );

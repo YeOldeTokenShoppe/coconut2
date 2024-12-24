@@ -4,7 +4,7 @@ export const DEFAULT_MARKERS = [
   {
     position: new THREE.Vector3(-0.37, 0.48, 0.12),
     label: "View 1",
-    description: "This area shows the front of the model with...",
+    description: "Hover over the lit candles to see who lit them.",
     cameraView: {
       phone: {
         // Use absolute coordinates
