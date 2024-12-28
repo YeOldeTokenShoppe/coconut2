@@ -92,6 +92,17 @@
   font-weight: 400;
   font-style: normal;
 } */
+@font-face {
+  font-family: "BlackFamily";
+  src: url("../styles/BlackPlain.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+.BlackPlain {
+  font-family: "BlackFamily", cursive;
+  font-weight: 700;
+  font-style: normal;
+}
 .new-rocker-regular {
   font-family: "New Rocker", system-ui;
   font-weight: 400;
@@ -514,11 +525,6 @@ body {
     font-size: 12pt;
   }
 } */
-
-body {
-  /* background-color: #1b1724; */
-  color: rgba(255, 255, 255, 0.7);
-}
 
 body,
 input,
@@ -1163,10 +1169,15 @@ ul.icons li .icon:hover:active {
   font-family: "UnifrakturCook" !important;
 }
 
-.bm-item:hover {
+.header-one .bm-item:hover {
   color: #b26e9c !important;
 
-  transform: scale(1.2) !important; /* scales the item up on hover */
+  transform: scale(1.2) !important;
+}
+
+.header-two .bm-item:hover {
+  color: #01ffed !important; /* Different color */
+  transform: scale(1.2) !important; /* Same scale */
 }
 
 .bm-burger-button {

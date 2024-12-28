@@ -22,7 +22,7 @@ const StyledPopup = ({
         border: "2px white solid",
       }}
     >
-      <p>{message}</p>
+      {/* <p>{message}</p> */}
       <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
         {!showSingleButton && onConfirm && (
           <button

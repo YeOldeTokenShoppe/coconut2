@@ -9,6 +9,7 @@ import React, {
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Center, useHelper } from "@react-three/drei";
 import { PointLightHelper } from "three";
+import { SpotLightHelper } from "three";
 import { RectAreaLightHelper } from "three/examples/jsm/helpers/RectAreaLightHelper.js";
 import PostProcessingEffects from "./PostProcessingEffects";
 import * as THREE from "three";
@@ -45,7 +46,9 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
   const sceneRef = useRef();
   const canvasRef = useRef();
   const scene = new THREE.Scene();
-
+  const spotlightRef = useRef();
+  const helperRef = useRef();
+  const targetRef = useRef();
   // for camera control panel
   const cameraRef = useRef(null); // Reference to the camera
   const controlsRef = useRef(null); // Reference to OrbitControls
@@ -71,6 +74,19 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
     updateSize();
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
+  }, []);
+
+  useEffect(() => {
+    if (spotlightRef.current) {
+      const helper = new SpotLightHelper(spotlightRef.current);
+      helperRef.current = helper;
+      spotlightRef.current.parent.add(helper); // Add helper to the scene
+    }
+    return () => {
+      if (helperRef.current) {
+        helperRef.current.dispose();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -149,11 +165,10 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
         sceneRef.current.traverse((object) => {
           if (object.userData.isBillboard) {
             object.lookAt(camera.position); // Make the object face the camera
-            object.rotation.set(0, object.rotation.y, 0); // Reset unwanted rotation
+            // object.rotation.set(0, object.rotation.y, 0); // Reset unwanted rotation
           }
         });
       }
-
       requestAnimationFrame(animate);
     };
 
@@ -163,9 +178,7 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
   let previousTooltipData = []; // Track previous tooltip data to prevent unnecessary updates
 
   const handlePointerMove = (event) => {
-    console.log("Pointer move event triggered"); // Debug log
     if (!camera || !modelRef.current) return;
-
     const canvas = event.target;
     const rect = canvas.getBoundingClientRect();
     const mouse = new THREE.Vector2(
@@ -233,13 +246,6 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
           }
         });
 
-        console.log(
-          "Found ZCandle:",
-          zCandle?.name,
-          "userData:",
-          zCandle?.userData
-        );
-
         if (zCandle && zCandle.userData?.isMelting) {
           // Get world position for tooltip
           const worldPos = new THREE.Vector3();
@@ -253,12 +259,6 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
 
           const x = (0.5 + worldPos.x / 2) * canvas.clientWidth;
           const y = (0.5 - worldPos.y / 2) * canvas.clientHeight;
-
-          console.log("Setting tooltip for:", {
-            candleName: zCandle.name,
-            userName: zCandle.userData?.userName,
-            position: { x, y },
-          });
 
           setTooltipData([
             {
@@ -402,58 +402,6 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
 
   return (
     <>
-      <style>{`
-.tooltip-wrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none; /* Ensure it doesn't block interactions */
-  background-color: transparent; /* Ensure no background color */
-}
-    
-  .tooltip-container {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  pointer-events: none; /* Prevent interaction when not active */
-  background-color: transparent; /* Ensure no residual background */
-  padding: 0; /* Remove padding when inactive */
-  visibility: hidden; /* Fully hide when inactive */
-  opacity: 0; /* Ensure visual invisibility */
-}
-    
-    .avatar-container {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      border: 2px solid white;
-      overflow: hidden;
-      cursor: pointer; /* Indicate interactivity */
-    }
-    
-    .tooltip-text {
-      position: absolute;
-      left: 50%;
-      bottom: 100%;
-      transform: translateX(-50%);
-      margin-bottom: 8px;
-      padding: 4px 8px;
-      background-color: "rgba(0, 0, 0, 0.7)";
-      color: white;
-      font-size: 12px;
-      white-space: nowrap;
-      border-radius: 4px;
-      opacity: 0; /* Initially hidden */
-      transition: opacity 0.2s ease;
-      pointer-events: none; /* Prevent tooltip from blocking interaction */
-    }
-    
-    .tooltip-container:hover .tooltip-text {
-      opacity: 1; /* Show tooltip on hover */
-    }
-    `}</style>
-      ;
       <div
         className="votiveContainer"
         style={{
@@ -466,14 +414,14 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
           pointerEvents: "none", // Add this to allow clicking through to annotations
         }}
       >
-        {/* <CameraGUI
+        <CameraGUI
           cameraRef={cameraRef}
           controlsRef={controlsRef}
           onGuiStart={handleGuiStart}
           onGuiEnd={handleGuiEnd}
           activeAnnotation={activeAnnotation}
           style={{ pointerEvents: "auto" }} // Add this
-        /> */}
+        />
         <Canvas
           onPointerMove={handlePointerMove}
           onPointerOut={() => setTooltipData([])} // Clear tooltips when pointer leaves canvas
@@ -499,14 +447,22 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
         >
           <RoomWalls />
 
-          <ambientLight intensity={0.5} />
+          <pointLight position={(-0.36, 0.7, -0.1)} color={0xff0000} />
+          <ambientLight intensity={0.8} />
 
           <directionalLight position={[0, 5, 0]} castShadow />
-
+          {/* <spotLight
+            ref={spotlightRef}
+            position={[-0.43, 1.68, 0]} // Positioned on the left
+            // angle={Math.PI / 2} // Cone angle
+            penumbra={0.5} // Soft edges
+            intensity={2}
+            castShadow
+          /> */}
           {/* <pointLight position={[2, 1, 3]} intensity={5} color={"#88B6FF"} /> */}
 
           <Model
-            url="/slimUltima.glb"
+            url="/slimUltima4.glb"
             scale={modelScale}
             setIsLoading={setIsLoading}
             controlsRef={controlsRef}
@@ -522,10 +478,11 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
           {/* use this version only when using gui */}
 
           <OrbitControls
+            // autoRotate
+            // autoRotateSpeed={0.5}
             ref={controlsRef}
             {...CONTROL_SETTINGS.default}
             onStart={() => {
-              console.log("OrbitControls ready");
               if (!isGuiMode) {
                 // Apply default settings when not in GUI mode
                 const defaultSettings = CONTROL_SETTINGS.default;

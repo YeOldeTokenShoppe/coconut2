@@ -10,11 +10,8 @@ export default function GalleryPage() {
   const [communionLoaded, setCommunionLoaded] = useState(false);
 
   useEffect(() => {
-    console.log("BurnGallery Loaded:", burnGalleryLoaded);
-    console.log("Communion Loaded:", communionLoaded);
     if (burnGalleryLoaded && communionLoaded) {
       setIsLoading(false);
-      console.log("Loader finished");
 
       const scrollPosition = window.innerWidth < 768 ? 50 : 150;
 
@@ -25,15 +22,15 @@ export default function GalleryPage() {
     }
   }, [burnGalleryLoaded, communionLoaded]);
 
-  // useEffect(() => {
-  //   // Override the body background color
-  //   document.body.style.backgroundColor = "#1b1724"; // Set your desired background color
+  useEffect(() => {
+    // Override the body background color
+    document.body.style.backgroundColor = "#000000"; // Set your desired background color
 
-  //   // Cleanup function to reset the background color when the component unmounts
-  //   return () => {
-  //     document.body.style.backgroundColor = "#1b1724";
-  //   };
-  // }, []);
+    // Cleanup function to reset the background color when the component unmounts
+    return () => {
+      document.body.style.backgroundColor = "#1b1724";
+    };
+  }, []);
 
   return (
     <>

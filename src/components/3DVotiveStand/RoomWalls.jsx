@@ -85,46 +85,55 @@ function RoomWalls() {
       map: texture,
       transparent: true,
       side: THREE.DoubleSide,
+      depthWrite: false, // Add this
+      depthTest: true, // Add this
+      alphaTest: 0.1, // Add this
     });
   };
 
   return (
     <group position={[0, heightOffset, 0]}>
-      {/* Back wall */}
-      <mesh
-        position={[
-          offsets.back.x,
-          wallHeight / 2 + offsets.back.y,
-          -roomSize / 2,
-        ]}
-        rotation={[0, Math.PI, 0]}
-      >
-        <planeGeometry args={[frameWidth, frameHeight]} />
-        <meshBasicMaterial
-          map={createWallMaterial("/sgframed.png").map}
-          transparent
-          side={THREE.DoubleSide}
-        />
-      </mesh>
+      {/* Portal/Door first */}
+      <group ref={doorRef} renderOrder={1} />
 
-      {/* Left wall */}
-      <mesh
-        position={[
-          -roomSize / 2,
-          wallHeight / 2 + offsets.left.y,
-          offsets.left.x,
-        ]}
-        rotation={[0, Math.PI / 2, 0]}
-      >
-        <planeGeometry args={[frameWidth, frameHeight]} />
-        <meshBasicMaterial
-          map={createWallMaterial("/sgframed.png").map}
-          transparent
-          side={THREE.DoubleSide}
-        />
-      </mesh>
+      {/* Then walls with explicit render order */}
+      <group renderOrder={2}>
+        {/* Back wall */}
+        <mesh
+          position={[
+            offsets.back.x,
+            wallHeight / 2 + offsets.back.y,
+            -roomSize / 2,
+          ]}
+          rotation={[0, Math.PI, 0]}
+        >
+          <planeGeometry args={[frameWidth, frameHeight]} />
+          <meshBasicMaterial
+            map={createWallMaterial("/sgframed.png").map}
+            transparent
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
 
-      <group ref={doorRef} />
+        {/* Left wall */}
+        <mesh
+          position={[
+            -roomSize / 2,
+            wallHeight / 2 + offsets.left.y,
+            offsets.left.x,
+          ]}
+          rotation={[0, Math.PI / 2, 0]}
+        >
+          <planeGeometry args={[frameWidth, frameHeight]} />
+          <meshBasicMaterial
+            map={createWallMaterial("/sgframed.png").map}
+            transparent
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+      </group>
     </group>
   );
 }

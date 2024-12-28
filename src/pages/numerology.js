@@ -1,9 +1,14 @@
 // pages/numerology.js
 import React, { useState, useEffect } from "react";
-import Numerology from "../components/Numerology";
 import NavBar from "../components/NavBar.client";
 import Communion from "../components/Communion";
 import Loader from "../components/Loader";
+
+import dynamic from "next/dynamic";
+
+const Numerology = dynamic(() => import("../components/Numerology"), {
+  ssr: false,
+});
 
 export default function NumerologyPage() {
   const [isLoading, setIsLoading] = useState(true);

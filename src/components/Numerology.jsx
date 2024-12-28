@@ -17,7 +17,7 @@ const WideContainer = styled.div`
 
 const infuraKey = process.env.NEXT_PUBLIC_INFURA_KEY;
 const provider = new ethers.providers.JsonRpcProvider(
-  `https://sepolia.infura.io/v3/${infuraKey}`
+  `https://mainnet.infura.io/v3/${infuraKey}`
 );
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID;
@@ -26,8 +26,8 @@ const client = createThirdwebClient({ clientId: CLIENT_ID });
 
 const contract = getContract({
   client: client,
-  chain: defineChain(11155111),
-  address: "0xde7Cc5B93e0c1A2131c0138d78d0D0a33cc36e42",
+  chain: 1,
+  address: "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
 });
 
 const data = [
@@ -58,17 +58,32 @@ const renderLabel = ({ percent }) => {
     ))}
   </Pie>
 </PieChart>;
-const usePriceChange = (tokenSymbol) => {
+const useFetchPriceChange = (tokenSymbol, contractAddress) => {
   const [priceChange, setPriceChange] = useState(null);
 
   useEffect(() => {
     const fetchPriceData = async () => {
       try {
+        const apiKey = "CG-N5FecTYTdsiSJaVDG5uPP4H5"; // Your API key
+        const headers = {
+          accept: "application/json",
+          "x-cg-pro-api-key": apiKey,
+        };
+
         // Current price
         const currentResponse = await axios.get(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${tokenSymbol}&vs_currencies=usd`
+          `https://pro-api.coingecko.com/api/v3/simple/token_price/ethereum`,
+          {
+            params: {
+              contract_addresses: contractAddress,
+              vs_currencies: "usd",
+            },
+            headers,
+          }
         );
-        const currentPrice = currentResponse.data[tokenSymbol].usd;
+
+        const currentPrice =
+          currentResponse.data[contractAddress.toLowerCase()].usd;
 
         // Historical price (24 hours ago)
         const dateYesterday = new Date(
@@ -76,9 +91,17 @@ const usePriceChange = (tokenSymbol) => {
         )
           .toISOString()
           .split("T")[0];
+
         const historicalResponse = await axios.get(
-          `https://api.coingecko.com/api/v3/coins/${tokenSymbol}/history?date=${dateYesterday}`
+          `https://pro-api.coingecko.com/api/v3/coins/${tokenSymbol}/history`,
+          {
+            params: {
+              date: dateYesterday,
+            },
+            headers,
+          }
         );
+
         const historicalPrice =
           historicalResponse.data.market_data.current_price.usd;
 
@@ -93,13 +116,19 @@ const usePriceChange = (tokenSymbol) => {
     };
 
     fetchPriceData();
-  }, [tokenSymbol]);
+  }, [tokenSymbol, contractAddress]);
 
   return priceChange;
 };
 const Numerology = ({ setNumerologyLoaded }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [dexdata, setDexdata] = useState({});
+  const [price, setPrice] = useState(null);
+  const [usdPrice, setUsdPrice] = useState(null);
+  const [tokensBurned, setTokensBurned] = useState(null);
+  const [burnedPercentage, setBurnedPercentage] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   useEffect(() => {
     // Simulate async data or image loading
     const loadNumerologyContent = async () => {
@@ -121,87 +150,133 @@ const Numerology = ({ setNumerologyLoaded }) => {
     fetchData();
   }, []);
 
-  const uniswapV2PairABI = [
-    "function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)",
-    "function token0() external view returns (address)",
-    "function token1() external view returns (address)",
+  const erc20ABI = [
+    "function totalSupply() view returns (uint256)",
+    "function balanceOf(address) view returns (uint256)",
   ];
 
-  const pairAddress = "0xa43fe16908251ee70ef74718545e4fe6c5ccec9f";
-  const pairContract = new ethers.Contract(
-    pairAddress,
-    uniswapV2PairABI,
-    provider
+  const pairAddress = "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc"; // USDC/WETH on Uniswap V2
+
+  const infuraKey = process.env.NEXT_PUBLIC_INFURA_KEY;
+  const provider = new ethers.providers.JsonRpcProvider(
+    `https://sepolia.infura.io/v3/${infuraKey}`
   );
-  const [price, setPrice] = useState(null);
-  const [usdPrice, setUsdPrice] = useState(null);
-  const priceChange = usePriceChange("pepe");
-
   useEffect(() => {
-    const getPrice = async () => {
-      const [reserves, token0Address] = await Promise.all([
-        pairContract.getReserves(),
-        pairContract.token0(),
-      ]);
-
-      const reserve0 = ethers.utils.formatUnits(reserves.reserve0, 18);
-      const reserve1 = ethers.utils.formatUnits(reserves.reserve1, 18);
-
-      let priceOfPEPEPerETH;
-      if (
-        token0Address.toLowerCase() === "eth_contract_address".toLowerCase()
-      ) {
-        priceOfPEPEPerETH = parseFloat(reserve1) / parseFloat(reserve0);
-      } else {
-        priceOfPEPEPerETH = parseFloat(reserve0) / parseFloat(reserve1);
-      }
-
-      setPrice(priceOfPEPEPerETH.toFixed(8));
-      return priceOfPEPEPerETH;
+    const loadNumerologyContent = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setNumerologyLoaded(true);
     };
 
-    const getEthUsdPrice = async () => {
+    loadNumerologyContent();
+  }, [setNumerologyLoaded]);
+
+  // Fetch data from Dexscreener API
+  useEffect(() => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get(
-          "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
-        );
-        return response.data.ethereum.usd;
+        const res = await fetch("/api/DexscreenerAPI");
+        const json = await res.json();
+        setDexdata(json);
       } catch (error) {
-        console.error("Failed to fetch ETH price:", error);
-        return null;
+        console.error("Error fetching DexScreener data:", error);
       }
     };
 
-    getPrice()
-      .then((pepePriceInEth) => {
-        getEthUsdPrice().then((ethUsdPrice) => {
-          if (pepePriceInEth && ethUsdPrice) {
-            const pepePriceInUsd = (1 / pepePriceInEth) * ethUsdPrice;
-            setUsdPrice(pepePriceInUsd.toFixed(8));
-          }
-          console.log(pepePriceInEth, ethUsdPrice);
-        });
-      })
-      .catch(console.error);
+    fetchData();
   }, []);
 
-  const {
-    data: tokensBurned,
-    isLoading,
-    error,
-  } = useReadContract({
-    contract: contract,
-    method: resolveMethod("getBurnedTokens"),
-    params: [],
-  });
-  const totalSupply = 10000000000; // 10 billion
-  let burnedPercentage = 0;
+  // Fetch reserves data using ethers.js
+  // // Fetch data using ethers.js
+  // useEffect(() => {
+  //   const fetchTokenData = async () => {
+  //     try {
+  //       const contract = new ethers.Contract(pairAddress, erc20ABI, provider);
 
-  if (tokensBurned) {
-    burnedPercentage =
-      (Number(utils.formatUnits(tokensBurned, "ether")) / totalSupply) * 100;
-  }
+  //       // Fetch total supply
+  //       const totalSupply = await contract.totalSupply();
+  //       const formattedTotalSupply = ethers.utils.formatUnits(
+  //         totalSupply,
+  //         "ether"
+  //       );
 
+  //       // Fetch balance of a specific address (e.g., burn address or user)
+  //       const burnAddress = "0x000000000000000000000000000000000000dead"; // Replace with actual burn address
+  //       const burnBalance = await contract.balanceOf(burnAddress);
+  //       const formattedBurnBalance = ethers.utils.formatUnits(
+  //         burnBalance,
+  //         "ether"
+  //       );
+
+  //       // Calculate percentage burned
+  //       const burnedPercentage =
+  //         (formattedBurnBalance / formattedTotalSupply) * 100;
+
+  //       // Set the data to state
+  //       setPrice(formattedBurnBalance); // Example: Burned tokens
+  //       setUsdPrice(burnedPercentage); // Example: Percentage burned
+  //     } catch (error) {
+  //       console.error("Error fetching token data:", error);
+  //     }
+  //   };
+
+  //   fetchTokenData();
+  // }, [provider, pairAddress]);
+
+  // useEffect(() => {
+  //   const fetchBurnedTokens = async () => {
+  //     try {
+  //       // Configuration
+  //       const provider = new ethers.providers.JsonRpcProvider(
+  //         "https://sepolia.infura.io/v3/${infuraKey}"
+  //       );
+  //       const tokenContractAddress =
+  //         "0xde7Cc5B93e0c1A2131c0138d78d0D0a33cc36e42"; // Pepe token contract
+  //       const burnAddress = "0x000000000000000000000000000000000000dead"; // Burn address
+
+  //       // ERC-20 ABI
+  //       const erc20ABI = [
+  //         "function totalSupply() view returns (uint256)",
+
+  //         "function balanceOf(address account) external view returns (uint256)",
+  //       ];
+
+  //       // Initialize token contract
+  //       const contract = getContract({
+  //         client: client,
+  //         chain: defineChain(11155111),
+  //         address: "0xde7Cc5B93e0c1A2131c0138d78d0D0a33cc36e42",
+  //       });
+
+  //       // Fetch burn address balance
+  //       const burnedTokens = await provider.contract.getBurnedTokens("0xde7Cc5B93e0c1A2131c0138d78d0D0a33cc36e42")
+  //       const formattedBurnedTokens = ethers.utils.formatUnits(
+  //         burnedTokens,
+  //         "ether"
+  //       );
+
+  //       // Fetch total supply
+  //       const totalSupply = await contract.totalSupply();
+  //       const formattedTotalSupply = ethers.utils.formatUnits(
+  //         totalSupply,
+  //         "ether"
+  //       );
+
+  //       // Calculate percentage of burned tokens
+  //       const burnedPercentage =
+  //         (formattedBurnBalance / formattedTotalSupply) * 100;
+
+  //       console.log("Burned Tokens:", formattedBurnBalance);
+  //       console.log("Burned Percentage:", burnedPercentage.toFixed(2) + "%");
+
+  //       return { burnedTokens: formattedBurnBalance, burnedPercentage };
+  //     } catch (error) {
+  //       console.error("Error fetching burned tokens:", error);
+  //       throw error;
+  //     }
+  //   };
+
+  //   fetchBurnedTokens();
+  // }, []);
   console.log(error);
   const cardStyle1 = {
     height: "410px",
@@ -370,11 +445,10 @@ const Numerology = ({ setNumerologyLoaded }) => {
                 <Card className="numbers-card" style={cardStyle2}>
                   <Card.Title style={titleStyle}>Tokens Burned</Card.Title>
                   <Card.Text style={numberStyle}>
-                    {isLoading || tokensBurned === undefined
+                    {/* {isLoading || tokensBurned === null
                       ? "Loading..."
-                      : formatAndWrapNumber(
-                          Number(utils.formatUnits(tokensBurned, "ether"))
-                        )}
+                      : tokensBurned.toFixed(2)} */}
+                    1,123,456,789
                   </Card.Text>
                   <Card.Text
                     style={{
@@ -384,11 +458,12 @@ const Numerology = ({ setNumerologyLoaded }) => {
                       color: "grey",
                     }}
                   >
-                    {isLoading
+                    {/* {isLoading
                       ? "Loading..."
                       : `${burnedPercentage.toFixed(
                           2
-                        )}% of total supply burned`}
+                        )}% of total supply burned`} */}
+                    12.34% of total supply burned
                   </Card.Text>
                 </Card>
               </div>
@@ -419,7 +494,8 @@ const Numerology = ({ setNumerologyLoaded }) => {
                       fontWeight: "bold",
                     }}
                   >
-                    {usdPrice ? `$${usdPrice}  ` : "Loading USD price..."}
+                    <p>Price: {price}</p>
+                    <p>USD Price: {usdPrice}</p>
                   </Card.Text>
                 </Card>
               </div>
@@ -441,37 +517,24 @@ const Numerology = ({ setNumerologyLoaded }) => {
                           position: "relative",
                           zIndex: "2",
                           marginLeft: "10px",
-                          textAlign: "left", // This will align the text to the left
+                          textAlign: "left", // Align the text to the left
                         }}
                       >
-                        Volume (USD): {" $"}
-                        {formatDollarValues(dexdata.volume.h24)}
+                        Volume (USD): ${formatDollarValues(dexdata.volume.h24)}
                         <br />
                         <br />
-                        Liquidity:{" $"}
-                        {formatDollarValues(dexdata.liquidity?.usd)}
+                        Liquidity: ${formatDollarValues(dexdata.liquidity?.usd)}
                         <br />
                         <br />
-                        FDV:{" $"}
-                        {formatDollarValues(dexdata.fdv)}
+                        FDV: ${formatDollarValues(dexdata.fdv)}
                         <br />
                         <br />
                         Buys/Sells: {dexdata.buys} / {dexdata.sells}
                       </Text>
                     ) : (
-                      <Text>Loading...</Text>
+                      "Loading..."
                     )}
                   </Card.Text>
-                  {/* <Card.Text
-                    style={{
-                      position: "absolute",
-                      bottom: "10px",
-                      fontSize: "12px",
-                      color: "grey",
-                    }}
-                  >
-                    Source: DexScreener.com
-                  </Card.Text> */}
                 </Card>
               </div>
               <div className="seventh">

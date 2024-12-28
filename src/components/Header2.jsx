@@ -121,6 +121,7 @@ function Header() {
   useEffect(() => {
     const handleResize = () => {
       if (typeof window !== "undefined") {
+        setWindowWidth(window.innerWidth); // Update windowWidth
         if (window.innerWidth <= 760) {
           setMenuWidth("100%");
         } else {
@@ -154,25 +155,27 @@ function Header() {
           <header id="header">
             <div className="menu-icon" onClick={toggleMenu}></div>
             <div className="menu-wrapper">
-              <div className="logo-menu-container">
-                <div id="logo">
-                  <img
-                    className="logo"
-                    src="./rl80logo.png"
-                    width="10rem"
-                    height="10rem"
-                    alt="Logo"
-                    style={{ zIndex: "1" }}
-                  />
-                  <RotatingBadge2 />
+              <a href="/home" className="menu-item">
+                <div className="logo-menu-container">
+                  <div id="logo">
+                    <img
+                      className="logo"
+                      src="./rl80logo.png"
+                      width="10rem"
+                      height="10rem"
+                      alt="Logo"
+                      style={{ zIndex: "1" }}
+                    />
+                    <RotatingBadge2 />
+                  </div>
                 </div>
-              </div>
-
+              </a>
               <div ref={node}>
                 <Menu
                   isOpen={menuOpen}
                   onStateChange={({ isOpen }) => setMenuOpen(isOpen)}
                   width={menuWidth}
+                  className="header-two"
                 >
                   <Link
                     href="/home"

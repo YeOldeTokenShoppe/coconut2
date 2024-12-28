@@ -4,7 +4,7 @@ export const DEFAULT_MARKERS = [
   {
     position: new THREE.Vector3(-0.37, 0.48, 0.12),
     label: "View 1",
-    description: "Hover over the lit candles to see who lit them.",
+    description: "Hover over the lit candles to see who put them there.",
     cameraView: {
       phone: {
         // Use absolute coordinates
@@ -38,19 +38,19 @@ export const DEFAULT_MARKERS = [
     description: "This perspective reveals...",
     cameraView: {
       phone: {
-        position: () => new THREE.Vector3(1.3, 5, 7.3),
-        target: () => new THREE.Vector3(2.4, 6.4, -0.1),
+        position: () => new THREE.Vector3(5, 10, 5), // Example position for the camera
+        target: () => new THREE.Vector3(2.36, 7.03, 0.64), // Statue_Face world position
         fov: 20,
       },
       tablet: {
-        position: () => new THREE.Vector3(1.38, 2.9, 4.41),
-        target: () => new THREE.Vector3(2.7, 8.3, -0.55),
+        position: () => new THREE.Vector3(2.36, 7.03, 0.64), // Adjust for tablet
+        target: () => new THREE.Vector3(2.36, 7.03, 0.64), // Same target
         fov: 20,
       },
       desktop: {
-        position: () => new THREE.Vector3(1.8, 4.2, 4.37),
-        target: () => new THREE.Vector3(2.4, 6.7, 0),
-        fov: 23.7,
+        position: () => new THREE.Vector3(10, 15, 10), // Adjust for desktop
+        target: () => new THREE.Vector3(2.36, 7.03, 0.64), // Same target
+        fov: 20,
       },
     },
     annotationPosition: {

@@ -23,13 +23,14 @@ function Model({
   rotation,
   handlePointerMove,
 }) {
-  const gltf = useGLTF("/slimUltima.glb");
+  const gltf = useGLTF("/slimUltima4.glb");
   const { actions, mixer } = useAnimations(gltf.animations, modelRef);
   const { camera, size } = useThree();
   const [results, setResults] = useState([]);
   const [shuffledResults, setShuffledResults] = useState([]);
   const [shuffledCandleIndices, setShuffledCandleIndices] = useState([]);
   const mixerRef = useRef();
+  const scene = gltf.scene;
 
   // Center and align model
   useEffect(() => {
@@ -45,6 +46,17 @@ function Model({
       controlsRef.current.update();
     }
   }, [controlsRef]);
+
+  // Use this to find the position of a specific object in the scene
+  // const statueFace = scene.getObjectByName("Statue_Face");
+  // const facePosition = new THREE.Vector3();
+
+  // if (statueFace) {
+  //   statueFace.getWorldPosition(facePosition);
+  //   console.log("Statue_Face world position:", facePosition);
+  // } else {
+  //   console.error("Statue_Face not found in the scene.");
+  // }
 
   useEffect(() => {
     if (typeof setMarkers === "function") {
@@ -72,9 +84,6 @@ function Model({
         if (gltf.scene) {
           gltf.scene.add(markerFace);
           markerRefs.push(markerFace);
-
-          // Log marker creation
-          console.log("Created marker:", index, markerFace);
         }
       } catch (error) {
         console.error("Error adding marker:", error);
@@ -154,15 +163,12 @@ function Model({
     if (results.length === 0 || !modelRef.current) return;
 
     const shuffled = [...results].sort(() => Math.random() - 0.5);
-    console.log("Number of users/results to assign:", shuffled.length); // Debug log
 
     // Create indices for assignment (52 candles)
     const candleIndexes = Array.from({ length: 52 }, (_, i) => i);
     const assignedIndices = candleIndexes
       .sort(() => Math.random() - 0.5)
-      .slice(0, shuffled.length); // Only take as many indices as we have users
-
-    console.log("Selected candle indices for assignment:", assignedIndices); // Debug log
+      .slice(0, shuffled.length);
 
     // First, reset ALL candles and flames to unassigned state
     modelRef.current.traverse((child) => {
@@ -196,7 +202,6 @@ function Model({
             burnedAmount: user.burnedAmount || 1,
             meltingProgress: 0, // Initialize melting progress
           };
-          console.log(`Assigned user ${user.userName} to candle ${child.name}`);
         }
       }
       // Handle flame visibility
@@ -259,23 +264,9 @@ function Model({
         if (child.userData.originalScale?.y) {
           // Apply new scale
           child.scale.y = child.userData.originalScale.y * percentageRemaining;
-
-          // Log scale changes to debug
-          if (Math.abs(oldScale - child.scale.y) > 0.0001) {
-            console.log(`Candle ${child.name} scale:`, {
-              originalHeight: child.userData.originalScale.y,
-              currentScale: child.scale.y,
-              percentageRemaining: percentageRemaining * 100,
-              minimumAllowed: MIN_SCALE * 100,
-            });
-          }
         }
       }
     });
-
-    if (meltingCount > 0) {
-      console.log(`Melting ${meltingCount} candles`);
-    }
   });
   // Set Markers
   useEffect(() => {

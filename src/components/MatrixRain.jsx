@@ -101,15 +101,15 @@ function MatrixRain() {
         loop(() => {
           trail.move();
           trail.traverse((c, i, last) => {
-            c.element.style = `color: hsl(136, 100%, ${(85 / len) * (i + 1)}%)`;
+            c.element.style = `color: #01ffed; opacity: ${(i + 1) / len}`;
             if (last) {
               c.mutate();
               c.element.style = `
-                color: hsl(136, 100%, 85%);
-                text-shadow:
-                  0 0 .5em #fff,
-                  0 0 .5em currentColor;
-              `;
+    color: #01ffed;
+    text-shadow:
+      0 0 .5em #01ffed,
+      0 0 .5em currentColor;
+  `;
             }
           });
         }, delay);

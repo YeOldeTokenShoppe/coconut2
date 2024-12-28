@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
 import {
   useUser,
@@ -18,6 +18,7 @@ import { doc, setDoc, getDoc } from "firebase/firestore"; // Import Firestore me
 import { signInWithCustomToken } from "firebase/auth"; // Import Firebase auth methods
 import { db, auth } from "../utilities/firebaseClient"; // Import Firestore and Auth setup
 import RotatingBadge2 from "./RotatingBadge2";
+import { debounce } from "lodash";
 
 function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -28,6 +29,9 @@ function Header() {
   const [currentPath, setCurrentPath] = useState(router.asPath); // Use router.asPath to track the current URL path
   const { isLoaded, isSignedIn, user } = useUser(); // Access the user object from Clerk
   const { getToken } = useAuth(); // Get Clerk auth token
+
+  const [activeInterval, setActiveInterval] = useState(null);
+  const isHovering = useRef(false);
 
   // Capture the current path before page has loaded
   useEffect(() => {
@@ -44,16 +48,129 @@ function Header() {
     setMenuOpen(!menuOpen);
   };
 
+  // Letter scramble effect
+  const debouncedEnter = useRef(null);
+  const debouncedLeave = useRef(null);
+  // const letters = "吉10⚜维ΩΛ♾∞♕♡☠🂽🜂ΘΣ𐆖$𓂀8";
+  // const letters = ["🔥", "🥸", "🚀", "🎱", "💀"];
+  const emojis = [
+    "Ψ",
+    "Ω",
+    "🜛",
+    "🜃",
+    "🜚",
+    "🜁",
+    "β",
+    "Σ",
+    "λ",
+    "π",
+    "$",
+    "∞",
+    "Ð",
+    "Θ",
+    "Λ",
+    "Ξ",
+    "Π",
+
+    "🜂",
+    "∞",
+    "8",
+    "🜄",
+    "𓁙",
+    "𓁐",
+
+    "♕",
+    "₿",
+    "𓁻",
+  ];
+
+  // const emojis = ["Ψ", "Ω", "🜛", "🜃", "🜚", "🜁", "β", "Σ", "𓁻"];
+
+  // const startScramble = useCallback(
+  //   (element, originalText) => {
+  //     if (!element || !originalText) return;
+
+  //     let iterations = 0;
+
+  //     if (activeInterval) {
+  //       clearInterval(activeInterval);
+  //     }
+
+  //     const interval = setInterval(() => {
+  //       if (!isHovering.current) {
+  //         clearInterval(interval);
+  //         if (element) element.innerText = originalText;
+  //         return;
+  //       }
+
+  //       element.innerText = originalText
+  //         .split("")
+  //         .map((letter, index) => {
+  //           if (index < iterations) {
+  //             return originalText[index];
+  //           }
+  //           return emojis[Math.floor(Math.random() * emojis.length)];
+  //         })
+  //         .join("");
+
+  //       if (iterations >= originalText.length) {
+  //         iterations = originalText.length;
+  //       } else {
+  //         iterations += 1 / 3;
+  //       }
+  //     }, 50); // Reduced interval time for smoother animation
+
+  //     setActiveInterval(interval);
+  //   },
+  //   [activeInterval, emojis]
+  // );
+
+  // // Update the mouse handlers
+  // const handleMouseEnter = useCallback(
+  //   (e) => {
+  //     if (!e?.currentTarget) return;
+  //     const element = e.currentTarget;
+  //     const originalText = element.dataset.value;
+  //     isHovering.current = true;
+  //     startScramble(element, originalText);
+  //   },
+  //   [startScramble]
+  // );
+
+  // const handleMouseLeave = useCallback(
+  //   (e) => {
+  //     if (!e?.currentTarget) return;
+  //     const element = e.currentTarget;
+  //     const originalText = element.dataset.value;
+  //     isHovering.current = false;
+
+  //     if (activeInterval) {
+  //       clearInterval(activeInterval);
+  //       setActiveInterval(null);
+  //     }
+
+  //     element.innerText = originalText;
+  //   },
+  //   [activeInterval]
+  // );
+
+  // // Add this cleanup effect
+  // useEffect(() => {
+  //   return () => {
+  //     if (activeInterval) {
+  //       clearInterval(activeInterval);
+  //     }
+  //   };
+  // }, [activeInterval]);
+  // End of letter scramble effect
+
   // Firebase sign-in logic using Clerk's custom token
   const signIntoFirebaseWithClerk = async () => {
     try {
       const token = await getToken({ template: "integration_firebase" });
       if (!token) throw new Error("No Firebase token from Clerk.");
 
-      console.log("JWT token from Clerk:", token);
-
       const userCredentials = await signInWithCustomToken(auth, token || "");
-      console.log("User:", userCredentials.user);
 
       return userCredentials.user; // Return the authenticated User
     } catch (error) {
@@ -162,61 +279,94 @@ function Header() {
           <header id="header">
             <div className="menu-icon" onClick={toggleMenu}></div>
             <div className="menu-wrapper">
-              <div className="logo-menu-container">
-                <div id="logo">
-                  <img
-                    className="logo"
-                    src="./rl80logo.png"
-                    width="10rem"
-                    height="10rem"
-                    alt="Logo"
-                    style={{ zIndex: "1" }}
-                  />
-                  <RotatingBadge2 />
+              <a href="/home" className="menu-item">
+                <div className="logo-menu-container">
+                  <div id="logo">
+                    <img
+                      className="logo"
+                      src="./rl80logo.png"
+                      width="10rem"
+                      height="10rem"
+                      alt="Logo"
+                      style={{ zIndex: "1" }}
+                    />
+                    <RotatingBadge2 />
+                  </div>
                 </div>
-              </div>
-
+              </a>
               <div ref={node}>
                 <Menu
                   isOpen={menuOpen}
                   onStateChange={({ isOpen }) => setMenuOpen(isOpen)}
                   width={menuWidth}
+                  className="header-two"
                 >
+                  {/* <div className="p-1"> */}
                   <Link
                     href="/home"
+                    // className="menu-item inline-block w-full"
                     className="menu-item"
                     onClick={() => setMenuOpen(false)}
+                    // onMouseEnter={handleMouseEnter}
+                    // onMouseLeave={handleMouseLeave}
+                    // data-value="Home"
                   >
+                    {" "}
                     Home
                   </Link>
+                  {/* </div> */}
+                  {/* <div className="p-1"> */}
                   <Link
                     href="/thesis"
+                    // className="menu-item inline-block w-full"
                     className="menu-item"
                     onClick={() => setMenuOpen(false)}
+                    // onMouseEnter={handleMouseEnter}
+                    // onMouseLeave={handleMouseLeave}
+                    // data-value="Unorthodoxy"
                   >
                     Unorthodoxy
                   </Link>
+                  {/* </div> */}
+                  {/* <div className="p-1"> */}
                   <Link
                     href="/numerology"
+                    // className="menu-item inline-block w-full"
                     className="menu-item"
                     onClick={() => setMenuOpen(false)}
+                    // onMouseEnter={handleMouseEnter}
+                    // onMouseLeave={handleMouseLeave}
+                    // data-value="Numerology"
                   >
                     Numerology
                   </Link>
+                  {/* </div> */}
+                  {/* <div className="p-1"> */}
                   <Link
                     href="/gallery"
+                    // className="menu-item inline-block w-full"
                     className="menu-item"
                     onClick={() => setMenuOpen(false)}
+                    // onMouseEnter={handleMouseEnter}
+                    // onMouseLeave={handleMouseLeave}
+                    // data-value="Peril and Piety"
                   >
                     Peril and Piety
                   </Link>
+                  {/* </div> */}
+                  {/* <div className="p-1"> */}
                   <Link
                     href="/communion"
+                    // className="menu-item inline-block w-full"
                     className="menu-item"
                     onClick={() => setMenuOpen(false)}
+                    // onMouseEnter={handleMouseEnter}
+                    // onMouseLeave={handleMouseLeave}
+                    // data-value="Communion"
                   >
                     Communion
                   </Link>
+                  {/* </div> */}
                 </Menu>
               </div>
 

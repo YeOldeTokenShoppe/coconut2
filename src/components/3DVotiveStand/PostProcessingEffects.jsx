@@ -29,7 +29,7 @@ function PostProcessingEffects() {
       new THREE.Vector2(size.width, size.height),
       0.5, // strength
       0.1, // radius
-      0.01 // threshold - lower number means more things will glow
+      0.5 // threshold - lower number means more things will glow
     );
     composer.current.addPass(bloomPass);
 
