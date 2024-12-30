@@ -27,9 +27,9 @@ function PostProcessingEffects() {
     // Add aggressive bloom for testing
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(size.width, size.height),
-      0.5, // strength
+      0.4, // strength
       0.1, // radius
-      0.5 // threshold - lower number means more things will glow
+      0.9 // threshold - lower number means more things will glow
     );
     composer.current.addPass(bloomPass);
 

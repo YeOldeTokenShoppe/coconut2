@@ -97,7 +97,7 @@ function BurnGallery({ setBurnGalleryLoaded }) {
 
   const [currentPath, setCurrentPath] = useState("/");
   const [marginTop, setMarginTop] = useState("17rem");
-  // const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   // const [votiveLoaded, setVotiveLoaded] = useState(false);
 
   useEffect(() => {
@@ -408,7 +408,7 @@ function BurnGallery({ setBurnGalleryLoaded }) {
 
           <GridItem width="100%" zIndex={4}>
             <ThreeDVotiveStand
-              setIsLoading={(loading) => console.log(loading)}
+              setIsLoading={() => setIsLoading(true)}
               onCameraMove={() => setIsChandelierVisible(false)}
               onResetView={() => setIsChandelierVisible(true)}
             />

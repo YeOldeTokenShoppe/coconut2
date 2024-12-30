@@ -49,7 +49,7 @@ function RoomWalls() {
 
       // Setup door
       scene.scale.set(5, 5, 5);
-      scene.position.set(roomSize / 2 - 2, -6.5, offsets.right.x + 2);
+      scene.position.set(roomSize / 2, -6.5, offsets.right.x + 7);
       scene.rotation.y = -Math.PI;
 
       // Find portalLight and create a new material for it

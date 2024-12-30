@@ -8,8 +8,8 @@ import React, {
 } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Center, useHelper } from "@react-three/drei";
-import { PointLightHelper } from "three";
-import { SpotLightHelper } from "three";
+import { Scene, SpotLight, DirectionalLight, PointLight } from "three";
+import { Perf } from "r3f-perf";
 import { RectAreaLightHelper } from "three/examples/jsm/helpers/RectAreaLightHelper.js";
 import PostProcessingEffects from "./PostProcessingEffects";
 import * as THREE from "three";
@@ -23,9 +23,11 @@ import { MODEL_SETTINGS } from "./modelConfig";
 import { getScreenCategory } from "./screenCategories";
 import { Box } from "@chakra-ui/react";
 import CameraGUI from "./CameraGUI";
+import LightControlPanel from "./LightControlPanel";
 import RoomWalls from "./RoomWalls";
 import dynamic from "next/dynamic";
 import styled from "styled-components";
+import { candleShader } from "./shaders/videoShaders";
 
 function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
   const [userData, setUserData] = useState([]);
@@ -43,18 +45,26 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
   const [isInteractionInProgress, setIsInteractionInProgress] = useState(false);
 
   const modelRef = useRef();
-  const sceneRef = useRef();
+  const sceneRef = useRef(new Scene());
   const canvasRef = useRef();
   const scene = new THREE.Scene();
-  const spotlightRef = useRef();
   const helperRef = useRef();
   const targetRef = useRef();
   // for camera control panel
   const cameraRef = useRef(null); // Reference to the camera
   const controlsRef = useRef(null); // Reference to OrbitControls
-
+  const spotlightRef = useRef();
+  const directionalLight1Ref = useRef();
+  const directionalLight2Ref = useRef();
+  const pointLightRef = useRef();
   const [screenCategory, setScreenCategory] = useState("desktop");
+  const [isPanelVisible, setIsPanelVisible] = useState(true);
 
+  const panelRef = useRef();
+
+  const togglePanel = () => {
+    panelRef.current?.togglePanel();
+  };
   const currentSettings = DEFAULT_CAMERA[screenCategory];
   useEffect(() => {
     setScreenCategory(getScreenCategory());
@@ -74,19 +84,6 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
     updateSize();
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
-  }, []);
-
-  useEffect(() => {
-    if (spotlightRef.current) {
-      const helper = new SpotLightHelper(spotlightRef.current);
-      helperRef.current = helper;
-      spotlightRef.current.parent.add(helper); // Add helper to the scene
-    }
-    return () => {
-      if (helperRef.current) {
-        helperRef.current.dispose();
-      }
-    };
   }, []);
 
   useEffect(() => {
@@ -142,12 +139,28 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
     controlsRef.current,
     screenCategory,
   ]);
-  const handleGuiStart = () => {
+  useEffect(() => {
+    spotlightRef.current = new SpotLight(0xffffff, 1);
+    directionalLight1Ref.current = new DirectionalLight(0xffffff, 1);
+    directionalLight2Ref.current = new DirectionalLight(0xffffff, 1);
+    pointLightRef.current = new PointLight(0xffffff, 1);
+  }, []);
+  useEffect(() => {
+    // Add lights to the scene
+    const scene = sceneRef.current;
+
+    if (spotlightRef.current) scene.add(spotlightRef.current);
+    if (directionalLight1Ref.current) scene.add(directionalLight1Ref.current);
+    if (directionalLight2Ref.current) scene.add(directionalLight2Ref.current);
+    if (pointLightRef.current) scene.add(pointLightRef.current);
+  }, []);
+
+  const handleGuiStart = (panel) => {
     if (controlsRef.current) {
       const guiSettings = CONTROL_SETTINGS.guiMode;
       Object.assign(controlsRef.current, guiSettings);
     }
-    setIsGuiMode(true);
+    setIsGuiMode(panel); // Track which panel activated GUI mode
   };
 
   const handleGuiEnd = () => {
@@ -307,6 +320,8 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
 
     const masterTimeline = gsap.timeline();
 
+    controlsRef.current.autoRotate = false;
+
     // Camera movement timeline
     masterTimeline
       .to(
@@ -395,8 +410,8 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
       );
 
     resetTimeline.eventCallback("onUpdate", () => {
-      controlsRef.current.update();
       camera.updateProjectionMatrix();
+      controlsRef.current.autoRotate = true;
     });
   };
 
@@ -411,9 +426,36 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
           height: "100vh",
           width: "100%",
           maxWidth: "100vw",
-          pointerEvents: "none", // Add this to allow clicking through to annotations
+          pointerEvents: "auto",
         }}
       >
+        {/* <button
+          onClick={togglePanel}
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            zIndex: 1000,
+            padding: "10px",
+          }}
+        >
+          Toggle Panel
+        </button>
+
+        {isPanelVisible && (
+          <LightControlPanel
+            lights={{
+              spotlight: spotlightRef.current,
+              directionalLight1: directionalLight1Ref.current,
+              directionalLight2: directionalLight2Ref.current,
+              pointLight: pointLightRef.current,
+            }}
+            scene={sceneRef.current}
+            onGuiStart={() => console.log("GUI started")}
+            onGuiEnd={() => console.log("GUI ended")}
+          />
+        )} */}
+
         <CameraGUI
           cameraRef={cameraRef}
           controlsRef={controlsRef}
@@ -445,12 +487,26 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
             setCamera(camera);
           }}
         >
+          <Perf position="top-left" />
           <RoomWalls />
 
-          <pointLight position={(-0.36, 0.7, -0.1)} color={0xff0000} />
           <ambientLight intensity={0.8} />
 
           <directionalLight position={[0, 5, 0]} castShadow />
+
+          {/* <directionalLight position={[7.5, 3, -2]} intensity={3} /> */}
+
+          {/* {spotlightRef.current && <primitive object={spotlightRef.current} />}
+          {directionalLight1Ref.current && (
+            <primitive object={directionalLight1Ref.current} />
+          )}
+          {directionalLight2Ref.current && (
+            <primitive object={directionalLight2Ref.current} />
+          )}
+          {pointLightRef.current && (
+            <primitive object={pointLightRef.current} />
+          )} */}
+
           {/* <spotLight
             ref={spotlightRef}
             position={[-0.43, 1.68, 0]} // Positioned on the left
@@ -478,8 +534,8 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
           {/* use this version only when using gui */}
 
           <OrbitControls
-            // autoRotate
-            // autoRotateSpeed={0.5}
+            autoRotate
+            autoRotateSpeed={0.2}
             ref={controlsRef}
             {...CONTROL_SETTINGS.default}
             onStart={() => {

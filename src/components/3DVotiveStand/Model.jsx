@@ -48,12 +48,12 @@ function Model({
   }, [controlsRef]);
 
   // Use this to find the position of a specific object in the scene
-  // const statueFace = scene.getObjectByName("Statue_Face");
+  // const statueFace = scene.getObjectByName("Cola");
   // const facePosition = new THREE.Vector3();
 
   // if (statueFace) {
   //   statueFace.getWorldPosition(facePosition);
-  //   console.log("Statue_Face world position:", facePosition);
+  //   console.log("Cola world position:", facePosition);
   // } else {
   //   console.error("Statue_Face not found in the scene.");
   // }
@@ -127,8 +127,76 @@ function Model({
       });
     };
   }, [markers, camera, gltf.scene]);
+  const createCandleShaderMaterial = (colorOffset, timeScale, offsetX) => {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        iTime: { value: 0 },
+        iResolution: {
+          value: new THREE.Vector2(window.innerWidth, window.innerHeight),
+        },
+        offsetX: { value: offsetX },
+        colorOffset: { value: colorOffset },
+        timeScale: { value: timeScale },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float iTime;
+        uniform vec2 iResolution;
+        uniform float offsetX;
+        uniform vec3 colorOffset;
+        uniform float timeScale;
+        varying vec2 vUv;
+  
+        void main() {
+          vec2 uv = vUv;
+          uv.y = 1.0 - uv.y;
+          uv.x += offsetX;
+  
+          // Modify the base colors with colorOffset and timeScale
+          vec3 col = vec3(
+            0.4 + 0.35 * cos(iTime * timeScale * 0.7 + uv.x + 4.5 + colorOffset.x),
+            0.15 + 0.15 * cos(iTime * timeScale * 0.7 + uv.x + 2.0 + colorOffset.y),
+            0.5 + 0.45 * cos(iTime * timeScale * 0.7 + uv.x + 7.0 + colorOffset.z)
+          );
+  
+    // Candle body (now green)
+    float c = smoothstep(0.13, 0.10, abs(0.5 - uv.x));
+    c *= smoothstep(0.6, 0.59, abs(uv.y));
+    col += vec3(0.0, c * 0.5, 0.0); // Green candle
 
-  // Play Animation (Take 001
+    // Flame (reduced intensity)
+if (uv.y > 0.60) { // Only calculate the flame for the upper half
+    float f = smoothstep(0.04, 0.00, 
+        sin(uv.y * 12.0 + 2.1) * 0.02 + 
+        abs((0.5 + sin(uv.y * 9.1 + iTime) * 0.01) - uv.x));
+    col += vec3(f * 1.0, f * 2.0, f * 0.0);
+}
+
+    // Output final color
+    gl_FragColor = vec4(col, 1.0);
+}
+        
+      `,
+    });
+  };
+
+  // Create materials array with variations
+  const shaderMaterials = [
+    createCandleShaderMaterial(new THREE.Vector3(0.0, 0.0, 0.0), 1.0, 0.3), // Original
+    createCandleShaderMaterial(new THREE.Vector3(1.2, 0.5, 0.8), 0.85, 0.32), // Warmer
+    createCandleShaderMaterial(new THREE.Vector3(0.5, 0.8, 1.5), 1.15, 0.28), // Cooler
+    createCandleShaderMaterial(new THREE.Vector3(0.3, 1.0, 0.2), 0.95, 0.31), // Nature
+    createCandleShaderMaterial(new THREE.Vector3(1.0, 0.2, 1.0), 1.05, 0.29), // Mystical
+    createCandleShaderMaterial(new THREE.Vector3(0.2, 0.7, 1.2), 0.9, 0.33), // Ocean
+    createCandleShaderMaterial(new THREE.Vector3(1.4, 0.3, 0.5), 1.1, 0.27), // Sunset
+    createCandleShaderMaterial(new THREE.Vector3(0.7, 0.9, 0.6), 0.98, 0.3), // Forest
+  ];
 
   useEffect(() => {
     if (gltf.animations.length) {
@@ -142,6 +210,52 @@ function Model({
       }
     }
   }, [gltf]);
+
+  useEffect(() => {
+    if (!modelRef.current) return;
+
+    modelRef.current.traverse((child) => {
+      if (child.name.startsWith("Selection")) {
+        // Get the index from the selection name (1-based to 0-based)
+        const index = parseInt(child.name.replace("Selection", "")) - 1;
+        if (index >= 0 && index < shaderMaterials.length) {
+          child.material = shaderMaterials[index];
+        }
+      }
+    });
+  }, [modelRef]);
+  // useEffect(() => {
+  //   const video = document.createElement("video");
+  //   video.src = "colaCandle1.mp4"; // Path to your MP4 file
+  //   video.loop = true;
+  //   video.muted = true;
+  //   video.play();
+
+  //   const videoTexture = new THREE.VideoTexture(video);
+  //   videoTexture.minFilter = THREE.LinearFilter;
+  //   videoTexture.magFilter = THREE.LinearFilter;
+  //   videoTexture.format = THREE.RGBFormat;
+
+  //   // Adjust the video texture scaling
+  //   videoTexture.repeat.set(6.06 / 0.56, 1); // Scale horizontally
+  //   videoTexture.offset.set(0, 0); // Optional: adjust centering
+  //   videoTexture.wrapS = THREE.ClampToEdgeWrapping;
+  //   videoTexture.wrapT = THREE.ClampToEdgeWrapping;
+
+  //   // Apply the video texture to the mesh
+  //   modelRef.current.traverse((child) => {
+  //     if (child.name === "Selection1") {
+  //       const videoMaterial = new THREE.MeshBasicMaterial({
+  //         map: videoTexture,
+  //       });
+
+  //       child.material = videoMaterial;
+
+  //       // Scale the mesh to match the video aspect ratio
+  //       child.scale.set(1, 0.56 / 6.06, 1);
+  //     }
+  //   });
+  // }, [modelRef]);
 
   // Fetch results from Firestore
   useEffect(() => {
@@ -214,15 +328,26 @@ function Model({
     setShuffledResults(shuffled);
   }, [results, modelRef]);
   // Handle Melting Effect and Tooltips
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
+    const { clock } = state; // Access the clock from the state
+
     if (mixerRef.current) {
-      mixerRef.current.update(delta);
+      mixerRef.current.update(delta); // Update the mixer
     }
+
     if (!modelRef.current) return;
 
     let meltingCount = 0;
 
     modelRef.current.traverse((child) => {
+      if (
+        child.name.startsWith("Selection") &&
+        child.material.uniforms?.iTime
+      ) {
+        child.material.uniforms.iTime.value = clock.getElapsedTime();
+      }
+
+      // Handle melting logic for ZCandle objects
       if (
         child.name.startsWith("ZCandle") &&
         child.userData?.isMelting === true
