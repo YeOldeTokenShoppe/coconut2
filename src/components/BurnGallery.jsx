@@ -24,6 +24,7 @@ import {
   StatNumber,
   StatHelpText,
 } from "@chakra-ui/react";
+
 import {
   collection,
   query,
@@ -94,7 +95,7 @@ function BurnGallery({ setBurnGalleryLoaded }) {
   const [images, setImages] = useState([]);
   const [isFlameVisible, setIsFlameVisible] = useState(true);
   const [isChandelierVisible, setIsChandelierVisible] = useState(true);
-
+  const [isInMarkerView, setIsInMarkerView] = useState(false);
   const [currentPath, setCurrentPath] = useState("/");
   const [marginTop, setMarginTop] = useState("17rem");
   const [isLoading, setIsLoading] = useState(true);
@@ -402,15 +403,27 @@ function BurnGallery({ setBurnGalleryLoaded }) {
         // backgroundPosition="10% 5rem"
       >
         <Grid gap={0} width="100%">
-          <GridItem width="100%" zIndex={5}>
+          <GridItem width="100%" zIndex={isChandelierVisible ? 5 : 3}>
             <Scene visible={isChandelierVisible} />
           </GridItem>
 
           <GridItem width="100%" zIndex={4}>
             <ThreeDVotiveStand
               setIsLoading={() => setIsLoading(true)}
-              onCameraMove={() => setIsChandelierVisible(false)}
-              onResetView={() => setIsChandelierVisible(true)}
+              onCameraMove={() => {
+                setIsInMarkerView(true); // Set this when moving to a marker
+                setIsChandelierVisible(false);
+              }}
+              onResetView={() => {
+                setIsInMarkerView(false); // Clear this when resetting view
+                setIsChandelierVisible(true);
+              }}
+              onZoom={() => {
+                if (!isInMarkerView) {
+                  // Only handle zoom if not in marker view
+                  setIsChandelierVisible(false);
+                }
+              }}
             />
           </GridItem>
         </Grid>

@@ -29,8 +29,6 @@ export const shaderEffects = [
   },
 ];
 
-console.log("Shader effects array:", shaderEffects); // Add this line
-
 export function getRandomShader() {
   const selected =
     shaderEffects[Math.floor(Math.random() * shaderEffects.length)];

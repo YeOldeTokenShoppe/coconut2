@@ -218,12 +218,6 @@ export function setupVideoTextures(modelRef) {
       modelRef.current.traverse((child) => {
         if (child.isMesh && child.name.startsWith("Screen")) {
           const randomEffect = getRandomShader();
-          console.log(
-            "Creating shader for",
-            child.name,
-            "with effect:",
-            randomEffect
-          );
 
           // Verify shader structure
           if (randomEffect && randomEffect.shader) {
@@ -283,6 +277,11 @@ export function setupVideoTextures(modelRef) {
     const userScreenCount = Math.min(4, totalUsers);
     const shaderScreenCount = totalScreens - userScreenCount;
 
+    // Reset all screen content
+    Object.keys(screenStateManager.screenContent).forEach((key) => {
+      screenStateManager.clearContent(key);
+    });
+
     // Create array of screen names and shuffle it
     const screenNames = Object.keys(displayTextures);
     for (let i = screenNames.length - 1; i > 0; i--) {
@@ -310,6 +309,8 @@ export function setupVideoTextures(modelRef) {
         overlayMeshes[screenName].material.map = texture;
         overlayMeshes[screenName].visible = true;
         overlayMeshes[screenName].material.needsUpdate = true;
+
+        screenStateManager.updateContent(screenName, user);
       }
     }
 
@@ -318,6 +319,7 @@ export function setupVideoTextures(modelRef) {
       const screenName = screenNames[i];
       if (overlayMeshes[screenName]) {
         overlayMeshes[screenName].visible = false;
+        screenStateManager.clearContent(screenName);
       }
     }
   };
@@ -369,6 +371,10 @@ export function setupVideoTextures(modelRef) {
       // Add this
       clearInterval(shaderInterval);
     }
+    // Clear all screen content on cleanup
+    Object.keys(screenStateManager.screenContent).forEach((key) => {
+      screenStateManager.clearContent(key);
+    });
     Object.values(shaderMaterials).forEach((material) => material.dispose());
     Object.values(overlayMeshes).forEach((mesh) => {
       mesh.material.dispose();
@@ -430,4 +436,188 @@ export const handleCandles = (
   } else {
     setTooltipData([]); // Clear tooltips when no hover
   }
+};
+
+// utility for clicking on screens for up-close view
+// modelUtilities.js
+export const SCREEN_VIEWS = {
+  Screen1: {
+    cameraView: {
+      desktop: {
+        position: () => ({ x: 4.2, y: 2.44, z: 8.71 }),
+        target: () => ({ x: -7.8, y: 3.6, z: -0.55 }),
+        fov: 27.3,
+      },
+    },
+    getDescription: () => {
+      const content = screenStateManager.screenContent.Screen1;
+      return content ? content.userName : null;
+    },
+    annotationPosition: {
+      desktop: {
+        xPercent: 50,
+        yPercent: 50,
+      },
+    },
+  },
+  Screen2: {
+    cameraView: {
+      desktop: {
+        position: () => ({ x: 5.45, y: 4.23, z: 7.96 }),
+        target: () => ({ x: -3.6, y: 4.8, z: -0.55 }),
+        fov: 25.5,
+      },
+    },
+    getDescription: () => {
+      const content = screenStateManager.screenContent.Screen2;
+      return content ? content.userName : null;
+    },
+    annotationPosition: {
+      desktop: {
+        xPercent: 50,
+        yPercent: 50,
+      },
+    },
+  },
+  Screen3: {
+    cameraView: {
+      desktop: {
+        position: () => ({ x: 5.45, y: 3.51, z: 7.51 }),
+        target: () => ({ x: 3.6, y: 3.6, z: -0.55 }),
+        fov: 35.7,
+      },
+    },
+    getDescription: () => {
+      const content = screenStateManager.screenContent.Screen3;
+      return content ? content.userName : null;
+    },
+    annotationPosition: {
+      desktop: {
+        xPercent: 50,
+        yPercent: 50,
+      },
+    },
+  },
+  Screen4: {
+    cameraView: {
+      desktop: {
+        position: () => ({ x: 6.62, y: 3.76, z: 6.54 }),
+        target: () => ({ x: 7.9, y: 4.8, z: -0.55 }),
+        fov: 47.2,
+      },
+    },
+    getDescription: () => {
+      const content = screenStateManager.screenContent.Screen4;
+      return content ? content.userName : null;
+    },
+    annotationPosition: {
+      desktop: {
+        xPercent: 50,
+        yPercent: 50,
+      },
+    },
+  },
+  Screen5: {
+    cameraView: {
+      desktop: {
+        position: () => ({ x: 4.84, y: 3.84, z: 8.99 }),
+        target: () => ({ x: 19.5, y: 4.8, z: 1.2 }),
+        fov: 20.7,
+      },
+    },
+    getDescription: () => {
+      const content = screenStateManager.screenContent.Screen5;
+      return content ? content.userName : null;
+    },
+    annotationPosition: {
+      desktop: {
+        xPercent: 50,
+        yPercent: 50,
+      },
+    },
+  },
+  Screen6: {
+    cameraView: {
+      desktop: {
+        position: () => ({ x: 4.8, y: 2.52, z: 9.1 }),
+        target: () => ({ x: 9.7, y: 1.8, z: -0.56 }),
+        fov: 25.5,
+      },
+    },
+    getDescription: () => {
+      const content = screenStateManager.screenContent.Screen6;
+      return content ? content.userName : null;
+    },
+    annotationPosition: {
+      desktop: {
+        xPercent: 50,
+        yPercent: 50,
+      },
+    },
+  },
+};
+export const screenStateManager = {
+  listeners: new Set(),
+  screenContent: {
+    Screen1: null,
+    Screen2: null,
+    Screen3: null,
+    Screen4: null,
+    Screen5: null,
+    Screen6: null,
+  },
+
+  // Method to update content and notify listeners
+  updateContent(screenName, content) {
+    this.screenContent[screenName] = content;
+    this.notifyListeners();
+  },
+
+  // Method to clear content
+  clearContent(screenName) {
+    this.screenContent[screenName] = null;
+    this.notifyListeners();
+  },
+
+  // Subscribe to changes
+  subscribe(listener) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  },
+
+  // Notify all listeners of changes
+  notifyListeners() {
+    this.listeners.forEach((listener) => listener(this.screenContent));
+  },
+};
+screenStateManager.subscribe((content) => {
+  console.log("Screen content updated:", content);
+});
+// For the candle machine buttons:
+
+export const BUTTON_MESSAGES = {
+  Button1: {
+    title: "Button 1",
+    message: "You've pressed the first button. This one controls X feature.",
+    // You can add more properties like:
+    action: "feature1",
+    description: "Longer description if needed",
+    position: { x: 0, y: 0, z: 0 }, // If you need position data
+  },
+  Button2: {
+    title: "Button 2",
+    message: "Second button pressed! This controls Y feature.",
+    action: "feature2",
+    description: "Another description",
+  },
+  // Add entries for all your buttons
+  Button3: {
+    title: "Button 3",
+    message: "Third button activated. This one manages Z feature.",
+  },
+  // You can add a default message for any unrecognized buttons
+  default: {
+    title: "Button Pressed",
+    message: "You've activated a button",
+  },
 };

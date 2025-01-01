@@ -19,7 +19,6 @@ export default function CommunionPage() {
 
   useEffect(() => {
     if (carouselLoaded && communionLoaded) {
-      console.log("Both components loaded, hiding loader");
       setIsLoading(false);
     }
   }, [carouselLoaded, communionLoaded]);

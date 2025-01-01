@@ -1,18 +1,47 @@
 import React, { useEffect, useState } from "react";
 
-const SwipeIcon = ({ onDisappear, autoHideDelay = 5000 }) => {
-  const [visible, setVisible] = useState(true);
+const SwipeIcon = ({
+  onDisappear,
+  autoHideDelay = 5000,
+  direction = "down",
+  rotation = 0,
+}) => {
+  const [visible, setVisible] = useState(false); // Initially not visible
+  const [userInteracted, setUserInteracted] = useState(false); // Tracks user interaction
 
   useEffect(() => {
-    if (autoHideDelay) {
-      const timer = setTimeout(() => {
+    // Handle user interactions (click and scroll)
+    const handleUserInteraction = () => {
+      setUserInteracted(true);
+    };
+
+    window.addEventListener("click", handleUserInteraction);
+    window.addEventListener("scroll", handleUserInteraction);
+
+    const visibilityTimer = setTimeout(() => {
+      if (!userInteracted) {
+        setVisible(true); // Show the animation if no interaction occurred
+      }
+    }, 5000); // 5-second delay
+
+    return () => {
+      // Cleanup event listeners and timers
+      window.removeEventListener("click", handleUserInteraction);
+      window.removeEventListener("scroll", handleUserInteraction);
+      clearTimeout(visibilityTimer);
+    };
+  }, [userInteracted]);
+
+  useEffect(() => {
+    if (visible && autoHideDelay) {
+      const hideTimer = setTimeout(() => {
         setVisible(false);
         if (onDisappear) onDisappear();
       }, autoHideDelay);
 
-      return () => clearTimeout(timer);
+      return () => clearTimeout(hideTimer);
     }
-  }, [autoHideDelay, onDisappear]);
+  }, [visible, autoHideDelay, onDisappear]);
 
   const handleInteraction = () => {
     setVisible(false);
@@ -20,6 +49,16 @@ const SwipeIcon = ({ onDisappear, autoHideDelay = 5000 }) => {
   };
 
   if (!visible) return null;
+
+  const getSwipeAnimation = () => `
+    @keyframes swipe-y {
+      0% { transform: translateY(0px); }
+
+      50% { transform: translateY(50px); }
+ 
+      100% { transform: translateY(0px); }
+    }
+  `;
 
   return (
     <div
@@ -39,7 +78,9 @@ const SwipeIcon = ({ onDisappear, autoHideDelay = 5000 }) => {
 .swipe-icon {
   width: 4em; /* Slightly larger than an emoji */
   height: 4em;
-  animation: swipe-y 1.25s ease-in-out infinite;
+
+animation: swipe-y 1.25s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+
   cursor: pointer;
 }
 
@@ -61,18 +102,19 @@ const SwipeIcon = ({ onDisappear, autoHideDelay = 5000 }) => {
   stroke-linejoin: round;
 }
 
+
+
 @keyframes swipe-y {
   0% {
     transform: translateY(0px);
   }
-  25% {
-    transform: translateY(50px) rotateZ(-10deg);
-  }
+
   50% {
-    transform: translateY(0px);
+    transform: translateY(50px);
   }
-  75% {
-    transform: translateY(-50px) rotateZ(10deg);
+
+  100% {
+    transform: translateY(0px);
   }
 }
         `}</style>

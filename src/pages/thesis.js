@@ -11,9 +11,7 @@ export default function ThesisPage() {
   const [communionLoaded, setCommunionLoaded] = useState(false);
 
   useEffect(() => {
-    console.log("Loading status:", { thesisLoaded, communionLoaded });
     if (thesisLoaded && communionLoaded) {
-      console.log("Both components loaded, hiding loader");
       setIsLoading(false);
     }
   }, [thesisLoaded, communionLoaded]);

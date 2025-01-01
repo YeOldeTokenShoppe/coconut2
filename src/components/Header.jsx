@@ -229,7 +229,6 @@ function Header() {
             console.log("User already exists in Firestore:", docSnap.data());
           } else {
             await setDoc(docRef, userData, { merge: true });
-            console.log("User data saved to Firestore");
           }
         } catch (error) {
           console.error("Error saving user data to Firestore:", error);

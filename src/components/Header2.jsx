@@ -49,10 +49,7 @@ function Header() {
       const token = await getToken({ template: "integration_firebase" });
       if (!token) throw new Error("No Firebase token from Clerk.");
 
-      console.log("JWT token from Clerk:", token);
-
       const userCredentials = await signInWithCustomToken(auth, token || "");
-      console.log("User:", userCredentials.user);
 
       return userCredentials.user; // Return the authenticated User
     } catch (error) {

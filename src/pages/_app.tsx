@@ -18,25 +18,33 @@ import "../../styles/ScenePage.css";
 import type { AppProps } from "next/app";
 import { ThirdwebProvider } from "../utilities/thirdweb";
 import { ChakraProvider, extendTheme } from "@chakra-ui/react";
+import { ThemeProvider, useTheme } from "next-themes";
 import { defaultTheme, galleryTheme, sceneTheme } from "../utilities/theme";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Header from "../components/Header";
 import Header2 from "../components/Header2";
 import styles from "../../styles/MusicPlayer.module.css";
-import Communion from "../components/Communion";
-import Communion3 from "../components/Communion3";
-
-import {
-  ClerkProvider,
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/nextjs";
+import { Theme } from "@chakra-ui/react";
+import { ClerkProvider } from "@clerk/nextjs";
 import { shadesOfPurple } from "@clerk/themes";
+import { useEffect } from "react";
 
-function MyApp({ Component, pageProps }: AppProps) {
+type MyAppProps = AppProps & {
+  Component: AppProps["Component"] & {
+    theme?: string; // Add the `theme` property
+  };
+};
+
+function MyApp({ Component, pageProps }: MyAppProps) {
+  useEffect(() => {
+    // Ensure theme is forced to "dark"
+    const html = document.documentElement;
+    html.setAttribute("data-theme", "dark");
+    html.style.colorScheme = "dark";
+    html.style.backgroundColor = "#000000";
+    html.style.color = "white";
+  }, []);
   const router = useRouter();
 
   const isGalleryPage = router.pathname === "/gallery";
@@ -45,9 +53,17 @@ function MyApp({ Component, pageProps }: AppProps) {
   const isCommunionPage = router.pathname === "/communion";
   const isScenePage = router.pathname === "/scene"; // Add this line
   const isRocketPage = router.pathname === "/rocket";
+  function DebugTheme() {
+    const { theme, resolvedTheme, systemTheme } = useTheme();
 
+    console.log("Active theme:", theme);
+    console.log("Resolved theme:", resolvedTheme);
+    console.log("System theme:", systemTheme);
+
+    return null;
+  }
   // Dynamically choose the theme
-  const theme = isGalleryPage
+  const special = isGalleryPage
     ? galleryTheme
     : isScenePage
     ? sceneTheme
@@ -65,27 +81,40 @@ function MyApp({ Component, pageProps }: AppProps) {
     <>
       <ClerkProvider>
         <ThirdwebProvider>
-          <ChakraProvider theme={theme}>
-            <Head>
-              <title>𝓞𝖚𝖗 𝕷𝖆𝖉𝖞 𝔬𝔣 𝕻𝖊𝖗𝖕𝖊𝖙𝖚𝖆𝖑 𝕻𝖗𝖔𝖋𝖎𝖙</title>
-              <meta name="description" content="A token to believe in." />
-              <meta
-                name="viewport"
-                content="width=device-width, initial-scale=1"
-              />
-            </Head>
+          <ChakraProvider theme={special}>
             <div
-              className={isScenePage ? "scene-page" : ""}
+              className={`${isGalleryPage ? "gallery-page" : ""} ${
+                isScenePage ? "scene-page" : ""
+              }`.trim()} // Dynamically add class names
               style={{
-                width: "100%",
-                margin: "0",
+                backgroundColor: isGalleryPage
+                  ? "#000000"
+                  : isScenePage
+                  ? "#0d0d0d"
+                  : "transparent",
+                width: isGalleryPage || isScenePage ? "100%" : "auto",
+                margin: isGalleryPage || isScenePage ? "0" : "auto",
               }}
             >
               {/* Render the Header dynamically */}
               {HeaderComponent && <HeaderComponent />}
-
-              {/* Render the main page content */}
-              <Component {...pageProps} />
+              <ThemeProvider
+                defaultTheme="dark"
+                enableSystem={false}
+                attribute="data-theme"
+                forcedTheme="dark"
+                enableColorScheme={false}
+                scriptProps={{
+                  dangerouslySetInnerHTML: {
+                    __html:
+                      "document.documentElement.setAttribute('data-theme', 'dark');",
+                  },
+                }}
+              >
+                <DebugTheme />
+                {/* Render the main page content */}
+                <Component {...pageProps} />
+              </ThemeProvider>
             </div>
           </ChakraProvider>
         </ThirdwebProvider>

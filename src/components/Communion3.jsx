@@ -40,7 +40,6 @@ function Communion({ setCommunionLoaded }) {
                       width={258}
                       height={257}
                       style={{ width: "4rem", height: "4rem", ...icon.style }}
-                      onLoad={() => console.log(`${icon.alt} loaded`)} // Debug image load
                     />
                   </div>
                 </Link>

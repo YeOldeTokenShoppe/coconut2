@@ -1,23 +1,24 @@
-import { OrbitControls } from "@react-three/drei";
-
 export const CONTROL_SETTINGS = {
   default: {
-    enableRotate: true,
-    rotateSpeed: 0.5,
+    // enableRotate: true,
+    // rotateSpeed: 0.1,
     enableDamping: true,
     dampingFactor: 0.03,
-    minDistance: 5,
-    maxDistance: 100,
+    minDistance: 0, // Single definition
+    maxDistance: 20, // Single definition
     minPolarAngle: 0,
-    maxPolarAngle: Math.PI / 1.75, // Limit to not go below model
+    maxPolarAngle: Math.PI / 1.75,
     enablePan: true,
     enableZoom: true,
     zoomSpeed: 0.5,
-    maxDistance: 20,
-    minDistance: 0,
+    // Add touch-specific settings
+    touchAngularSensitivity: 2,
+    touchZoomSensitivity: 2,
+    // enableTouchRotate: true,
+    enableTouchZoom: true,
   },
   guiMode: {
-    enableDamping: false, // More precise control when using GUI
+    enableDamping: false,
     minDistance: 0,
     maxDistance: Infinity,
     minPolarAngle: 0,
@@ -25,7 +26,10 @@ export const CONTROL_SETTINGS = {
     enablePan: true,
     enableZoom: true,
     zoomSpeed: 0.5,
-    maxDistance: 20,
-    minDistance: 0,
+    // Same touch settings for consistency
+    touchAngularSensitivity: 2,
+    touchZoomSensitivity: 2,
+    // enableTouchRotate: true,
+    enableTouchZoom: true,
   },
 };

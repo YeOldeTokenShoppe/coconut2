@@ -34,25 +34,28 @@ export default function GalleryPage() {
 
   return (
     <>
-      {isLoading && <Loader />}
-      <div
-        style={{
-          opacity: isLoading ? 0 : 1,
-          transition: "opacity 0.5s ease-in-out",
-          position: "relative",
-          zIndex: 1,
-          // width: "100vw",
-          // height: "100%",
-        }}
-      >
-        <BurnGallery setBurnGalleryLoaded={setBurnGalleryLoaded} />
-        {/* <div className="canvasNavbar">
+      <div style={{ backgroundColor: "#000000", minHeight: "100vh" }}>
+        {isLoading && <Loader />}
+        <div
+          style={{
+            opacity: isLoading ? 0 : 1,
+            transition: "opacity 0.5s ease-in-out",
+            position: "relative",
+            zIndex: 1,
+            // width: "100vw",
+            // height: "100%",
+          }}
+        >
+          <BurnGallery setBurnGalleryLoaded={setBurnGalleryLoaded} />
+          {/* <div className="canvasNavbar">
           <NavBar />
         </div> */}
-        <div style={{ marginTop: "1rem" }}>
-          <Communion3 setCommunionLoaded={setCommunionLoaded} />
+          <div style={{ marginTop: "1rem" }}>
+            <Communion3 setCommunionLoaded={setCommunionLoaded} />
+          </div>
         </div>
       </div>
     </>
   );
+  GalleryPage.theme = "dark";
 }

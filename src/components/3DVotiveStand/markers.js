@@ -25,7 +25,7 @@ export const DEFAULT_MARKERS = [
       desktop: {
         // Use absolute coordinates
         position: () => new THREE.Vector3(0.6, 9.7, 9.7),
-        target: () => new THREE.Vector3(-4.8, -3, 0),
+        target: () => new THREE.Vector3(-4.8, 0, 0),
         fov: 27.3,
       },
     },
@@ -58,9 +58,9 @@ export const DEFAULT_MARKERS = [
         fov: 20,
       },
       desktop: {
-        position: () => new THREE.Vector3(4.8, 6.2, 8.09), // Adjust for tablet
-        target: () => new THREE.Vector3(4.8, 7.8, -2.4), // Same target
-        fov: 35.1,
+        position: () => new THREE.Vector3(4.8, 6.99, 6.83), // Adjust for tablet
+        target: () => new THREE.Vector3(4.8, 9.1, -2.4), // Same target
+        fov: 71.1,
       },
     },
     annotationPosition: {
@@ -73,7 +73,8 @@ export const DEFAULT_MARKERS = [
   {
     position: new THREE.Vector3(0.2, 0.12, 0.23),
     label: "View 3",
-    description: "From this angle you can see blah blah blah...",
+    description:
+      "Our Lady glorifies the 3 top and 3 most recent stakers of Her token. Click on any screen for a closer view.",
     cameraView: {
       phone: {
         // Use absolute coordinates
@@ -101,7 +102,7 @@ export const DEFAULT_MARKERS = [
       // Move this outside cameraView
       phone: { xPercent: 30, yPercent: 70 },
       tablet: { xPercent: 50, yPercent: 70 },
-      desktop: { xPercent: 48, yPercent: 60 },
+      desktop: { xPercent: 40, yPercent: 60 },
     },
   },
 
@@ -136,7 +137,7 @@ export const DEFAULT_MARKERS = [
       // Move this outside cameraView
       phone: { xPercent: 30, yPercent: 65 },
       tablet: { xPercent: 25, yPercent: 50 },
-      desktop: { xPercent: 25, yPercent: 50 },
+      desktop: { xPercent: 50, yPercent: 50 },
     },
     extraButton: {
       label: "Take me there!",

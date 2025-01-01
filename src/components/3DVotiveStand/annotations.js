@@ -103,15 +103,9 @@ export const Annotations = ({
         OK
       </button>
       {extraButton && (
-        <a
-          href={"/rocket"}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => {
-            e.preventDefault();
-
+        <button
+          onClick={() => {
             setIsVisible(false);
-
             const forward = new THREE.Vector3();
             camera.getWorldDirection(forward);
             const targetPosition = camera.position
@@ -128,16 +122,12 @@ export const Annotations = ({
                 camera.updateProjectionMatrix();
               },
               onComplete: () => {
-                // Instead of window.open, create and click a temporary link
-                const link = document.createElement("a");
-                link.href = extraButton.url;
-                link.target = "_blank";
-                link.rel = "noopener noreferrer";
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                // Navigate to the new URL in the same window
+                window.location.assign(extraButton.url, "_blank");
 
-                setTimeout(onReset, 100); // Small delay before reset
+                // Note: onReset might not be necessary here since we're leaving the page
+                // but included it just in case the navigation fails
+                setTimeout(onReset, 100);
               },
             });
           }}
@@ -150,11 +140,12 @@ export const Annotations = ({
             borderRadius: "8px",
             fontSize: "16px",
             fontWeight: "bold",
-            display: "inline-block",
+            border: "none",
+            cursor: "pointer",
           }}
         >
           {extraButton.label}
-        </a>
+        </button>
       )}
     </div>
   );

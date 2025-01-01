@@ -108,10 +108,8 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
   const signIntoFirebase = async () => {
     try {
       const token = await getToken({ template: "integration_firebase" });
-      console.log("JWT token from Clerk:", token);
 
       const userCredentials = await signInWithCustomToken(auth, token);
-      console.log("Signed into Firebase with user:", userCredentials.user);
 
       setFirebaseUser(userCredentials.user);
       return userCredentials.user;
@@ -125,7 +123,6 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
     if (isLoaded && isSignedIn && user && !firebaseUser) {
       signIntoFirebase().then((firebaseUser) => {
         if (firebaseUser) {
-          console.log("Firebase user:", firebaseUser);
           fetchUserProfile(firebaseUser.uid);
         } else {
           console.error("Failed to sign into Firebase");
@@ -159,10 +156,6 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
     }
   };
 
-  useEffect(() => {
-    console.log("firebaseUser:", firebaseUser);
-  }, [firebaseUser]);
-
   const showPopupMessage = (
     message,
     onConfirm = null,
@@ -188,10 +181,10 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
       const waitlistQuery = query(waitlistRef, where("userId", "==", user.id));
       const waitlistSnapshot = await getDocs(waitlistQuery);
 
-      if (!waitlistSnapshot.empty) {
-        console.log("User is already on the waitlist.");
-        return;
-      }
+      // if (!waitlistSnapshot.empty) {
+
+      //   return;
+      // }
 
       await addDoc(waitlistRef, {
         userId: user.id,
@@ -200,7 +193,6 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
         timestamp: serverTimestamp(),
       });
 
-      console.log("User added to the waitlist successfully.");
       showPopupMessage(
         "You have been added to the waitlist. We will notify you when a beast is available. Please enjoy the Moon Room in the meantime.",
         null,
@@ -247,7 +239,7 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
           setRiders({});
           setActiveBeastId(null);
           setMessages({});
-          console.log("Cleared state due to empty collection.");
+
           return;
         }
 
@@ -299,9 +291,7 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
       }));
     });
 
-    console.log(`Subscribed to messages for beastId: ${beastId}`);
     return () => {
-      console.log(`Unsubscribed from messages for beastId: ${beastId}`);
       unsubscribe();
     };
   };
@@ -321,15 +311,11 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
         },
         { merge: true } // Update existing fields, add new ones if missing
       );
-
-      console.log(`Beast chat updated for ${beastId}`);
     } catch (error) {
       console.error(`Failed to update chat for ${beastId}:`, error);
     }
   };
   const confirmRide = async () => {
-    console.log("confirmRide triggered");
-
     if (!user) {
       showPopupMessage("Please sign in to ride the beast.");
       return;
@@ -374,7 +360,6 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
 
       // Save the rider to Firestore
       await setDoc(beastRef, riderData);
-      console.log("Rider successfully set in Firestore:", riderData);
 
       // Update state
       setActiveBeastId(beastId);
@@ -406,7 +391,6 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
           }
         });
 
-        console.log("Synced riders from Firestore:", fetchedRiders);
         setRiders(fetchedRiders);
         setActiveBeastId(userActiveBeast || null);
         setIsRiding(!!userActiveBeast);
@@ -421,10 +405,6 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
   useEffect(() => {
     if (!activeBeastId) return;
 
-    console.log(
-      `Setting up listener for messages on beastId: ${activeBeastId}`
-    );
-
     const messagesQuery = query(
       collection(db, "carouselChat"),
       where("beastId", "==", activeBeastId)
@@ -436,8 +416,6 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
         newMessages.push(doc.data());
       });
 
-      console.log("New messages received:", newMessages); // Log messages for debugging
-
       setMessages((prevMessages) => ({
         ...prevMessages,
         [activeBeastId]: newMessages,
@@ -445,9 +423,6 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
     });
 
     return () => {
-      console.log(
-        `Cleaning up listener for messages on beastId: ${activeBeastId}`
-      );
       unsubscribeMessages();
     };
   }, [activeBeastId]);
@@ -471,7 +446,6 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
       const messageRef = doc(db, "carouselChat", beastId);
       await setDoc(messageRef, messageData);
 
-      console.log("Message sent and replaced successfully in Firestore");
       setNewMessage(""); // Clear input
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -488,20 +462,14 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
 
       const messagesSnapshot = await getDocs(messagesQuery);
 
-      console.log(
-        `Found ${messagesSnapshot.size} messages to delete for beastId: ${beastId}`
-      );
-
       if (!messagesSnapshot.empty) {
         const batch = writeBatch(db);
 
         messagesSnapshot.forEach((doc) => {
-          console.log(`Deleting chat document: ${doc.id}`);
           batch.delete(doc.ref);
         });
 
         await batch.commit();
-        console.log("Batch deletion successful for beastId:", beastId);
       } else {
         console.log(`No chat messages to delete for beastId: ${beastId}`);
       }
@@ -566,7 +534,7 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
             }
 
             // Assign the beast to the next rider in the waitlist
-            console.log("Attempting to assign from waitlist...");
+
             await assignBeastFromWaitlist(doc.id);
           }
         }
@@ -582,7 +550,6 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
       setActiveBeastId(null); // Clear the active beast
       setMessages({}); // Clear all messages
       setNewMessage(""); // Clear the input field
-      console.log("Chat box container cleared.");
     }
   }, [isRiding]);
 
@@ -621,8 +588,6 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
         ...prevMessages,
         [activeBeastId]: [],
       }));
-
-      console.log("Ride ended, chat box and messages cleared.");
     } catch (error) {
       console.error("Failed to quit the ride:", error);
       showPopupMessage("Error quitting the ride. Please try again.");
@@ -642,7 +607,7 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
         for (const rideDoc of existingRidesSnapshot.docs) {
           if (rideDoc.id !== activeBeastId) {
             // Skip active beast
-            console.log(`Deleting old ride for beast: ${rideDoc.id}`);
+
             await deleteDoc(rideDoc.ref);
           }
         }
@@ -786,23 +751,19 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
   };
 
   const findAvailableBeast = () => {
-    console.log("Current riders state:", riders);
     const occupiedBeasts = Object.keys(riders);
     for (let i = 1; i <= 12; i++) {
       const beastId = `beast${i}`;
       if (!occupiedBeasts.includes(beastId)) {
-        console.log("Available beast found:", beastId);
         return beastId;
       }
     }
-    console.log("No available beast found.");
+
     return null;
   };
 
   const assignBeastFromWaitlist = async () => {
     try {
-      console.log("Attempting to assign a beast from the waitlist...");
-
       const waitlistRef = collection(db, "carouselWaitlist");
       const waitlistQuery = query(
         waitlistRef,
@@ -815,12 +776,8 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
         const nextUserDoc = snapshot.docs[0];
         const userData = nextUserDoc.data();
 
-        console.log("Next user from waitlist:", userData);
-
         const availableBeast = findAvailableBeast();
         if (availableBeast) {
-          console.log("Assigning user to available beast:", availableBeast);
-
           const beastRef = doc(db, "carouselBeasts", availableBeast);
           await setDoc(beastRef, {
             userId: userData.userId,

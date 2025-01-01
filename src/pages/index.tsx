@@ -1,5 +1,5 @@
-// Import styles
 "use client";
+
 import React, { useState, useEffect } from "react";
 import WordPressSlider from "../components/WordPressSlider";
 import RotatingBadge from "../components/RotatingBadge";
@@ -8,55 +8,30 @@ import Loader from "../components/Loader";
 
 export default function Page() {
   const [isLoading, setIsLoading] = useState(true);
-  const [rotatingBadgeLoaded, setRotatingBadgeLoaded] = useState(false);
-  const [wordPressSliderLoaded, setWordPressSliderLoaded] = useState(false);
+  const [contentReady, setContentReady] = useState(false);
 
   useEffect(() => {
-    console.log("Loading status:", {
-      rotatingBadgeLoaded,
-      wordPressSliderLoaded,
-    });
-    if (rotatingBadgeLoaded && wordPressSliderLoaded) {
-      console.log("Both components loaded, hiding loader");
-      setIsLoading(false);
-    }
-  }, [rotatingBadgeLoaded, wordPressSliderLoaded]);
-  return (
-    <div
-      // className="flex-text"
-      style={{
-        display: "flex",
-        height: "100%",
-        width: "100%",
-        position: "absolute", // Position the badge absolutely within the container
+    // Simulate content loading
+    const timeout = setTimeout(() => {
+      setContentReady(true); // Mark content as ready
+    }, 3000); // Simulate a 3-second load time
 
-        opacity: isLoading ? 0 : 1,
-        transition: "opacity 0.5s ease-in-out",
-        visibility: isLoading ? "hidden" : "visible",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1400px",
-          width: "100%",
-          margin: "auto",
-          position: "absolute", // Position the container relatively
-        }}
-      >
-        <WordPressSlider setWordPressSliderLoaded={setWordPressSliderLoaded} />
-      </div>
-      {/* </div> */}
-      <Link
-        href="/home"
-        style={{
-          textDecoration: "none",
-          position: "absolute",
-          top: "2rem",
-          right: "2rem",
-        }}
-      >
-        <RotatingBadge setRotatingBadgeLoaded={setRotatingBadgeLoaded} />
-      </Link>
+    return () => clearTimeout(timeout); // Cleanup timeout
+  }, []);
+
+  useEffect(() => {
+    if (contentReady) {
+      const fadeOutTimeout = setTimeout(() => {
+        setIsLoading(false); // Fade out the loader after content is ready
+      }, 500); // Delay fade-out slightly for smooth transition
+
+      return () => clearTimeout(fadeOutTimeout); // Cleanup timeout
+    }
+  }, [contentReady]);
+
+  return (
+    <div>
+      {/* Loader */}
       {isLoading && (
         <div
           style={{
@@ -65,12 +40,48 @@ export default function Page() {
             left: 0,
             right: 0,
             bottom: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "rgba(255, 255, 255, 1)",
             zIndex: 50,
+            transition: "opacity 0.5s ease-out",
+            opacity: isLoading ? 1 : 0,
           }}
         >
           <Loader />
         </div>
       )}
+
+      {/* Main Content */}
+      <div
+        style={{
+          opacity: isLoading ? 0 : 1,
+          transition: "opacity 0.5s ease-in",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1400px",
+            width: "100%",
+            margin: "auto",
+            position: "absolute",
+          }}
+        >
+          <WordPressSlider />
+        </div>
+        <Link
+          href="/home"
+          style={{
+            textDecoration: "none",
+            position: "absolute",
+            top: "2rem",
+            right: "2rem",
+          }}
+        >
+          <RotatingBadge />
+        </Link>
+      </div>
     </div>
   );
 }

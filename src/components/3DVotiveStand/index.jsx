@@ -28,13 +28,23 @@ import RoomWalls from "./RoomWalls";
 import dynamic from "next/dynamic";
 import styled from "styled-components";
 import { candleShader } from "./shaders/videoShaders";
+import { SCREEN_VIEWS, BUTTON_MESSAGES } from "./modelUtilities";
+import { screenStateManager } from "./modelUtilities";
 
-function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
+function ThreeDVotiveStand({
+  setIsLoading,
+  onCameraMove,
+  onResetView,
+  onZoom,
+  isInMarkerView,
+}) {
   const [userData, setUserData] = useState([]);
   const [tooltipData, setTooltipData] = useState([]);
-
+  const [isMarkerMovement, setIsMarkerMovement] = useState(false);
   const [modelScale, setModelScale] = useState(7);
-
+  const [buttonPopupVisible, setButtonPopupVisible] = useState(false);
+  const [clickedButtonName, setClickedButtonName] = useState("");
+  const [buttonData, setButtonData = useState] = useState("");
   const [camera, setCamera] = useState(null);
   const [markers, setMarkers] = useState(DEFAULT_MARKERS);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -170,6 +180,27 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
     }
     setIsGuiMode(false);
   };
+  const handleButtonClick = (buttonNumber) => {
+    if (!modelRef.current) return;
+
+    const selectionMesh = modelRef.current.getObjectByName(
+      `Selection${buttonNumber}`
+    );
+    if (selectionMesh && selectionMesh.material) {
+      gsap.to(selectionMesh.material.uniforms.emission, {
+        value: 1,
+        duration: 0.9,
+        ease: "power2.out",
+        onComplete: () => {
+          gsap.to(selectionMesh.material.uniforms.emission, {
+            value: 0,
+            duration: 0.9,
+            ease: "power2.in",
+          });
+        },
+      });
+    }
+  };
 
   // Animate function for billboarding
   useEffect(() => {
@@ -201,17 +232,27 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
 
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
-
-    // Collect interactive objects
-    const interactiveObjects = [];
+    // Add these before the intersectObjects call
+    raycaster.near = 0.1;
+    raycaster.far = 1000; // Adjust based on your scene scale
+    // Collect all interactive objects at once
+    const screenObjects = [];
     const markerObjects = [];
+    const interactiveObjects = [];
 
     modelRef.current.traverse((object) => {
+      // Collect screens
+      if (
+        (object.isMesh && object.name.startsWith("Screen")) ||
+        (object.isMesh && object.parent?.name.includes("Screen"))
+      ) {
+        screenObjects.push(object);
+      }
       // Collect markers
       if (object.isMarker || object.parent?.isMarker) {
         markerObjects.push(object);
       }
-      // Collect all candle-related objects
+      // Collect candle-related objects
       if (
         object.name.startsWith("ZCandle") ||
         object.name.startsWith("CandleBase") ||
@@ -221,7 +262,34 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
       }
     });
 
-    // Check marker intersections first
+    // Check screen intersections first
+    const screenIntersects = raycaster.intersectObjects(screenObjects, true);
+    if (screenIntersects.length > 0 && event.type === "click") {
+      const clickedObject = screenIntersects[0].object;
+      let screenName = clickedObject.name.startsWith("Screen")
+        ? clickedObject.name
+        : clickedObject.parent.name.replace("001", "");
+
+      const screenView = SCREEN_VIEWS[screenName];
+
+      if (screenView) {
+        // Get current content for this screen
+        const currentContent = screenStateManager.screenContent[screenName];
+
+        // Create view object with description from current content
+        const viewWithDescription = {
+          ...screenView,
+          fromScreen: true,
+          description: currentContent ? currentContent.userName : null, // This will be used by setActiveAnnotation
+          showAnnotation: !!currentContent,
+        };
+
+        moveCamera(viewWithDescription, null);
+        return;
+      }
+    }
+
+    // Check marker intersections second
     const markerIntersects = raycaster.intersectObjects(markerObjects, true);
     if (markerIntersects.length > 0) {
       let markerObject = markerIntersects[0].object;
@@ -235,23 +303,24 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
           moveCamera(markerData, markerObject.markerIndex);
         }
       }
-      setTooltipData([]); // Clear tooltips when over markers
+      setTooltipData([]);
       return;
     }
 
-    // Then check candle intersections
-    // Then check candle intersections
+    // Check candle intersections last
     const candleIntersects = raycaster.intersectObjects(
       interactiveObjects,
       true
     );
-    if (candleIntersects.length > 0) {
-      const intersectedObject = candleIntersects[0].object;
 
-      // Extract candle number from any candle-related object
+    // Handle all intersections instead of just the first one
+    const newTooltipData = [];
+
+    candleIntersects.forEach((intersection) => {
+      const intersectedObject = intersection.object;
       const candleNumber = intersectedObject.name.match(/\d+/)?.[0];
+
       if (candleNumber) {
-        // Find the corresponding ZCandle object
         let zCandle = null;
         modelRef.current.traverse((object) => {
           if (object.name === `ZCandle${candleNumber}`) {
@@ -260,46 +329,90 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
         });
 
         if (zCandle && zCandle.userData?.isMelting) {
-          // Get world position for tooltip
           const worldPos = new THREE.Vector3();
           zCandle.getWorldPosition(worldPos);
-
-          // Add offset to position tooltip above candle
-          worldPos.y += 0.5; // Adjust this value as needed
-
-          // Project to screen space
+          worldPos.y += 0.5;
           worldPos.project(camera);
 
           const x = (0.5 + worldPos.x / 2) * canvas.clientWidth;
           const y = (0.5 - worldPos.y / 2) * canvas.clientHeight;
 
-          setTooltipData([
-            {
-              userName: zCandle.userData?.userName || "Anonymous",
-              position: { x, y },
-            },
-          ]);
-          return;
+          newTooltipData.push({
+            userName: zCandle.userData?.userName || "Anonymous",
+            position: { x, y },
+            distance: intersection.distance, // Add distance for potential z-ordering
+          });
         }
       }
-    }
+    });
 
-    // Clear tooltips if no intersection
-    setTooltipData([]);
+    // Sort tooltips by distance if needed (optional)
+    newTooltipData.sort((a, b) => a.distance - b.distance);
+
+    // Update tooltip data with all found intersections
+    if (newTooltipData.length > 0) {
+      setTooltipData(newTooltipData);
+    } else {
+      // Clear tooltips if no intersections
+      setTooltipData([]);
+    }
+    if (event.type === "click") {
+      const buttonObjects = [];
+      modelRef.current.traverse((object) => {
+        if (object.name.includes("Button")) {
+          buttonObjects.push(object);
+        }
+      });
+
+      const buttonIntersects = raycaster.intersectObjects(buttonObjects, true);
+      if (buttonIntersects.length > 0) {
+        const hitObject = buttonIntersects[0].object;
+        const buttonNumber = hitObject.name.replace("Button", "");
+        const buttonData =
+          BUTTON_MESSAGES[hitObject.name] || BUTTON_MESSAGES.default;
+
+        console.log(`${hitObject.name} clicked!`);
+        setClickedButtonName(hitObject.name);
+        setButtonData(buttonData); // Make sure this state exists
+        setButtonPopupVisible(true);
+        handleButtonClick(buttonNumber); // Keep the glow effect
+      }
+    }
   };
   //
 
-  const moveCamera = (view, markerIndex) => {
-    if (!view?.cameraView) return;
+  const moveCamera = (view, markerIndex = null) => {
+    setIsMarkerMovement(true);
+    if (!view) {
+      console.log("Invalid view data:", view);
+      return;
+    }
 
     const screenCategory = getScreenCategory();
-    const cameraView = {
-      position: view.cameraView[screenCategory].position(),
-      target: view.cameraView[screenCategory].target(),
-      fov: view.cameraView[screenCategory].fov ?? currentSettings.fov,
-    };
+    let cameraView;
+
+    // Check if this is a marker view (which uses Three.Vector3)
+
+    if (view.cameraView?.[screenCategory]?.position instanceof Function) {
+      // Screen view format
+      cameraView = {
+        position: view.cameraView[screenCategory].position(),
+        target: view.cameraView[screenCategory].target(),
+        fov: view.cameraView[screenCategory].fov ?? currentSettings.fov,
+      };
+    } else {
+      // Marker view format
+      cameraView = {
+        position: view.cameraView[screenCategory].position,
+        target: view.cameraView[screenCategory].target,
+        fov: view.cameraView[screenCategory].fov ?? currentSettings.fov,
+      };
+    }
+
     // Notify the parent that the camera is moving
-    onCameraMove();
+
+    onCameraMove(); // This should trigger setIsChandelierVisible(false)
+
     // Set the annotation content but don't show it yet
     setActiveAnnotation({
       text: view.description,
@@ -313,10 +426,11 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
             ANNOTATION_SETTINGS.defaultScreenPosition.yPercent,
         },
       },
-      extraButton: markerIndex === 3 ? view.extraButton : null, // Add hyperlink for the 4th marker
+      fromScreen: view.fromScreen, // Preserve the fromScreen flag
+      extraButton: markerIndex === 3 ? view.extraButton : null,
     });
 
-    setIsAnnotationVisible(false);
+    setIsAnnotationVisible(view.showAnnotation ?? true);
 
     const masterTimeline = gsap.timeline();
 
@@ -332,6 +446,8 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
           z: cameraView.position.z,
           duration: 1.5,
           ease: "power2.inOut",
+          // onStart: () => console.log("Camera position animation started"),
+          // onComplete: () => console.log("Camera position animation completed"),
         },
         0
       )
@@ -355,12 +471,22 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
         },
         0
       )
-      // Add a delay after camera movement before showing annotation
-      .call(() => setIsAnnotationVisible(true), [], "+=0.3"); // 0.3 seconds after camera movement
+      .call(
+        () => {
+          if (view.showAnnotation) {
+            setIsAnnotationVisible(true);
+          }
+        },
+        [],
+        "+=0.3"
+      );
 
     masterTimeline.eventCallback("onUpdate", () => {
       controlsRef.current.update();
       camera.updateProjectionMatrix();
+    });
+    masterTimeline.eventCallback("onComplete", () => {
+      setIsMarkerMovement(false);
     });
   };
 
@@ -494,31 +620,8 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
 
           <directionalLight position={[0, 5, 0]} castShadow />
 
-          {/* <directionalLight position={[7.5, 3, -2]} intensity={3} /> */}
-
-          {/* {spotlightRef.current && <primitive object={spotlightRef.current} />}
-          {directionalLight1Ref.current && (
-            <primitive object={directionalLight1Ref.current} />
-          )}
-          {directionalLight2Ref.current && (
-            <primitive object={directionalLight2Ref.current} />
-          )}
-          {pointLightRef.current && (
-            <primitive object={pointLightRef.current} />
-          )} */}
-
-          {/* <spotLight
-            ref={spotlightRef}
-            position={[-0.43, 1.68, 0]} // Positioned on the left
-            // angle={Math.PI / 2} // Cone angle
-            penumbra={0.5} // Soft edges
-            intensity={2}
-            castShadow
-          /> */}
-          {/* <pointLight position={[2, 1, 3]} intensity={5} color={"#88B6FF"} /> */}
-
           <Model
-            url="/slimUltima4.glb"
+            url="/slimUltima5.glb"
             scale={modelScale}
             setIsLoading={setIsLoading}
             controlsRef={controlsRef}
@@ -530,41 +633,45 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
             userData={userData}
             moveCamera={moveCamera}
             setTooltipData={setTooltipData}
+            onButtonClick={handleButtonClick}
           />
           {/* use this version only when using gui */}
 
           <OrbitControls
             autoRotate
-            autoRotateSpeed={0.2}
+            autoRotateSpeed={0.05}
             ref={controlsRef}
             {...CONTROL_SETTINGS.default}
+            touches={{
+              ONE: THREE.TOUCH.ROTATE,
+              TWO: THREE.TOUCH.DOLLY_PAN,
+            }}
             onStart={() => {
               if (!isGuiMode) {
-                // Apply default settings when not in GUI mode
                 const defaultSettings = CONTROL_SETTINGS.default;
                 Object.assign(controlsRef.current, defaultSettings);
-                controlsRef.current.update(); // Ensure controls are updated
+                controlsRef.current.update();
               }
+            }}
+            onChange={(event) => {
+              const camera = event.target?.object;
+              if (camera && !isInMarkerView) {
+                if (camera.position.z < 10) {
+                  onZoom?.();
+                } else if (camera.position.z > 10) {
+                  onResetView?.();
+                }
+              }
+            }}
+            // Add error handling for touch events
+            onTouchStart={(event) => {
+              event.preventDefault();
+            }}
+            onTouchMove={(event) => {
+              event.preventDefault();
             }}
           />
 
-          {/* <OrbitControls
-            ref={controlsRef}
-            rotation={true}
-            rotateSpeed={0.3}
-            enablePan={true}
-            screenSpacePanning={true}
-            panSpeed={3}
-            enableZoom={true}
-            zoomSpeed={0.3}
-            maxDistance={20}
-            minDistance={0}
-            enableRotate={true}
-            maxAzimuthAngle={Infinity} // Limit horizontal rotation
-            minAzimuthAngle={-Infinity} // Limit horizontal rotation
-            maxPolarAngle={Math.PI / 2} // Limit vertical rotation
-            minPolarAngle={0} // Limit vertical rotation
-          /> */}
           <PostProcessingEffects />
         </Canvas>
 
@@ -586,7 +693,17 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
               setIsVisible={setIsAnnotationVisible}
               position={activeAnnotation?.position}
               onReset={() => {
-                resetCamera();
+                // Check if we're currently viewing a screen
+                const isViewingScreen = activeAnnotation?.fromScreen;
+
+                if (isViewingScreen) {
+                  // Return to marker 3's view
+                  const marker3View = markers[2]; // Assuming marker 3 is at index 2
+                  moveCamera(marker3View, 2);
+                } else {
+                  // Normal reset behavior for non-screen views
+                  resetCamera();
+                }
                 onResetView(); // Notify parent to show the chandelier
               }}
               onMoveCamera={onCameraMove} // Notify parent to hide the chandelier
@@ -596,6 +713,7 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
             />
           </div>
         )}
+
         <div className="tooltip-wrapper">
           {tooltipData.map((tooltip, index) => (
             <div
@@ -611,7 +729,7 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
                 color: "white",
                 borderRadius: "4px",
                 zIndex: 1000,
-                fontSize: "14px",
+                fontSize: "16px",
                 fontWeight: "600",
                 opacity: tooltip.userName ? 1 : 0,
                 visibility: tooltip.userName ? "visible" : "hidden",
@@ -623,6 +741,73 @@ function ThreeDVotiveStand({ setIsLoading, onCameraMove, onResetView }) {
             </div>
           ))}
         </div>
+        {/* After your existing annotation div */}
+        {buttonPopupVisible && (
+          <div
+            style={{
+              position: "fixed",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              backgroundColor: "rgba(0, 0, 0, 0.8)",
+              color: "#fff",
+              borderRadius: "5%",
+              zIndex: 100000,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "20px",
+              border: "2px solid goldenrod",
+              pointerEvents: "auto",
+            }}
+          >
+            <h3
+              style={{
+                margin: 0,
+                marginBottom: "10px",
+                fontSize: "18px",
+                fontWeight: "bold",
+              }}
+            >
+              {buttonData.title}
+            </h3>
+            <p
+              style={{
+                margin: 0,
+                paddingBottom: "15px",
+                textAlign: "center",
+              }}
+            >
+              {buttonData.message}
+            </p>
+            <button
+              onClick={() => setButtonPopupVisible(false)}
+              style={{
+                position: "relative",
+                zIndex: 100001,
+                pointerEvents: "auto",
+                cursor: "pointer",
+                padding: "10px",
+                marginTop: "auto",
+                backgroundColor: "goldenrod",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                width: "70px",
+                height: "30px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                fontSize: "16px",
+                fontWeight: "bold",
+                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+              }}
+            >
+              OK
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

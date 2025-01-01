@@ -22,8 +22,9 @@ function Model({
   moveCamera,
   rotation,
   handlePointerMove,
+  onButtonClick,
 }) {
-  const gltf = useGLTF("/slimUltima4.glb");
+  const gltf = useGLTF("/slimUltima5.glb");
   const { actions, mixer } = useAnimations(gltf.animations, modelRef);
   const { camera, size } = useThree();
   const [results, setResults] = useState([]);
@@ -48,14 +49,14 @@ function Model({
   }, [controlsRef]);
 
   // Use this to find the position of a specific object in the scene
-  // const statueFace = scene.getObjectByName("Cola");
-  // const facePosition = new THREE.Vector3();
+  // const Button1 = scene.getObjectByName("Button1");
+  // const ButtonPosition = new THREE.Vector3();
 
-  // if (statueFace) {
-  //   statueFace.getWorldPosition(facePosition);
-  //   console.log("Cola world position:", facePosition);
+  // if (Button1) {
+  //   Button1.getWorldPosition(ButtonPosition);
+  //   console.log("Button world position:", ButtonPosition);
   // } else {
-  //   console.error("Statue_Face not found in the scene.");
+  //   console.error("ButtonPosition not found in the scene.");
   // }
 
   useEffect(() => {
@@ -137,6 +138,7 @@ function Model({
         offsetX: { value: offsetX },
         colorOffset: { value: colorOffset },
         timeScale: { value: timeScale },
+        emission: { value: 0.0 },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -151,6 +153,7 @@ function Model({
         uniform float offsetX;
         uniform vec3 colorOffset;
         uniform float timeScale;
+        uniform float emission; 
         varying vec2 vUv;
   
         void main() {
@@ -179,6 +182,7 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
 }
 
     // Output final color
+    col += col * emission; 
     gl_FragColor = vec4(col, 1.0);
 }
         
@@ -197,6 +201,32 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
     createCandleShaderMaterial(new THREE.Vector3(1.4, 0.3, 0.5), 1.1, 0.27), // Sunset
     createCandleShaderMaterial(new THREE.Vector3(0.7, 0.9, 0.6), 0.98, 0.3), // Forest
   ];
+
+  // Add this to your Model component
+  const handleButtonClick = (buttonNumber) => {
+    if (!modelRef.current) return;
+
+    // Find the corresponding Selection mesh
+    const selectionMesh = modelRef.current.getObjectByName(
+      `Selection${buttonNumber}`
+    );
+    if (selectionMesh && selectionMesh.material) {
+      // Animate the emission value
+      gsap.to(selectionMesh.material.uniforms.emission, {
+        value: 1,
+        duration: 0.3,
+        ease: "power2.out",
+        onComplete: () => {
+          // Fade back to normal
+          gsap.to(selectionMesh.material.uniforms.emission, {
+            value: 0,
+            duration: 0.5,
+            ease: "power2.in",
+          });
+        },
+      });
+    }
+  };
 
   useEffect(() => {
     if (gltf.animations.length) {
@@ -224,6 +254,18 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
       }
     });
   }, [modelRef]);
+
+  // You can temporarily add this to your Model component to log screen positions:
+  // useEffect(() => {
+  //   if (!modelRef.current) return;
+  //   modelRef.current.traverse((object) => {
+  //     if (object.name.startsWith("Screen")) {
+  //       const position = new THREE.Vector3();
+  //       object.getWorldPosition(position);
+  //       console.log(`${object.name} position:`, position);
+  //     }
+  //   });
+  // }, [modelRef]);
   // useEffect(() => {
   //   const video = document.createElement("video");
   //   video.src = "colaCandle1.mp4"; // Path to your MP4 file
@@ -374,7 +416,7 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
         const meltingSpeed = 0.01;
 
         // Calculate the desired minimum scale (e.g., 0.01 for 1% of original height)
-        const MIN_SCALE = 0.015; // Change this value to set minimum height percentage
+        const MIN_SCALE = 0.1; // Change this value to set minimum height percentage
 
         // Calculate scale directly as a percentage of original height
         const percentageRemaining = Math.max(
@@ -405,8 +447,16 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
       position={[0, 0, 0]}
       scale={scale}
       rotation={rotation}
+      onClick={(e) => {
+        e.stopPropagation();
+        handlePointerMove(e.nativeEvent);
+        console.log("Model clicked:", e.object.name);
+      }}
+      // onClick={(e) => {
+      //   e.stopPropagation();
+      //   handlePointerMove(e.nativeEvent);
+      // }}
       onPointerMove={(e) => handlePointerMove(e.nativeEvent)}
-      onClick={(e) => handlePointerMove(e.nativeEvent)}
     />
   );
 }

@@ -64,7 +64,7 @@ function Thesis({ setThesisLoaded }) {
               <SwipeIcon
                 handColor="goldenrod" /* Light blue */
                 arrowColor="#ff0000" /* Red arrows */
-                autoHideDelay={7000} /* Disappears after 7 seconds */
+                autoHideDelay={5000} /* Disappears after 7 seconds */
                 animationDelay="3s" /* Start immediately */
                 debug={true} /* Add a prop to enable debugging */
               />

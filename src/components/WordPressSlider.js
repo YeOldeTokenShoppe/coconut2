@@ -1,19 +1,17 @@
 // components/WordPressSlider.js
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import Loader from "./Loader";
 
 const frameUrl = "https://rl80.com";
 
-const WordPressSlider = ({ setWordPressSliderLoaded }) => {
-  useEffect(() => {
-    // Simulate async data or image loading
-    const loadWordPressSliderContent = async () => {
-      // Example: simulate loading (replace with real logic)
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setWordPressSliderLoaded(true); // Notify parent that loading is complete
-    };
-
-    loadWordPressSliderContent();
-  }, [setWordPressSliderLoaded]);
+const WordPressSlider = () => {
+  // const [isLoading, setIsLoading] = useState(true);
+  // useEffect(() => {
+  //   const timeout = setTimeout(() => {
+  //     setWordPressSliderLoaded(true);
+  //   }, 3000); // Adjust timeout as needed
+  //   return () => clearTimeout(timeout); // Cleanup
+  // }, [setWordPressSliderLoaded]);
   return (
     <>
       <div
@@ -23,9 +21,11 @@ const WordPressSlider = ({ setWordPressSliderLoaded }) => {
           overflow: "hidden",
           margin: 0,
           padding: 0,
+          zIndex: 1,
         }}
       >
         <iframe
+          id="wordpress-slider"
           src={frameUrl}
           width="100%"
           height="100%"

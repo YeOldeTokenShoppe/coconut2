@@ -265,6 +265,9 @@ body {
   --wcm-z-index: 1500;
   --w3m-z-index: 1500;
 }
+html[data-theme="light"] {
+  background-color: #000000 !important; /* Prevent flicker to light */
+}
 
 a {
   color: #84309c;
