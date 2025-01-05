@@ -5120,3 +5120,33 @@ body {
 .fade-container.hidden {
   opacity: 0;
 }
+#rayContainer {
+  width: 100%;
+  height: 100%;
+  top: 0px;
+  left: 0px;
+  background-color: #000;
+  overflow: hidden;
+  z-index: 1;
+}
+
+#rays,
+#rayCenter {
+  left: 50%;
+  top: 50%;
+}
+
+.rayFill {
+  position: absolute;
+  width: 1px;
+  height: 0px;
+  background: #fff;
+}
+
+#rayCenter {
+  margin-top: -75px;
+  margin-left: -75px;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(ellipse, #000 20%, rgba(0, 0, 0, 0) 50%);
+}

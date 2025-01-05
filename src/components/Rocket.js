@@ -11,6 +11,79 @@ const RocketSimulator = () => {
   const [countdown, setCountdown] = useState(20);
   let currentFace = 1; // Track the current face
   let toggled = false; // Track the toggle state for visibility
+  const raysRef = useRef(null);
+  // Add rays animation effect
+  useEffect(() => {
+    const rays = raysRef.current;
+    if (!rays) return;
+
+    const createRay = (i) => {
+      const ray = document.createElement("div");
+      ray.className = "ray";
+      ray.id = `r${i}`;
+
+      const rayFill = document.createElement("div");
+      rayFill.className = "rayFill";
+      ray.appendChild(rayFill);
+
+      return ray;
+    };
+
+    const startRay = (ray, i) => {
+      const h = Math.max(window.innerWidth, window.innerHeight);
+      gsap.set(ray, {
+        rotation: 360 * Math.random(),
+      });
+
+      gsap.fromTo(
+        ray.children[0],
+        {
+          opacity: 0.15,
+          scaleY: 1,
+          height: 0,
+          y: (h / 5) * Math.random(),
+        },
+        {
+          opacity: 1,
+          y: h / 2 + (h / 2) * Math.random(),
+          delay: i / 150,
+          height: h,
+          duration: 1,
+          ease: "power4.inOut",
+          onComplete: () => endRay(ray),
+        }
+      );
+    };
+
+    const endRay = (ray) => {
+      gsap.fromTo(
+        ray.children[0],
+        {
+          transformOrigin: "0% 100%",
+        },
+        {
+          scaleY: 0,
+          duration: 0.3,
+          ease: "none",
+          onComplete: () => startRay(ray, parseInt(ray.id.slice(1))),
+        }
+      );
+    };
+
+    // Create rays
+    for (let i = 1; i < 300; i++) {
+      const ray = createRay(i);
+      rays.appendChild(ray);
+      startRay(ray, i);
+    }
+
+    // Cleanup
+    return () => {
+      while (rays.firstChild) {
+        rays.removeChild(rays.firstChild);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     console.log("user", user);
@@ -47,9 +120,9 @@ const RocketSimulator = () => {
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
     renderer.domElement.style.cursor = "pointer";
-
+    renderer.setClearColor(0x000000, 0);
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x01374b);
+    scene.background = null;
     scene.fog = new THREE.Fog(scene.background, 10, 20);
 
     const camera = new THREE.PerspectiveCamera(
@@ -319,92 +392,6 @@ const RocketSimulator = () => {
       fire.scale.y = THREE.MathUtils.randFloat(0.04, 0.08);
     };
 
-    // Stars (Particles)
-    class Particles extends THREE.Group {
-      constructor(options) {
-        super();
-        this.color = options.color || 0x333333;
-        this.size = options.size || 0.4;
-        this.pointCount = options.pointCount || 40;
-        this.rangeV = options.rangeV || 2;
-        this.rangeH = options.rangeH || 1;
-        this.speed = this.speedTarget = options.speed || 0.0005;
-
-        const randFloatSpread = (range) => range * (0.5 - Math.random());
-
-        const canvas = document.createElement("canvas");
-        canvas.width = canvas.height = 128;
-        const ctx = canvas.getContext("2d");
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const radius = canvas.width / 3;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
-        ctx.fillStyle = "#fff";
-        ctx.fill();
-        const texture = new THREE.Texture(canvas);
-        texture.premultiplyAlpha = true;
-        texture.needsUpdate = true;
-
-        const pointsGeo = new THREE.BufferGeometry();
-        const vertices = [];
-
-        for (let p = 0; p < this.pointCount; p++) {
-          const point = new THREE.Vector3(
-            randFloatSpread(this.rangeH),
-            randFloatSpread(this.rangeV),
-            randFloatSpread(this.rangeH)
-          );
-          vertices.push(point.x, point.y, point.z);
-        }
-
-        pointsGeo.setAttribute(
-          "position",
-          new THREE.Float32BufferAttribute(vertices, 3)
-        );
-
-        const pointsMat = new THREE.PointsMaterial({
-          color: this.color,
-          size: this.size,
-          map: texture,
-          transparent: true,
-          depthWrite: false,
-        });
-
-        this.points = new THREE.Points(pointsGeo, pointsMat);
-        this.points.position.y = -this.rangeV / 2;
-        this.points.sortParticles = true;
-
-        this.add(this.points);
-      }
-
-      updateConstant() {
-        let pCount = this.pointCount;
-        const positions = this.points.geometry.attributes.position.array;
-        while (pCount--) {
-          const index = pCount * 3 + 1;
-          positions[index] -= this.speed;
-          if (positions[index] < -this.rangeV / 2) {
-            positions[index] = this.rangeV / 2;
-          }
-        }
-        this.points.geometry.attributes.position.needsUpdate = true;
-      }
-    }
-
-    const stars = new Particles({
-      color: 0xffffff,
-      size: 0.6,
-      rangeH: 20,
-      rangeV: 20,
-      pointCount: 400,
-      size: 0.2,
-      speed: 0.1,
-    });
-
-    stars.points.position.y = 0;
-    scene.add(stars);
-
     // Mouse interactions
     const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
     const rocketTarget = new THREE.Vector3();
@@ -455,7 +442,6 @@ const RocketSimulator = () => {
         ease: "power1.inOut",
       });
 
-      stars.speedTarget = 0.3;
       renderer.domElement.style.cursor = "none";
     };
 
@@ -468,7 +454,6 @@ const RocketSimulator = () => {
         ease: "power1.inOut",
       });
 
-      stars.speedTarget = 0.1;
       renderer.domElement.style.cursor = "pointer";
     };
 
@@ -503,7 +488,7 @@ const RocketSimulator = () => {
       time += clock.getDelta();
       rocketGroup.rotation.y = Math.cos(time * 8) * angle;
       fireUpdate();
-      stars.updateConstant();
+
       lerp(rocketGroup.position, "y", rocketTarget.y);
       lerp(rocketGroup.position, "x", rocketTarget.x);
       lerp(camera.position, "x", cameraTarget.x);
@@ -541,52 +526,100 @@ const RocketSimulator = () => {
 
   return (
     <>
-      <div
-        ref={containerRef}
-        style={{
-          width: "100%",
-          height: "100vh",
-          overflow: "hidden",
-          position: "relative", // Ensure the container is positioned relative
-        }}
-      >
-        {/* <video
-          autoPlay
-          loop
-          muted
+      <div id="rayContainer" className="fixed inset-0 bg-black">
+        <div
+          id="rays"
+          ref={raysRef}
+          className="absolute"
+          style={{ position: "absolute", left: "50%", top: "50%" }}
+        >
+          <div id="r0" className="ray">
+            <div className="rayFill"></div>
+          </div>
+        </div>
+
+        <div
+          id="rayCenter"
+          className="absolute"
           style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            marginTop: "-75px",
+            marginLeft: "-75px",
+            width: "150px",
+            height: "150px",
+            background:
+              "radial-gradient(ellipse, #000 20%, rgba(0, 0, 0, 0) 50%)",
+          }}
+        ></div>
+
+        {/* Three.js container */}
+        <div
+          ref={containerRef}
+          style={{
             width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            zIndex: -1, // Ensure the video is behind the Three.js canvas
+            height: "100vh",
+            overflow: "hidden",
+            position: "relative",
+            zIndex: 2,
           }}
         >
-          <source src="/vortex5.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video> */}
-
-        {/* Your RocketSimulator canvas will render above the video */}
-        {/* Optional overlay message for countdown */}
-        {countdown > 0 && (
-          <div
-            style={{
-              position: "absolute",
-              top: "20px",
-              right: "20px",
-              color: "white",
-              fontSize: "1.2rem",
-              background: "rgba(0, 0, 0, 0.5)",
-              padding: "10px",
-              borderRadius: "5px",
-            }}
-          >
-            Arriving at destination in {countdown} seconds...
-          </div>
-        )}
+          {countdown > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                top: "20px",
+                right: "20px",
+                color: "white",
+                fontSize: "1.2rem",
+                background: "rgba(0, 0, 0, 0.5)",
+                padding: "10px",
+                borderRadius: "5px",
+                zIndex: 3,
+              }}
+            >
+              Arriving at destination in {countdown} seconds...
+            </div>
+          )}
+        </div>
       </div>
+
+      <style jsx>{`
+        #rayContainer {
+          width: 100%;
+          height: 100%;
+          top: 0px;
+          left: 0px;
+          background-color: #000;
+          overflow: hidden;
+        }
+
+        #rays,
+        #rayCenter {
+          left: 50%;
+          top: 50%;
+        }
+
+        .ray {
+          position: absolute;
+        }
+
+        .rayFill {
+          position: absolute;
+          width: 1px;
+          height: 0px;
+          background: #fff;
+        }
+
+        #rayCenter {
+          margin-top: -75px;
+          margin-left: -75px;
+          width: 150px;
+          height: 150px;
+          background: radial-gradient(ellipse, #000 20%, rgba(0, 0, 0, 0) 50%);
+        }
+      `}</style>
     </>
   );
 };

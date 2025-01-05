@@ -140,9 +140,12 @@ export function setupVideoTextures(modelRef) {
 
           // Draw image to fill canvas while maintaining aspect ratio
           const scale =
-            Math.max(canvas.width / img.width, canvas.height / img.height) * 1; // Adjust this multiplier
-          const x = (canvas.width - img.width * scale) / 2;
+            Math.max(canvas.width / img.width, canvas.height / img.height) *
+            1.1; // Increased from 1.0 to 1.2
+          // Adjust position to ensure image is centered and covers left edge
+          const x = (canvas.width - img.width * scale) / 1.8; // Adjusted divisor from 2 to 1.8
           const y = (canvas.height - img.height * scale) / 2;
+
           context.drawImage(img, x, y, img.width * scale, img.height * scale);
           context.restore();
 
@@ -210,7 +213,7 @@ export function setupVideoTextures(modelRef) {
     canvas.width = 512;
     canvas.height = 512;
     const context = canvas.getContext("2d");
-    const avatarX = canvas.width * 0.5; // Or whatever your current value is
+    const avatarX = canvas.width * 0.52; // Or whatever your current value is
 
     const avatarY = canvas.height * 0.5;
 
@@ -269,13 +272,15 @@ export function setupVideoTextures(modelRef) {
   const updateScreens = async () => {
     await fetchUserNames();
 
-    // Calculate how many screens should show user data vs shaders
-    const totalScreens = Object.keys(displayTextures).length; // Should be 6
-    const totalUsers = userNames.length;
+    // Track which users have been displayed
+    const usedUsers = new Set();
 
-    // Determine number of user screens (max 4 and no more than available users)
-    const userScreenCount = Math.min(4, totalUsers);
-    const shaderScreenCount = totalScreens - userScreenCount;
+    // Calculate how many screens should show user data vs shaders
+    const totalScreens = Object.keys(displayTextures).length;
+    const availableUsers = userNames.filter(
+      (user) => !usedUsers.has(user.userName)
+    );
+    const userScreenCount = Math.min(4, availableUsers.length);
 
     // Reset all screen content
     Object.keys(screenStateManager.screenContent).forEach((key) => {
@@ -284,25 +289,18 @@ export function setupVideoTextures(modelRef) {
 
     // Create array of screen names and shuffle it
     const screenNames = Object.keys(displayTextures);
-    for (let i = screenNames.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [screenNames[i], screenNames[j]] = [screenNames[j], screenNames[i]];
-    }
+    const shuffledScreens = [...screenNames].sort(() => Math.random() - 0.5);
 
-    // Shuffle users array to randomize selection
-    const shuffledUsers = [...userNames];
-    for (let i = shuffledUsers.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffledUsers[i], shuffledUsers[j]] = [
-        shuffledUsers[j],
-        shuffledUsers[i],
-      ];
-    }
+    // Create a copy of userNames and shuffle it
+    const shuffledUsers = [...userNames].sort(() => Math.random() - 0.5);
 
-    // First handle user data screens - take first N users from shuffled array
+    // First handle user data screens
     for (let i = 0; i < userScreenCount; i++) {
-      const screenName = screenNames[i];
-      const user = shuffledUsers[i]; // Each user is guaranteed to be unique
+      const screenName = shuffledScreens[i];
+      const user = shuffledUsers[i];
+
+      // Skip if we've already used this user
+      if (usedUsers.has(user.userName)) continue;
 
       const texture = await createTextTexture(user);
       if (overlayMeshes[screenName]) {
@@ -311,12 +309,13 @@ export function setupVideoTextures(modelRef) {
         overlayMeshes[screenName].material.needsUpdate = true;
 
         screenStateManager.updateContent(screenName, user);
+        usedUsers.add(user.userName);
       }
     }
 
-    // Then handle shader screens
+    // Then handle remaining screens with shaders
     for (let i = userScreenCount; i < totalScreens; i++) {
-      const screenName = screenNames[i];
+      const screenName = shuffledScreens[i];
       if (overlayMeshes[screenName]) {
         overlayMeshes[screenName].visible = false;
         screenStateManager.clearContent(screenName);
@@ -443,29 +442,121 @@ export const handleCandles = (
 export const SCREEN_VIEWS = {
   Screen1: {
     cameraView: {
-      desktop: {
-        position: () => ({ x: 4.2, y: 2.44, z: 8.71 }),
-        target: () => ({ x: -7.8, y: 3.6, z: -0.55 }),
-        fov: 27.3,
+      "tablet-small-landscape": {
+        position: () => ({ x: 5.99, y: 2.98, z: 6.18 }),
+        target: () => ({ x: 4.5, y: 2.5, z: 4.9 }),
+        fov: 20,
+      },
+      "tablet-small-portrait": {
+        position: () => ({ x: 5.78, y: 2.4, z: 4.19 }),
+        target: () => ({ x: -6.5, y: 0.6, z: 0.1 }),
+        fov: 31.5,
+      },
+      "tablet-medium-landscape": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 50.9,
+      },
+      "tablet-medium-portrait": {
+        position: () => ({ x: 3.34, y: 3.9, z: 14.31 }),
+        target: () => ({ x: 2.4, y: 6.3, z: -0.55 }),
+        fov: 78,
+      },
+      "tablet-large-landscape": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-large-portrait": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "desktop-small": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "desktop-medium": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "desktop-large": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
       },
     },
     getDescription: () => {
       const content = screenStateManager.screenContent.Screen1;
       return content ? content.userName : null;
     },
+
     annotationPosition: {
       desktop: {
         xPercent: 50,
         yPercent: 50,
       },
     },
+    handleClick: (moveCamera, markers) => {
+      if (markers && markers[2]) {
+        // Index 2 for marker 3
+        moveCamera(markers[2], 2);
+      }
+    },
   },
   Screen2: {
     cameraView: {
       desktop: {
-        position: () => ({ x: 5.45, y: 4.23, z: 7.96 }),
-        target: () => ({ x: -3.6, y: 4.8, z: -0.55 }),
-        fov: 25.5,
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-small-landscape": {
+        position: () => ({ x: 7.9, y: 4.18, z: 4.5 }),
+        target: () => ({ x: 5.5, y: 3.9, z: 3 }),
+        fov: 20,
+      },
+      "tablet-small-portrait": {
+        position: () => ({ x: 9.8, y: 2.8, z: 7.2 }),
+        target: () => ({ x: -2.7, y: 4.7, z: -3.5 }),
+        fov: 15,
+      },
+      "tablet-medium-landscape": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-medium-portrait": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "tablet-large-landscape": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-large-portrait": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "desktop-small": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "desktop-medium": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "desktop-large": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
       },
     },
     getDescription: () => {
@@ -478,13 +569,64 @@ export const SCREEN_VIEWS = {
         yPercent: 50,
       },
     },
+    handleClick: (moveCamera, markers) => {
+      if (markers && markers[2]) {
+        // Index 2 for marker 3
+        moveCamera(markers[2], 2);
+      }
+    },
   },
   Screen3: {
     cameraView: {
       desktop: {
-        position: () => ({ x: 5.45, y: 3.51, z: 7.51 }),
-        target: () => ({ x: 3.6, y: 3.6, z: -0.55 }),
-        fov: 35.7,
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-small-landscape": {
+        position: () => ({ x: 4.79, y: 2.8, z: 2.06 }),
+        target: () => ({ x: 4.9, y: 2.9, z: -5 }),
+        fov: 68,
+      },
+      "tablet-small-portrait": {
+        position: () => ({ x: 4.1, y: 2.8, z: 5.1 }),
+        target: () => ({ x: 5.7, y: 2.5, z: -2.1 }),
+        fov: 31,
+      },
+      "tablet-medium-landscape": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-medium-portrait": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "tablet-large-landscape": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-large-portrait": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "desktop-small": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "desktop-medium": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "desktop-large": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
       },
     },
     getDescription: () => {
@@ -497,13 +639,59 @@ export const SCREEN_VIEWS = {
         yPercent: 50,
       },
     },
+    handleClick: (moveCamera, markers) => {
+      if (markers && markers[2]) {
+        // Index 2 for marker 3
+        moveCamera(markers[2], 2);
+      }
+    },
   },
   Screen4: {
     cameraView: {
-      desktop: {
-        position: () => ({ x: 6.62, y: 3.76, z: 6.54 }),
-        target: () => ({ x: 7.9, y: 4.8, z: -0.55 }),
-        fov: 47.2,
+      "tablet-small-landscape": {
+        position: () => ({ x: 6.15, y: 3.37, z: 2.9 }),
+        target: () => ({ x: 8.2, y: 3.6, z: -3 }),
+        fov: 34.6,
+      },
+      "tablet-small-portrait": {
+        position: () => ({ x: 3.74, y: 4.47, z: 5.23 }),
+        target: () => ({ x: 12.6, y: 1, z: -7.5 }),
+        fov: 20,
+      },
+      "tablet-medium-landscape": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-medium-portrait": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "tablet-large-landscape": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-large-portrait": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "desktop-small": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "desktop-medium": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "desktop-large": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
       },
     },
     getDescription: () => {
@@ -516,13 +704,59 @@ export const SCREEN_VIEWS = {
         yPercent: 50,
       },
     },
+    handleClick: (moveCamera, markers) => {
+      if (markers && markers[2]) {
+        // Index 2 for marker 3
+        moveCamera(markers[2], 2);
+      }
+    },
   },
   Screen5: {
     cameraView: {
-      desktop: {
-        position: () => ({ x: 4.84, y: 3.84, z: 8.99 }),
-        target: () => ({ x: 19.5, y: 4.8, z: 1.2 }),
-        fov: 20.7,
+      "tablet-small-landscape": {
+        position: () => ({ x: 6.4, y: 2.99, z: 4.04 }),
+        target: () => ({ x: 8.4, y: 3.5, z: 2.6 }),
+        fov: 50,
+      },
+      "tablet-small-portrait": {
+        position: () => ({ x: 6.15, y: 3.37, z: 2.9 }),
+        target: () => ({ x: 8.2, y: 3.6, z: -3 }),
+        fov: 34.6,
+      },
+      "tablet-medium-landscape": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-medium-portrait": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "tablet-large-landscape": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-large-portrait": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "desktop-small": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "desktop-medium": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "desktop-large": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
       },
     },
     getDescription: () => {
@@ -535,13 +769,64 @@ export const SCREEN_VIEWS = {
         yPercent: 50,
       },
     },
+    handleClick: (moveCamera, markers) => {
+      if (markers && markers[2]) {
+        // Index 2 for marker 3
+        moveCamera(markers[2], 2);
+      }
+    },
   },
   Screen6: {
     cameraView: {
       desktop: {
-        position: () => ({ x: 4.8, y: 2.52, z: 9.1 }),
-        target: () => ({ x: 9.7, y: 1.8, z: -0.56 }),
-        fov: 25.5,
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-small-landscape": {
+        position: () => ({ x: 5.4, y: 2.5, z: 5.7 }),
+        target: () => ({ x: 7.4, y: 1.1, z: -2.1 }),
+        fov: 20,
+      },
+      "tablet-small-portrait": {
+        position: () => ({ x: 3.6, y: 1.5, z: 6.6 }),
+        target: () => ({ x: 6.9, y: 1.7, z: 0.7 }),
+        fov: 20,
+      },
+      "tablet-medium-landscape": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-medium-portrait": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "tablet-large-landscape": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "tablet-large-portrait": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "desktop-small": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
+      },
+      "desktop-medium": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 48.4,
+      },
+      "desktop-large": {
+        position: () => ({ x: 3.33, y: 1.75, z: 3.73 }),
+        target: () => ({ x: -13.4, y: 5.4, z: -6.6 }),
+        fov: 78,
       },
     },
     getDescription: () => {
@@ -554,8 +839,15 @@ export const SCREEN_VIEWS = {
         yPercent: 50,
       },
     },
+    handleClick: (moveCamera, markers) => {
+      if (markers && markers[2]) {
+        // Index 2 for marker 3
+        moveCamera(markers[2], 2);
+      }
+    },
   },
 };
+
 export const screenStateManager = {
   listeners: new Set(),
   screenContent: {
@@ -590,9 +882,9 @@ export const screenStateManager = {
     this.listeners.forEach((listener) => listener(this.screenContent));
   },
 };
-screenStateManager.subscribe((content) => {
-  console.log("Screen content updated:", content);
-});
+// screenStateManager.subscribe((content) => {
+//   console.log("Screen content updated:", content);
+// });
 // For the candle machine buttons:
 
 export const BUTTON_MESSAGES = {

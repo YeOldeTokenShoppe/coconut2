@@ -1,33 +1,72 @@
 // config/annotationConfig.js
 import * as THREE from "three";
+import React, { useEffect, useState } from "react";
 import gsap from "gsap";
 import "../3DVotiveStand/index.jsx";
 
 export const ANNOTATION_SETTINGS = {
   defaultScreenPosition: { xPercent: 50, yPercent: 50 },
+  positions: {
+    "phone-small": { xPercent: 50, yPercent: 40 },
+    "phone-medium": { xPercent: 50, yPercent: 40 },
+    "phone-large": { xPercent: 50, yPercent: 40 },
+    "tablet-small-portrait": { xPercent: 50, yPercent: 45 },
+    "tablet-small-landscape": { xPercent: 50, yPercent: 45 },
+    "tablet-medium-portrait": { xPercent: 50, yPercent: 45 },
+    "tablet-medium-landscape": { xPercent: 50, yPercent: 45 },
+    "tablet-large-portrait": { xPercent: 50, yPercent: 45 },
+    "tablet-large-landscape": { xPercent: 50, yPercent: 45 },
+    "desktop-small": { xPercent: 50, yPercent: 50 },
+    "desktop-medium": { xPercent: 50, yPercent: 50 },
+    "desktop-large": { xPercent: 50, yPercent: 50 },
+  },
 };
 
-export const get2DPosition = (position, camera, containerSize) => {
+export const DEFAULT_BUTTON_CONFIG = {
+  primary: {
+    label: "Close",
+    action: "reset",
+  },
+};
+
+export const get2DPosition = (
+  position,
+  camera,
+  containerSize,
+  screenCategory = "desktop-medium"
+) => {
   // Check if we have a position object with the right structure
   if (!position || !position.screen) {
     console.warn("Invalid position object:", position);
+    const defaultPosition =
+      ANNOTATION_SETTINGS.positions[screenCategory] ||
+      ANNOTATION_SETTINGS.positions["desktop-medium"] ||
+      ANNOTATION_SETTINGS.defaultScreenPosition;
     return {
-      x: containerSize.width / 2,
-      y: containerSize.height / 2,
+      x: (defaultPosition.xPercent / 100) * containerSize.width,
+      y: (defaultPosition.yPercent / 100) * containerSize.height,
     };
   }
 
-  // Calculate position based on percentages
+  // Get category-specific position adjustments
+  const categoryAdjustments =
+    ANNOTATION_SETTINGS.positions[screenCategory] ||
+    ANNOTATION_SETTINGS.positions["desktop-medium"];
+
+  // Calculate position based on percentages, using category adjustments if available
+  const xPercent = position.screen.xPercent ?? categoryAdjustments.xPercent;
+  const yPercent = position.screen.yPercent ?? categoryAdjustments.yPercent;
+
   return {
-    x: (position.screen.xPercent / 100) * containerSize.width,
-    y: (position.screen.yPercent / 100) * containerSize.height,
+    x: (xPercent / 100) * containerSize.width,
+    y: (yPercent / 100) * containerSize.height,
   };
 };
 
 export const Annotations = ({
   text,
-  isResetVisible, //this prop is for Chandelier visibility
-  isVisible, //this prop is for annotations
+  isResetVisible,
+  isVisible,
   setIsVisible,
   position,
   onReset,
@@ -35,17 +74,62 @@ export const Annotations = ({
   containerSize,
   camera,
   extraButton,
+  buttons,
+  screenCategory = "desktop-medium", // Add this prop
 }) => {
+  const [delayedVisibility, setDelayedVisibility] = useState(false);
+
+  useEffect(() => {
+    if (isVisible) {
+      const timeout = setTimeout(() => {
+        setDelayedVisibility(true);
+      }, 1500);
+
+      return () => clearTimeout(timeout);
+    } else {
+      setDelayedVisibility(false);
+    }
+  }, [isVisible]);
+
   if (!position || !position.screen) {
     console.warn("Invalid position passed to Annotations:", position);
     return null;
   }
 
   const screenPos = get2DPosition(position, camera, containerSize);
+  const buttonLabel =
+    buttons?.primary?.label || DEFAULT_BUTTON_CONFIG.primary.label;
+
+  const getStylesForScreenCategory = (category) => {
+    if (category.startsWith("phone")) {
+      return {
+        fontSize: "16px",
+        padding: "15px",
+        maxWidth: "8rem",
+        buttonFontSize: "14px",
+      };
+    }
+    if (category.startsWith("tablet")) {
+      return {
+        fontSize: "18px",
+        padding: "18px",
+        maxWidth: "9rem",
+        buttonFontSize: "15px",
+      };
+    }
+    return {
+      fontSize: "20px",
+      padding: "20px",
+      maxWidth: "10rem",
+      buttonFontSize: "16px",
+    };
+  };
+
+  const categoryStyles = getStylesForScreenCategory(screenCategory);
 
   return (
     <div
-      className="annotation"
+      className="marker-annotation"
       style={{
         position: "fixed",
         left: `${Math.max(
@@ -58,21 +142,68 @@ export const Annotations = ({
         )}px`,
         backgroundColor: "rgba(0, 0, 0, 0.8)",
         color: "#fff",
-        borderRadius: "5%",
+        fontSize: "20px",
+        borderRadius: ".5rem",
         zIndex: 100000,
-        opacity: isResetVisible ? 1 : 0,
-        visibility: isResetVisible ? "visible" : "hidden",
+        opacity: delayedVisibility ? 1 : 0,
+        visibility: isVisible ? "visible" : "hidden",
         display: isVisible ? "flex" : "none",
-        transition: "opacity 0.5s ease, visibility 0s linear 0.5s",
         flexDirection: "column",
         justifyContent: "space-between",
         alignItems: "center",
         padding: "20px",
-        pointerEvents: isVisible ? "all" : "none",
-        border: "2px solid goldenrod",
+        maxWidth: "10rem",
+        pointerEvents: isVisible && delayedVisibility ? "all" : "none",
+        border: "2px solid #ffff00",
+        transition: "opacity 0.3s ease-in-out, transform 0.3s ease-in-out",
+        transform: delayedVisibility ? "translateY(0)" : "translateY(10px)",
       }}
     >
-      <p style={{ margin: 0, paddingBottom: "10px" }}>{text}</p>
+      <button
+        onClick={() => setIsVisible(false)}
+        style={{
+          position: "absolute",
+          top: "5px",
+          right: "5px",
+          backgroundColor: "transparent",
+          color: "#fff",
+          border: "none",
+          fontSize: "20px",
+          fontWeight: "bold",
+          cursor: "pointer",
+          padding: "5px",
+          borderRadius: "50%",
+          transition: "background-color 0.3s ease, transform 0.2s ease",
+          transform: "scale(1)",
+        }}
+        onMouseOver={(e) => {
+          e.target.style.backgroundColor = "rgba(255,255,255,0.2)";
+          e.target.style.transform = "scale(1.1)";
+        }}
+        onMouseOut={(e) => {
+          e.target.style.backgroundColor = "transparent";
+          e.target.style.transform = "scale(1)";
+        }}
+      >
+        ×
+      </button>
+
+      <p
+        style={{
+          fontFamily: "Miltonian Tattoo",
+          fontSize: "18px",
+          margin: 0,
+          paddingBottom: "10px",
+          paddingTop: "10px",
+          opacity: delayedVisibility ? 1 : 0,
+          transform: delayedVisibility ? "translateY(0)" : "translateY(5px)",
+          transition: "opacity 0.3s ease-in-out, transform 0.3s ease-in-out",
+          transitionDelay: "0.1s",
+        }}
+      >
+        {text}
+      </p>
+
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -84,24 +215,34 @@ export const Annotations = ({
           pointerEvents: "all",
           cursor: "pointer",
           padding: "10px",
-          marginTop: "auto", // Push the button to the bottom
-          backgroundColor: "goldenrod",
-          color: "#fff",
+          marginTop: "auto",
+          backgroundColor: "#ffff00",
+          color: "#000000",
           border: "none",
-          borderRadius: "8px",
-          width: "70px",
-          height: "30px",
+          borderRadius: "1rem",
+          width: "auto",
+          minWidth: "70px",
+          height: "auto",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           fontSize: "16px",
+
           fontWeight: "bold",
           boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-          transition: "background-color 0.3s ease, transform 0.3s ease",
+          transition: "all 0.3s ease-in-out",
+          opacity: delayedVisibility ? 1 : 0,
+          transform: delayedVisibility ? "translateY(0)" : "translateY(5px)",
+          transitionDelay: "0.2s",
+          "&:hover": {
+            transform: "translateY(-2px)",
+            boxShadow: "0 6px 8px rgba(0, 0, 0, 0.2)",
+          },
         }}
       >
-        OK
+        {buttonLabel}
       </button>
+
       {extraButton && (
         <button
           onClick={() => {
@@ -110,24 +251,17 @@ export const Annotations = ({
             camera.getWorldDirection(forward);
             const targetPosition = camera.position
               .clone()
-              .add(forward.multiplyScalar(10));
+              .add(forward.multiplyScalar(5.5));
 
             gsap.to(camera.position, {
               x: targetPosition.x,
               y: targetPosition.y,
               z: targetPosition.z,
-              duration: 4,
+              fov: 5,
+              duration: 6,
               ease: "power2.inOut",
-              onUpdate: () => {
-                camera.updateProjectionMatrix();
-              },
               onComplete: () => {
-                // Navigate to the new URL in the same window
                 window.location.assign(extraButton.url, "_blank");
-
-                // Note: onReset might not be necessary here since we're leaving the page
-                // but included it just in case the navigation fails
-                setTimeout(onReset, 100);
               },
             });
           }}
@@ -142,6 +276,14 @@ export const Annotations = ({
             fontWeight: "bold",
             border: "none",
             cursor: "pointer",
+            opacity: delayedVisibility ? 1 : 0,
+            transform: delayedVisibility ? "translateY(0)" : "translateY(5px)",
+            transition: "all 0.3s ease-in-out",
+            transitionDelay: "0.3s",
+            "&:hover": {
+              transform: "translateY(-2px)",
+              boxShadow: "0 6px 8px rgba(0, 0, 0, 0.2)",
+            },
           }}
         >
           {extraButton.label}
@@ -150,4 +292,5 @@ export const Annotations = ({
     </div>
   );
 };
+
 export default Annotations;

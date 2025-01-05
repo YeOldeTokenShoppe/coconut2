@@ -94,12 +94,25 @@ function BurnGallery({ setBurnGalleryLoaded }) {
   const [burnedAmount, setBurnedAmount] = useState(0); // Already defined in BurnGallery
   const [images, setImages] = useState([]);
   const [isFlameVisible, setIsFlameVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(true);
+  const [isMounted, setIsMounted] = useState(true);
   const [isChandelierVisible, setIsChandelierVisible] = useState(true);
   const [isInMarkerView, setIsInMarkerView] = useState(false);
   const [currentPath, setCurrentPath] = useState("/");
   const [marginTop, setMarginTop] = useState("17rem");
   const [isLoading, setIsLoading] = useState(true);
-  // const [votiveLoaded, setVotiveLoaded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -124,6 +137,19 @@ function BurnGallery({ setBurnGalleryLoaded }) {
       setCurrentPath(path);
     }
   }, [router.asPath]);
+
+  useEffect(() => {
+    if (isChandelierVisible) {
+      setIsMounted(true);
+      // Wait a frame before starting fade-in
+      requestAnimationFrame(() => setIsVisible(true));
+    } else {
+      setIsVisible(false);
+      // Delay unmounting until fade-out completes
+      const timer = setTimeout(() => setIsMounted(false), 2500); // Match your GSAP duration
+      return () => clearTimeout(timer);
+    }
+  }, [isChandelierVisible]);
 
   // const getFormattedImageUrl = (url) => {
   //   if (!url) return "";
@@ -391,36 +417,27 @@ function BurnGallery({ setBurnGalleryLoaded }) {
 
   return (
     <>
-      <Box
-        py="0"
-        // mb="5em"
-        position="relative"
-        height="100vh"
-        width="100%"
-        // backgroundImage="url('/sgframed.png')"
-        // backgroundSize={{ base: "8rem auto", md: "13rem auto" }}
-        // backgroundRepeat={"no-repeat"}
-        // backgroundPosition="10% 5rem"
-      >
+      <Box py="0" position="relative" height="100vh" width="100%">
         <Grid gap={0} width="100%">
           <GridItem width="100%" zIndex={isChandelierVisible ? 5 : 3}>
-            <Scene visible={isChandelierVisible} />
+            {!isMobile && isMounted && <Scene visible={isVisible} />}
           </GridItem>
 
           <GridItem width="100%" zIndex={4}>
             <ThreeDVotiveStand
+              isMobile={isMobile}
               setIsLoading={() => setIsLoading(true)}
               onCameraMove={() => {
-                setIsInMarkerView(true); // Set this when moving to a marker
+                setIsInMarkerView(true);
                 setIsChandelierVisible(false);
               }}
               onResetView={() => {
-                setIsInMarkerView(false); // Clear this when resetting view
-                setIsChandelierVisible(true);
+                setIsInMarkerView(false);
+                // Only show chandelier on reset if not mobile
+                setIsChandelierVisible(!isMobile);
               }}
               onZoom={() => {
                 if (!isInMarkerView) {
-                  // Only handle zoom if not in marker view
                   setIsChandelierVisible(false);
                 }
               }}

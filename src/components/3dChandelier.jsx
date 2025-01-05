@@ -39,14 +39,31 @@ const ChandelierModel = React.forwardRef(({ url, visible }, ref) => {
   }, [scene]);
 
   // Handle visibility changes
+  // Handle visibility changes
   useEffect(() => {
     materialsRef.current.forEach((material) => {
       gsap.killTweensOf(material); // Kill any existing tweens
-      gsap.to(material, {
-        opacity: visible ? 1 : 0,
-        duration: 2.5,
-        ease: "power2.inOut",
-      });
+
+      if (visible) {
+        // For appearing: First make visible, then animate opacity
+        material.visible = true;
+        gsap.to(material, {
+          opacity: 1,
+          duration: 2.5,
+          ease: "power2.inOut",
+        });
+      } else {
+        // For disappearing: First animate opacity, then make invisible
+        material.opacity = 1;
+        gsap.to(material, {
+          opacity: 0,
+          duration: 5.5,
+          ease: "power2.inOut",
+          onComplete: () => {
+            material.visible = false;
+          },
+        });
+      }
     });
 
     return () => {
@@ -141,32 +158,32 @@ function PhysicsChandelier({ url, visible = true }) {
     }
   });
 
-  useEffect(() => {
-    if (modelRef.current) {
-      // Traverse all materials in the model and animate their opacity
-      modelRef.current.traverse((child) => {
-        if (child.material) {
-          if (Array.isArray(child.material)) {
-            child.material.forEach((mat) => {
-              mat.transparent = true;
-              gsap.to(mat, {
-                opacity: visible ? 1 : 0,
-                duration: 1,
-                ease: "power2.inOut",
-              });
-            });
-          } else {
-            child.material.transparent = true;
-            gsap.to(child.material, {
-              opacity: visible ? 1 : 0,
-              duration: 1.5,
-              ease: "power2.inOut",
-            });
-          }
-        }
-      });
-    }
-  }, [visible]);
+  // useEffect(() => {
+  //   if (modelRef.current) {
+  //     // Traverse all materials in the model and animate their opacity
+  //     modelRef.current.traverse((child) => {
+  //       if (child.material) {
+  //         if (Array.isArray(child.material)) {
+  //           child.material.forEach((mat) => {
+  //             mat.transparent = true;
+  //             gsap.to(mat, {
+  //               opacity: visible ? 1 : 0,
+  //               duration: 1.5,
+  //               ease: "power2.inOut",
+  //             });
+  //           });
+  //         } else {
+  //           child.material.transparent = true;
+  //           gsap.to(child.material, {
+  //             opacity: visible ? 1 : 0,
+  //             duration: 1.5,
+  //             ease: "power2.inOut",
+  //           });
+  //         }
+  //       }
+  //     });
+  //   }
+  // }, [visible]);
   return (
     <group>
       <RigidBody

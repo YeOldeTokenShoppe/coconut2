@@ -1,30 +1,74 @@
 import * as THREE from "three";
 
 export const DEFAULT_CAMERA = {
-  phone: {
-    scale: 7,
+  // Small phones (iPhone SE, etc.)
+  "phone-small": {
+    position: [9.0, 9.5, 13.0],
+    target: [-0.07, 5.6, -0.55],
+    fov: 65,
+  },
+  // Medium phones (iPhone X/11/12/13)
+  "phone-medium": {
     position: [8.64, 9.3, 12.9],
     target: [-0.07, 5.6, -0.55],
     fov: 60,
   },
-  "tablet-landscape": {
-    scale: 7,
-    position: [4.8, 4.94, 13.9],
+  // Large phones (iPhone Plus/Pro Max)
+  "phone-large": {
+    position: [8.3, 9.1, 12.7],
+    target: [-0.07, 5.6, -0.55],
+    fov: 58,
+  },
+  // iPad Mini and similar
+  "tablet-small-landscape": {
+    position: [4.5, 5.1, 13.9],
     target: [4.9, 5.9, 5.1],
-    fov: 79.6,
+    fov: 57,
   },
-  "tablet-portrait": {
-    scale: 7,
-    position: [4.87, 6, 18.95],
-    target: [5, 6.4, -0.55],
-    fov: 60,
+  "tablet-small-portrait": {
+    position: [3.7, 4.0, 14.2],
+    target: [2.4, 6.3, -0.55],
+    fov: 52,
   },
-  desktop: {
-    scale: 7,
+  // iPad Air/Pro 11"
+  "tablet-medium-landscape": {
+    position: [4.31, 4.94, 13.88],
+    target: [4.9, 5.9, 5.1],
+    fov: 58.6,
+  },
+  "tablet-medium-portrait": {
+    position: [3.58, 3.9, 14.29],
+    target: [2.4, 6.3, -0.55],
+    fov: 50.9,
+  },
+  // iPad Pro 12.9"
+  "tablet-large-landscape": {
+    position: [4.1, 4.7, 13.7],
+    target: [4.9, 5.9, 5.1],
+    fov: 56,
+  },
+  "tablet-large-portrait": {
+    position: [3.4, 3.7, 14.1],
+    target: [2.4, 6.3, -0.55],
+    fov: 49,
+  },
+  // Desktop sizes
+  "desktop-small": {
+    position: [-5.7, 5.2, 16.5],
+    target: [4.8, 6.4, 0],
+    fov: 45,
+  },
+  "desktop-medium": {
     position: [-5.95, 5.4, 16.86],
-    target: [4.8, 5.4, 0],
+    target: [4.8, 6.4, 0],
     fov: 43.5,
   },
+  "desktop-large": {
+    position: [-6.2, 5.6, 17.2],
+    target: [4.8, 6.4, 0],
+    fov: 42,
+  },
+  // Common settings for all screen sizes
   common: {
     near: 0.1,
     far: 200,
@@ -34,4 +78,12 @@ export const DEFAULT_CAMERA = {
       toneMappingExposure: 1,
     },
   },
+};
+
+// Helper function to get camera settings with fallbacks
+export const getCameraSettings = (screenCategory) => {
+  return {
+    ...DEFAULT_CAMERA.common,
+    ...(DEFAULT_CAMERA[screenCategory] || DEFAULT_CAMERA["desktop-medium"]),
+  };
 };

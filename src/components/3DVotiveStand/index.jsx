@@ -16,7 +16,7 @@ import * as THREE from "three";
 import gsap from "gsap";
 import Model from "./Model";
 import { DEFAULT_MARKERS } from "./markers";
-import { DEFAULT_CAMERA } from "./defaultCamera";
+import { DEFAULT_CAMERA, getCameraSettings } from "./defaultCamera";
 import { CONTROL_SETTINGS } from "./controlSettings";
 import { Annotations, ANNOTATION_SETTINGS } from "./annotations";
 import { MODEL_SETTINGS } from "./modelConfig";
@@ -30,6 +30,10 @@ import styled from "styled-components";
 import { candleShader } from "./shaders/videoShaders";
 import { SCREEN_VIEWS, BUTTON_MESSAGES } from "./modelUtilities";
 import { screenStateManager } from "./modelUtilities";
+import { ScreenAnnotation } from "./screenAnnotations";
+import FlyInEffect from "./FlyInEffect";
+import { debounce } from "lodash";
+import MobileModel from "./MobileModel";
 
 function ThreeDVotiveStand({
   setIsLoading,
@@ -44,7 +48,7 @@ function ThreeDVotiveStand({
   const [modelScale, setModelScale] = useState(7);
   const [buttonPopupVisible, setButtonPopupVisible] = useState(false);
   const [clickedButtonName, setClickedButtonName] = useState("");
-  const [buttonData, setButtonData = useState] = useState("");
+  const [buttonData, setButtonData] = useState("");
   const [camera, setCamera] = useState(null);
   const [markers, setMarkers] = useState(DEFAULT_MARKERS);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -67,7 +71,11 @@ function ThreeDVotiveStand({
   const directionalLight1Ref = useRef();
   const directionalLight2Ref = useRef();
   const pointLightRef = useRef();
-  const [screenCategory, setScreenCategory] = useState("desktop");
+  // Change this line
+  const [screenCategory, setScreenCategory] = useState(() =>
+    getScreenCategory()
+  );
+
   const [isPanelVisible, setIsPanelVisible] = useState(true);
 
   const panelRef = useRef();
@@ -82,19 +90,55 @@ function ThreeDVotiveStand({
 
   const commonSettings = DEFAULT_CAMERA.common;
   const [isGuiMode, setIsGuiMode] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
+  // Add mobile detection logic
   useEffect(() => {
-    const updateSize = () => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768; // You can adjust this breakpoint
+      setIsMobile(mobile);
+      setModelScale(mobile ? 5 : 7); // Adjust scale for mobile if needed
+    };
+
+    // Initial check
+    checkMobile();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", checkMobile);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Then use this useEffect
+  useEffect(() => {
+    // Get initial screen category and set initial size
+    const initialCategory = getScreenCategory();
+    setScreenCategory(initialCategory);
+    setSize({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
+
+    // Debounced resize handler
+    const handleResize = debounce(() => {
       setSize({
         width: window.innerWidth,
         height: window.innerHeight,
       });
-    };
 
-    updateSize();
-    window.addEventListener("resize", updateSize);
-    return () => window.removeEventListener("resize", updateSize);
-  }, []);
+      const newCategory = getScreenCategory();
+      if (newCategory !== screenCategory) {
+        setScreenCategory(newCategory);
+      }
+    }, 250);
+
+    // Initial call
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [screenCategory]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -110,35 +154,67 @@ function ThreeDVotiveStand({
     const initializeCamera = () => {
       if (!cameraRef.current || !controlsRef.current) return;
 
-      const screenCategory = getScreenCategory();
+      const currentCategory = getScreenCategory();
 
-      // Calculate center of model or use default
-      const center = new THREE.Vector3();
-      if (modelRef.current) {
-        const box = new THREE.Box3().setFromObject(modelRef.current);
-        box.getCenter(center);
+      try {
+        // Calculate center of model or use default
+        const center = new THREE.Vector3();
+        if (modelRef.current) {
+          const box = new THREE.Box3().setFromObject(modelRef.current);
+          box.getCenter(center);
+        }
+
+        // Get camera settings with fallback
+        const cameraSettings = getCameraConfig(currentCategory);
+
+        // Set camera position
+        cameraRef.current.position.set(
+          cameraSettings.position[0],
+          cameraSettings.position[1],
+          cameraSettings.position[2]
+        );
+
+        // Get target position from settings or fallback
+        const targetSettings =
+          DEFAULT_CAMERA[currentCategory]?.target ||
+          DEFAULT_CAMERA["desktop-medium"].target;
+
+        // Set OrbitControls target
+        controlsRef.current.target.set(
+          targetSettings[0],
+          targetSettings[1],
+          targetSettings[2]
+        );
+
+        // Update FOV if needed
+        if (cameraRef.current.fov !== cameraSettings.fov) {
+          cameraRef.current.fov = cameraSettings.fov;
+          cameraRef.current.updateProjectionMatrix();
+        }
+
+        controlsRef.current.update(); // Ensure changes are applied
+      } catch (error) {
+        console.warn(
+          "Error initializing camera, falling back to defaults:",
+          error
+        );
+        // Use desktop-medium as fallback
+        const fallbackSettings = DEFAULT_CAMERA["desktop-medium"];
+        cameraRef.current.position.set(
+          fallbackSettings.position[0],
+          fallbackSettings.position[1],
+          fallbackSettings.position[2]
+        );
+        cameraRef.current.fov = fallbackSettings.fov;
+        cameraRef.current.updateProjectionMatrix();
+
+        controlsRef.current.target.set(
+          fallbackSettings.target[0],
+          fallbackSettings.target[1],
+          fallbackSettings.target[2]
+        );
+        controlsRef.current.update();
       }
-
-      // Get default camera settings
-      const defaultCameraSettings = DEFAULT_CAMERA[screenCategory];
-      const cameraPosition = defaultCameraSettings.position;
-      const targetPosition = defaultCameraSettings.target;
-
-      // Set camera position
-      cameraRef.current.position.set(
-        cameraPosition[0],
-        cameraPosition[1],
-        cameraPosition[2]
-      );
-
-      // Set OrbitControls target
-      controlsRef.current.target.set(
-        targetPosition[0],
-        targetPosition[1],
-        targetPosition[2]
-      );
-
-      controlsRef.current.update(); // Ensure changes are applied
     };
 
     // Run initialization
@@ -149,21 +225,6 @@ function ThreeDVotiveStand({
     controlsRef.current,
     screenCategory,
   ]);
-  useEffect(() => {
-    spotlightRef.current = new SpotLight(0xffffff, 1);
-    directionalLight1Ref.current = new DirectionalLight(0xffffff, 1);
-    directionalLight2Ref.current = new DirectionalLight(0xffffff, 1);
-    pointLightRef.current = new PointLight(0xffffff, 1);
-  }, []);
-  useEffect(() => {
-    // Add lights to the scene
-    const scene = sceneRef.current;
-
-    if (spotlightRef.current) scene.add(spotlightRef.current);
-    if (directionalLight1Ref.current) scene.add(directionalLight1Ref.current);
-    if (directionalLight2Ref.current) scene.add(directionalLight2Ref.current);
-    if (pointLightRef.current) scene.add(pointLightRef.current);
-  }, []);
 
   const handleGuiStart = (panel) => {
     if (controlsRef.current) {
@@ -280,7 +341,8 @@ function ThreeDVotiveStand({
         const viewWithDescription = {
           ...screenView,
           fromScreen: true,
-          description: currentContent ? currentContent.userName : null, // This will be used by setActiveAnnotation
+          screenName: screenName, // Add screenName for annotation component
+          description: currentContent ? currentContent.userName : null,
           showAnnotation: !!currentContent,
         };
 
@@ -381,62 +443,123 @@ function ThreeDVotiveStand({
   };
   //
 
+  const getCameraView = (view, currentCategory) => {
+    try {
+      // Get default settings for fallback
+      const defaultSettings = getCameraSettings(currentCategory);
+
+      // Check if view and cameraView exist
+      if (!view?.cameraView) {
+        console.warn("Invalid view data, using default settings");
+        return {
+          position: defaultSettings.position,
+          target: defaultSettings.target,
+          fov: defaultSettings.fov,
+        };
+      }
+
+      // Get category-specific view settings
+      const categoryView = view.cameraView[currentCategory];
+
+      // If no settings exist for current category, try fallback to desktop-medium
+      if (!categoryView) {
+        console.warn(
+          `No camera settings for category ${currentCategory}, falling back to desktop-medium`
+        );
+        const fallbackView = view.cameraView["desktop-medium"];
+
+        if (!fallbackView) {
+          return {
+            position: defaultSettings.position,
+            target: defaultSettings.target,
+            fov: defaultSettings.fov,
+          };
+        }
+
+        // Handle function or direct value
+        return {
+          position:
+            fallbackView.position instanceof Function
+              ? fallbackView.position()
+              : fallbackView.position,
+          target:
+            fallbackView.target instanceof Function
+              ? fallbackView.target()
+              : fallbackView.target,
+          fov: fallbackView.fov ?? defaultSettings.fov,
+        };
+      }
+
+      // Return the view for current category
+      return {
+        position:
+          categoryView.position instanceof Function
+            ? categoryView.position()
+            : categoryView.position,
+        target:
+          categoryView.target instanceof Function
+            ? categoryView.target()
+            : categoryView.target,
+        fov: categoryView.fov ?? defaultSettings.fov,
+      };
+    } catch (error) {
+      console.error("Error getting camera view:", error);
+      // Final fallback to default camera settings
+      const safeSettings = getCameraSettings("desktop-medium");
+      return {
+        position: safeSettings.position,
+        target: safeSettings.target,
+        fov: safeSettings.fov,
+      };
+    }
+  };
+
   const moveCamera = (view, markerIndex = null) => {
     setIsMarkerMovement(true);
     if (!view) {
-      console.log("Invalid view data:", view);
+      console.error("Invalid view data:", view);
       return;
     }
 
-    const screenCategory = getScreenCategory();
-    let cameraView;
+    const currentCategory = screenCategory || "desktop-medium";
+    console.log("Move Camera - Category:", currentCategory);
+    console.log(
+      "Move Camera - Position:",
+      view.annotationPosition?.[currentCategory]
+    );
 
-    // Check if this is a marker view (which uses Three.Vector3)
-
-    if (view.cameraView?.[screenCategory]?.position instanceof Function) {
-      // Screen view format
-      cameraView = {
-        position: view.cameraView[screenCategory].position(),
-        target: view.cameraView[screenCategory].target(),
-        fov: view.cameraView[screenCategory].fov ?? currentSettings.fov,
-      };
-    } else {
-      // Marker view format
-      cameraView = {
-        position: view.cameraView[screenCategory].position,
-        target: view.cameraView[screenCategory].target,
-        fov: view.cameraView[screenCategory].fov ?? currentSettings.fov,
-      };
+    // Get camera view settings
+    const cameraView = getCameraView(view, currentCategory);
+    if (!cameraView) {
+      console.error("Failed to get camera view");
+      return;
     }
+    onCameraMove();
 
-    // Notify the parent that the camera is moving
+    onCameraMove();
 
-    onCameraMove(); // This should trigger setIsChandelierVisible(false)
-
-    // Set the annotation content but don't show it yet
     setActiveAnnotation({
       text: view.description,
       position: {
         screen: {
           xPercent:
-            view.annotationPosition?.[screenCategory]?.xPercent ??
+            view.annotationPosition?.[currentCategory]?.xPercent ??
             ANNOTATION_SETTINGS.defaultScreenPosition.xPercent,
           yPercent:
-            view.annotationPosition?.[screenCategory]?.yPercent ??
+            view.annotationPosition?.[currentCategory]?.yPercent ??
             ANNOTATION_SETTINGS.defaultScreenPosition.yPercent,
         },
       },
-      fromScreen: view.fromScreen, // Preserve the fromScreen flag
-      extraButton: markerIndex === 3 ? view.extraButton : null,
+      fromScreen: view.fromScreen,
+      buttons: view.buttons,
+      extraButton: view.extraButton,
     });
 
     setIsAnnotationVisible(view.showAnnotation ?? true);
 
     const masterTimeline = gsap.timeline();
-
     controlsRef.current.autoRotate = false;
 
-    // Camera movement timeline
     masterTimeline
       .to(
         camera.position,
@@ -446,8 +569,6 @@ function ThreeDVotiveStand({
           z: cameraView.position.z,
           duration: 1.5,
           ease: "power2.inOut",
-          // onStart: () => console.log("Camera position animation started"),
-          // onComplete: () => console.log("Camera position animation completed"),
         },
         0
       )
@@ -470,17 +591,9 @@ function ThreeDVotiveStand({
           ease: "power2.inOut",
         },
         0
-      )
-      .call(
-        () => {
-          if (view.showAnnotation) {
-            setIsAnnotationVisible(true);
-          }
-        },
-        [],
-        "+=0.3"
       );
 
+    // Rest of your timeline setup...
     masterTimeline.eventCallback("onUpdate", () => {
       controlsRef.current.update();
       camera.updateProjectionMatrix();
@@ -540,22 +653,60 @@ function ThreeDVotiveStand({
       controlsRef.current.autoRotate = true;
     });
   };
-
+  const getCameraConfig = (category) => {
+    try {
+      const settings =
+        DEFAULT_CAMERA[category] || DEFAULT_CAMERA["desktop-medium"];
+      return {
+        position: settings.position,
+        fov: settings.fov,
+        near: DEFAULT_CAMERA.common.near,
+        far: DEFAULT_CAMERA.common.far,
+      };
+    } catch (error) {
+      console.warn(`Falling back to default camera settings: ${error.message}`);
+      return {
+        position: DEFAULT_CAMERA["desktop-medium"].position,
+        fov: DEFAULT_CAMERA["desktop-medium"].fov,
+        near: DEFAULT_CAMERA.common.near,
+        far: DEFAULT_CAMERA.common.far,
+      };
+    }
+  };
+  const lastCameraPosition = useRef(null);
+  const lastFOV = useRef(null);
   return (
     <>
-      <div
-        className="votiveContainer"
-        style={{
-          position: "absolute",
-          top: 0,
-          margin: "auto",
-          height: "100vh",
-          width: "100%",
-          maxWidth: "100vw",
-          pointerEvents: "auto",
-        }}
-      >
-        {/* <button
+      {isMobile ? (
+        // Mobile version - much simpler Canvas setup
+        <Canvas
+          style={{
+            width: "100vw",
+            height: "100vh",
+            maxWidth: "none",
+            maxHeight: "none",
+          }}
+          onCreated={({ camera }) => {
+            cameraRef.current = camera;
+            setCamera(camera);
+          }}
+        >
+          <MobileModel scale={modelScale} setTooltipData={setTooltipData} />
+        </Canvas>
+      ) : (
+        <div
+          className="votiveContainer"
+          style={{
+            position: "absolute",
+            top: 0,
+            margin: "auto",
+            height: "100vh",
+            width: "100%",
+            maxWidth: "100vw",
+            pointerEvents: "auto",
+          }}
+        >
+          {/* <button
           onClick={togglePanel}
           style={{
             position: "absolute",
@@ -582,233 +733,252 @@ function ThreeDVotiveStand({
           />
         )} */}
 
-        <CameraGUI
-          cameraRef={cameraRef}
-          controlsRef={controlsRef}
-          onGuiStart={handleGuiStart}
-          onGuiEnd={handleGuiEnd}
-          activeAnnotation={activeAnnotation}
-          style={{ pointerEvents: "auto" }} // Add this
-        />
-        <Canvas
-          onPointerMove={handlePointerMove}
-          onPointerOut={() => setTooltipData([])} // Clear tooltips when pointer leaves canvas
-          style={{
-            // backgroundColor: "#1b1724",
-            // opacity: 0.9,
-            width: "100vw", // Full viewport width
-            height: "100vh", // Full viewport height
-            maxWidth: "none", // Override parent constraints
-            maxHeight: "none",
-          }}
-          camera={{
-            position: DEFAULT_CAMERA[screenCategory].position,
-            fov: DEFAULT_CAMERA[screenCategory].fov,
-            near: commonSettings.near,
-            far: commonSettings.far,
-          }}
-          gl={commonSettings.gl}
-          onCreated={({ camera }) => {
-            cameraRef.current = camera;
-            setCamera(camera);
-          }}
-        >
-          <Perf position="top-left" />
-          <RoomWalls />
-
-          <ambientLight intensity={0.8} />
-
-          <directionalLight position={[0, 5, 0]} castShadow />
-
-          <Model
-            url="/slimUltima5.glb"
-            scale={modelScale}
-            setIsLoading={setIsLoading}
+          <CameraGUI
+            cameraRef={cameraRef}
             controlsRef={controlsRef}
-            modelRef={modelRef}
-            handlePointerMove={handlePointerMove}
-            setCamera={setCamera}
-            setMarkers={setMarkers}
-            markers={markers}
-            userData={userData}
-            moveCamera={moveCamera}
-            setTooltipData={setTooltipData}
-            onButtonClick={handleButtonClick}
+            onGuiStart={handleGuiStart}
+            onGuiEnd={handleGuiEnd}
+            activeAnnotation={activeAnnotation}
+            style={{ pointerEvents: "auto" }} // Add this
           />
-          {/* use this version only when using gui */}
-
-          <OrbitControls
-            autoRotate
-            autoRotateSpeed={0.05}
-            ref={controlsRef}
-            {...CONTROL_SETTINGS.default}
-            touches={{
-              ONE: THREE.TOUCH.ROTATE,
-              TWO: THREE.TOUCH.DOLLY_PAN,
-            }}
-            onStart={() => {
-              if (!isGuiMode) {
-                const defaultSettings = CONTROL_SETTINGS.default;
-                Object.assign(controlsRef.current, defaultSettings);
-                controlsRef.current.update();
-              }
-            }}
-            onChange={(event) => {
-              const camera = event.target?.object;
-              if (camera && !isInMarkerView) {
-                if (camera.position.z < 10) {
-                  onZoom?.();
-                } else if (camera.position.z > 10) {
-                  onResetView?.();
-                }
-              }
-            }}
-            // Add error handling for touch events
-            onTouchStart={(event) => {
-              event.preventDefault();
-            }}
-            onTouchMove={(event) => {
-              event.preventDefault();
-            }}
-          />
-
-          <PostProcessingEffects />
-        </Canvas>
-
-        {activeAnnotation && (
-          <div
+          <Canvas
+            onPointerMove={handlePointerMove}
+            onPointerOut={() => setTooltipData([])} // Clear tooltips when pointer leaves canvas
             style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              pointerEvents: "none", // Allow clicking through to annotations
+              // backgroundColor: "#1b1724",
+              // opacity: 0.9,
+              width: "100vw", // Full viewport width
+              height: "100vh", // Full viewport height
+              maxWidth: "none", // Override parent constraints
+              maxHeight: "none",
+            }}
+            camera={getCameraConfig(screenCategory)}
+            gl={commonSettings.gl}
+            onCreated={({ camera }) => {
+              cameraRef.current = camera;
+              setCamera(camera);
             }}
           >
-            <Annotations
-              text={activeAnnotation?.text}
-              isResetVisible={isResetVisible}
+            <FlyInEffect
+              cameraRef={cameraRef}
+              screenCategory={screenCategory} // Ensure this prop is set correctly
+              duration={3}
+            />
+            {/* <Perf position="top-left" /> */}
+            <RoomWalls />
+
+            <ambientLight intensity={0.8} />
+
+            <directionalLight position={[0, 5, 0]} castShadow />
+
+            <Model
+              url="/slimUltima5.glb"
+              scale={modelScale}
+              setIsLoading={setIsLoading}
+              controlsRef={controlsRef}
+              modelRef={modelRef}
+              handlePointerMove={handlePointerMove}
+              setCamera={setCamera}
+              setMarkers={setMarkers}
+              markers={markers}
+              userData={userData}
+              moveCamera={moveCamera}
+              setTooltipData={setTooltipData}
+              onButtonClick={handleButtonClick}
+            />
+            {/* use this version only when using gui */}
+
+            <OrbitControls
+              autoRotate={false}
+              autoRotateSpeed={0.001}
+              ref={controlsRef}
+              {...CONTROL_SETTINGS.default}
+              touches={{
+                ONE: THREE.TOUCH.ROTATE,
+                TWO: THREE.TOUCH.DOLLY_PAN,
+              }}
+              onStart={() => {
+                if (!isGuiMode) {
+                  const defaultSettings = CONTROL_SETTINGS.default;
+                  Object.assign(controlsRef.current, defaultSettings);
+                  controlsRef.current.update();
+                }
+                if (
+                  lastCameraPosition.current === null &&
+                  controlsRef.current?.object
+                ) {
+                  lastCameraPosition.current =
+                    controlsRef.current.object.position.z;
+                }
+              }}
+              onChange={(event) => {
+                const camera = event.target?.object;
+                if (camera && !isInMarkerView) {
+                  if (lastCameraPosition.current === null) {
+                    lastCameraPosition.current = camera.position.z;
+                    if (camera.position.z < 10) {
+                      onZoom?.();
+                    }
+                    return;
+                  }
+
+                  const zDifference = Math.abs(
+                    camera.position.z - lastCameraPosition.current
+                  );
+
+                  // If we're in a zoomed state (z < 10), stay zoomed
+                  if (camera.position.z < 10) {
+                    onZoom?.();
+                  }
+                  // Only reset view if we're actually returning to main view
+                  else if (camera.position.z > 10) {
+                    onResetView?.();
+                  }
+
+                  lastCameraPosition.current = camera.position.z;
+                }
+              }}
+              onTouchStart={(event) => {
+                event.preventDefault();
+              }}
+              onTouchMove={(event) => {
+                event.preventDefault();
+              }}
+            />
+
+            <PostProcessingEffects />
+          </Canvas>
+          {activeAnnotation && activeAnnotation.fromScreen ? (
+            <ScreenAnnotation
+              text={activeAnnotation.text}
               isVisible={isAnnotationVisible}
               setIsVisible={setIsAnnotationVisible}
-              position={activeAnnotation?.position}
+              position={activeAnnotation.position}
               onReset={() => {
-                // Check if we're currently viewing a screen
-                const isViewingScreen = activeAnnotation?.fromScreen;
-
-                if (isViewingScreen) {
-                  // Return to marker 3's view
-                  const marker3View = markers[2]; // Assuming marker 3 is at index 2
-                  moveCamera(marker3View, 2);
-                } else {
-                  // Normal reset behavior for non-screen views
-                  resetCamera();
-                }
-                onResetView(); // Notify parent to show the chandelier
+                const marker3View = markers[2];
+                moveCamera(marker3View, 2);
+                onResetView();
               }}
-              onMoveCamera={onCameraMove} // Notify parent to hide the chandelier
               containerSize={size}
               camera={camera}
-              extraButton={activeAnnotation?.extraButton} // Pass the extraButton data
+              screenName={activeAnnotation.screenName}
             />
-          </div>
-        )}
+          ) : (
+            activeAnnotation && (
+              <Annotations
+                text={activeAnnotation.text}
+                isResetVisible={isResetVisible}
+                isVisible={isAnnotationVisible}
+                setIsVisible={setIsAnnotationVisible}
+                position={activeAnnotation.position}
+                onReset={resetCamera}
+                onMoveCamera={onCameraMove}
+                containerSize={size}
+                camera={camera}
+                buttons={activeAnnotation?.buttons}
+                extraButton={activeAnnotation?.buttons?.extraButton}
+                screenCategory={screenCategory}
+                primary
+              />
+            )
+          )}
 
-        <div className="tooltip-wrapper">
-          {tooltipData.map((tooltip, index) => (
-            <div
-              key={index}
-              className="tooltip-container"
-              style={{
-                position: "absolute",
-                padding: "8px 12px",
-                left: `${tooltip.position.x}px`,
-                top: `${tooltip.position.y}px`,
-                transform: "translate(-50%, -100%)",
-                backgroundColor: "rgba(0, 0, 0, 0.9)",
-                color: "white",
-                borderRadius: "4px",
-                zIndex: 1000,
-                fontSize: "16px",
-                fontWeight: "600",
-                opacity: tooltip.userName ? 1 : 0,
-                visibility: tooltip.userName ? "visible" : "hidden",
-                pointerEvents: "none",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {tooltip.userName}
-            </div>
-          ))}
-        </div>
-        {/* After your existing annotation div */}
-        {buttonPopupVisible && (
-          <div
-            style={{
-              position: "fixed",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              backgroundColor: "rgba(0, 0, 0, 0.8)",
-              color: "#fff",
-              borderRadius: "5%",
-              zIndex: 100000,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "20px",
-              border: "2px solid goldenrod",
-              pointerEvents: "auto",
-            }}
-          >
-            <h3
-              style={{
-                margin: 0,
-                marginBottom: "10px",
-                fontSize: "18px",
-                fontWeight: "bold",
-              }}
-            >
-              {buttonData.title}
-            </h3>
-            <p
-              style={{
-                margin: 0,
-                paddingBottom: "15px",
-                textAlign: "center",
-              }}
-            >
-              {buttonData.message}
-            </p>
-            <button
-              onClick={() => setButtonPopupVisible(false)}
-              style={{
-                position: "relative",
-                zIndex: 100001,
-                pointerEvents: "auto",
-                cursor: "pointer",
-                padding: "10px",
-                marginTop: "auto",
-                backgroundColor: "goldenrod",
-                color: "#fff",
-                border: "none",
-                borderRadius: "8px",
-                width: "70px",
-                height: "30px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                fontSize: "16px",
-                fontWeight: "bold",
-                boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-              }}
-            >
-              OK
-            </button>
+          <div className="tooltip-wrapper">
+            {tooltipData.map((tooltip, index) => (
+              <div
+                key={index}
+                className="tooltip-container"
+                style={{
+                  position: "absolute",
+                  padding: "8px 12px",
+                  left: `${tooltip.position.x}px`,
+                  top: `${tooltip.position.y}px`,
+                  transform: "translate(-50%, -100%)",
+                  backgroundColor: "rgba(0, 0, 0, 0.9)",
+                  color: "white",
+                  borderRadius: "4px",
+                  zIndex: 1000,
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  opacity: tooltip.userName ? 1 : 0,
+                  visibility: tooltip.userName ? "visible" : "hidden",
+                  pointerEvents: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {tooltip.userName}
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+          {/* After your existing annotation div */}
+          {buttonPopupVisible && (
+            <div
+              style={{
+                position: "fixed",
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                backgroundColor: "rgba(0, 0, 0, 0.8)",
+                color: "#fff",
+                borderRadius: "5%",
+                zIndex: 100000,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "20px",
+                border: "2px solid goldenrod",
+                pointerEvents: "auto",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  marginBottom: "10px",
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                }}
+              >
+                {buttonData.title}
+              </h3>
+              <p
+                style={{
+                  margin: 0,
+                  paddingBottom: "15px",
+                  textAlign: "center",
+                }}
+              >
+                {buttonData.message}
+              </p>
+              <button
+                onClick={() => setButtonPopupVisible(false)}
+                style={{
+                  position: "relative",
+                  zIndex: 100001,
+                  pointerEvents: "auto",
+                  cursor: "pointer",
+                  padding: "10px",
+                  marginTop: "auto",
+                  backgroundColor: "goldenrod",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  width: "70px",
+                  height: "30px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  fontSize: "16px",
+                  fontWeight: "bold",
+                  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                }}
+              >
+                OK
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }

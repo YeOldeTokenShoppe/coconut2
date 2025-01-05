@@ -24,7 +24,7 @@ function Model({
   handlePointerMove,
   onButtonClick,
 }) {
-  const gltf = useGLTF("/slimUltima5.glb");
+  const gltf = useGLTF("/slimUltima7.glb");
   const { actions, mixer } = useAnimations(gltf.animations, modelRef);
   const { camera, size } = useThree();
   const [results, setResults] = useState([]);
@@ -39,9 +39,17 @@ function Model({
 
     const box = new THREE.Box3().setFromObject(modelRef.current);
     const center = box.getCenter(new THREE.Vector3());
-    modelRef.current.position.sub(center); // Center the model
-    modelRef.current.position.y += box.getSize(new THREE.Vector3()).y / 2; // Align to ground
+    const size = box.getSize(new THREE.Vector3());
 
+    console.log("Bounding Box:", box);
+    console.log("Center of Model:", center);
+    console.log("Dimensions (Width, Height, Depth):", size);
+
+    // Center the model
+    modelRef.current.position.sub(center);
+    modelRef.current.position.y += size.y / 2; // Align to ground
+
+    // Update controls if they exist
     if (controlsRef?.current) {
       controlsRef.current.target.copy(center);
       controlsRef.current.update();
@@ -299,6 +307,7 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
   //   });
   // }, [modelRef]);
 
+  // Fetch results from Firestore
   // Fetch results from Firestore
   useEffect(() => {
     const q = query(collection(db, "results"), orderBy("createdAt", "desc"));

@@ -53,15 +53,7 @@ function MyApp({ Component, pageProps }: MyAppProps) {
   const isCommunionPage = router.pathname === "/communion";
   const isScenePage = router.pathname === "/scene"; // Add this line
   const isRocketPage = router.pathname === "/rocket";
-  function DebugTheme() {
-    const { theme, resolvedTheme, systemTheme } = useTheme();
 
-    console.log("Active theme:", theme);
-    console.log("Resolved theme:", resolvedTheme);
-    console.log("System theme:", systemTheme);
-
-    return null;
-  }
   // Dynamically choose the theme
   const special = isGalleryPage
     ? galleryTheme
@@ -82,6 +74,10 @@ function MyApp({ Component, pageProps }: MyAppProps) {
       <ClerkProvider>
         <ThirdwebProvider>
           <ChakraProvider theme={special}>
+            <Head>
+              {" "}
+              <title>𝓞𝖚𝖗 𝕷𝖆𝖉𝖞 𝔬𝔣 𝕻𝖊𝖗𝖕𝖊𝖙𝖚𝖆𝖑 𝕻𝖗𝖔𝖋𝖎𝖙</title>
+            </Head>
             <div
               className={`${isGalleryPage ? "gallery-page" : ""} ${
                 isScenePage ? "scene-page" : ""
@@ -111,7 +107,6 @@ function MyApp({ Component, pageProps }: MyAppProps) {
                   },
                 }}
               >
-                <DebugTheme />
                 {/* Render the main page content */}
                 <Component {...pageProps} />
               </ThemeProvider>
