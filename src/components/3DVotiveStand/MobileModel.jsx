@@ -14,7 +14,7 @@ const MOBILE_CAMERA_SETTINGS = {
 };
 
 const MOBILE_CONTROL_SETTINGS = {
-  enableZoom: true,
+  enableZoom: false,
   enablePan: false,
   enableRotate: true,
   maxPolarAngle: Math.PI * 0.65,
@@ -145,7 +145,7 @@ function MobileModel({ scale, setTooltipData }) {
         ref={modelRef}
         object={gltf.scene}
         scale={scale}
-        position={[0, 9, -1]}
+        position={[0, 8.6, -1]}
         rotation={[0, Math.PI * 0.1, 0]}
         onClick={(e) => {
           e.stopPropagation();

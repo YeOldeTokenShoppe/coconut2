@@ -95,7 +95,7 @@ function ThreeDVotiveStand({
   // Add mobile detection logic
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = window.innerWidth <= 768; // You can adjust this breakpoint
+      const mobile = window.innerWidth <= 576; // You can adjust this breakpoint
       setIsMobile(mobile);
       setModelScale(mobile ? 5 : 7); // Adjust scale for mobile if needed
     };
@@ -733,14 +733,14 @@ function ThreeDVotiveStand({
           />
         )} */}
 
-          <CameraGUI
+          {/* <CameraGUI
             cameraRef={cameraRef}
             controlsRef={controlsRef}
             onGuiStart={handleGuiStart}
             onGuiEnd={handleGuiEnd}
             activeAnnotation={activeAnnotation}
             style={{ pointerEvents: "auto" }} // Add this
-          />
+          /> */}
           <Canvas
             onPointerMove={handlePointerMove}
             onPointerOut={() => setTooltipData([])} // Clear tooltips when pointer leaves canvas

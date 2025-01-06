@@ -3,7 +3,7 @@ export const MODEL_SETTINGS = {
   modelCenter: {
     x: -2.739100388770322,
     y: 12.56223828830614,
-    z: -1.0672325599518215,
+    z: -5.342886144954164,
   },
 
   cachedCenter: null,
@@ -18,11 +18,11 @@ export const MODEL_SETTINGS = {
         center.y + 30,
         center.z + 30,
       ],
-      targetPosition: [
-        center.x + settings.target[0],
-        center.y + settings.target[1],
-        center.z + settings.target[2],
-      ],
+      // targetPosition: [
+      //   center.x + settings.target[0],
+      //   center.y + settings.target[1],
+      //   center.z + settings.target[2],
+      // ],
     };
   },
 };

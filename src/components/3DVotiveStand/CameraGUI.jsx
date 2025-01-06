@@ -1,6 +1,8 @@
 import React, { useEffect } from "react";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import { MODEL_SETTINGS } from "./modelConfig";
+import { getScreenCategory } from "./screenCategories"; // Use your screen detection logic
+import { DEFAULT_CAMERA } from "./defaultCamera"; // Default camera settings
 
 const positionUtils = {
   formatCameraPosition: (position, target, fov) => {
@@ -21,12 +23,20 @@ const positionUtils = {
 };
 
 const CameraGUI = ({ cameraRef, controlsRef, onGuiStart, onGuiEnd }) => {
+  const getDefaultCameraSettings = () => {
+    const screenCategory = getScreenCategory(); // Detect the current screen category
+    return DEFAULT_CAMERA[screenCategory] || DEFAULT_CAMERA["desktop-medium"];
+  };
+
   useEffect(() => {
     if (!cameraRef?.current || !controlsRef?.current) return;
 
     onGuiStart();
     console.log("CameraGUI initialized");
     const panel = new GUI({ width: 310 });
+
+    const defaultSettings = getDefaultCameraSettings(); // Fetch default settings dynamically
+    console.log("Default camera settings:", defaultSettings);
 
     const params = {
       positionX: cameraRef.current.position.x,
@@ -54,11 +64,20 @@ const CameraGUI = ({ cameraRef, controlsRef, onGuiStart, onGuiEnd }) => {
         }
       },
       reset: function () {
-        cameraRef.current.position.set(20, 18.8, 40);
-        controlsRef.current.target.set(2.9, 6.7, 5.6);
-        cameraRef.current.fov = 40;
+        console.log("Resetting camera to default settings");
+        const { position, target, fov } = getDefaultCameraSettings();
+
+        cameraRef.current.position.set(...position);
+        controlsRef.current.target.set(...target);
+        cameraRef.current.fov = fov;
         cameraRef.current.updateProjectionMatrix();
         controlsRef.current.update();
+
+        console.log("Camera reset to:", {
+          position,
+          target,
+          fov,
+        });
       },
       copyValues: function () {
         // Get absolute coordinates

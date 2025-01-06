@@ -105,7 +105,7 @@ function BurnGallery({ setBurnGalleryLoaded }) {
 
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = window.innerWidth <= 768;
+      const mobile = window.innerWidth <= 576;
       setIsMobile(mobile);
     };
 

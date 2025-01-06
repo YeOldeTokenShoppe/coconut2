@@ -24,7 +24,7 @@ function Model({
   handlePointerMove,
   onButtonClick,
 }) {
-  const gltf = useGLTF("/slimUltima7.glb");
+  const gltf = useGLTF("/slimUltima5.glb");
   const { actions, mixer } = useAnimations(gltf.animations, modelRef);
   const { camera, size } = useThree();
   const [results, setResults] = useState([]);

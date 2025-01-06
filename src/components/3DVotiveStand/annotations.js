@@ -12,8 +12,6 @@ export const ANNOTATION_SETTINGS = {
     "phone-large": { xPercent: 50, yPercent: 40 },
     "tablet-small-portrait": { xPercent: 50, yPercent: 45 },
     "tablet-small-landscape": { xPercent: 50, yPercent: 45 },
-    "tablet-medium-portrait": { xPercent: 50, yPercent: 45 },
-    "tablet-medium-landscape": { xPercent: 50, yPercent: 45 },
     "tablet-large-portrait": { xPercent: 50, yPercent: 45 },
     "tablet-large-landscape": { xPercent: 50, yPercent: 45 },
     "desktop-small": { xPercent: 50, yPercent: 50 },
@@ -251,14 +249,14 @@ export const Annotations = ({
             camera.getWorldDirection(forward);
             const targetPosition = camera.position
               .clone()
-              .add(forward.multiplyScalar(5.5));
+              .add(forward.multiplyScalar(4.5));
 
             gsap.to(camera.position, {
               x: targetPosition.x,
               y: targetPosition.y,
               z: targetPosition.z,
               fov: 5,
-              duration: 6,
+              duration: 5,
               ease: "power2.inOut",
               onComplete: () => {
                 window.location.assign(extraButton.url, "_blank");
