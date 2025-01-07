@@ -72,8 +72,8 @@ function ThreeDVotiveStand({
   const directionalLight2Ref = useRef();
   const pointLightRef = useRef();
   // Change this line
-  const [screenCategory, setScreenCategory] = useState(() =>
-    getScreenCategory()
+  const [screenCategory, setScreenCategory] = useState(
+    () => getScreenCategory() || "desktop-medium"
   );
 
   const [isPanelVisible, setIsPanelVisible] = useState(true);
@@ -91,6 +91,13 @@ function ThreeDVotiveStand({
   const commonSettings = DEFAULT_CAMERA.common;
   const [isGuiMode, setIsGuiMode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const cameraSettings = getCameraSettings(screenCategory || "desktop-medium");
+
+  // Access the camera settings safely
+  const defaultPosition = cameraSettings.position;
+  const defaultTarget = cameraSettings.target;
+
+  const resetTimeline = gsap.timeline();
 
   // Add mobile detection logic
   useEffect(() => {
@@ -610,8 +617,8 @@ function ThreeDVotiveStand({
     setIsAnnotationVisible(false);
     setActiveAnnotation(null);
 
-    const defaultPosition = DEFAULT_CAMERA[screenCategory].position;
-    const defaultTarget = DEFAULT_CAMERA[screenCategory].target;
+    const cameraSettings =
+      DEFAULT_CAMERA[screenCategory] || DEFAULT_CAMERA["desktop-medium"];
 
     const resetTimeline = gsap.timeline();
 
@@ -619,9 +626,9 @@ function ThreeDVotiveStand({
       .to(
         camera.position,
         {
-          x: defaultPosition[0],
-          y: defaultPosition[1],
-          z: defaultPosition[2],
+          x: cameraSettings.position[0],
+          y: cameraSettings.position[1],
+          z: cameraSettings.position[2],
           duration: 1.5,
           ease: "power2.inOut",
         },
@@ -630,9 +637,9 @@ function ThreeDVotiveStand({
       .to(
         controlsRef.current.target,
         {
-          x: defaultTarget[0],
-          y: defaultTarget[1],
-          z: defaultTarget[2],
+          x: cameraSettings.target[0],
+          y: cameraSettings.target[1],
+          z: cameraSettings.target[2],
           duration: 1.5,
           ease: "power2.inOut",
         },
@@ -641,7 +648,7 @@ function ThreeDVotiveStand({
       .to(
         camera,
         {
-          fov: DEFAULT_CAMERA[screenCategory].fov,
+          fov: cameraSettings.fov,
           duration: 1.5,
           ease: "power2.inOut",
         },
@@ -654,24 +661,20 @@ function ThreeDVotiveStand({
     });
   };
   const getCameraConfig = (category) => {
-    try {
-      const settings =
-        DEFAULT_CAMERA[category] || DEFAULT_CAMERA["desktop-medium"];
-      return {
-        position: settings.position,
-        fov: settings.fov,
-        near: DEFAULT_CAMERA.common.near,
-        far: DEFAULT_CAMERA.common.far,
-      };
-    } catch (error) {
-      console.warn(`Falling back to default camera settings: ${error.message}`);
-      return {
-        position: DEFAULT_CAMERA["desktop-medium"].position,
-        fov: DEFAULT_CAMERA["desktop-medium"].fov,
-        near: DEFAULT_CAMERA.common.near,
-        far: DEFAULT_CAMERA.common.far,
-      };
+    if (!DEFAULT_CAMERA[category]) {
+      console.warn(
+        `Invalid category: ${category}. Falling back to desktop-medium.`
+      );
+      category = "desktop-medium";
     }
+
+    const settings = DEFAULT_CAMERA[category];
+    return {
+      position: settings.position,
+      fov: settings.fov,
+      near: DEFAULT_CAMERA.common.near,
+      far: DEFAULT_CAMERA.common.far,
+    };
   };
   const lastCameraPosition = useRef(null);
   const lastFOV = useRef(null);
@@ -772,7 +775,7 @@ function ThreeDVotiveStand({
             <directionalLight position={[0, 5, 0]} castShadow />
 
             <Model
-              url="/slimUltima5.glb"
+              url="/slimUltima2025.glb"
               scale={modelScale}
               setIsLoading={setIsLoading}
               controlsRef={controlsRef}

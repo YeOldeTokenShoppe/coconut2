@@ -1,14 +1,15 @@
 import React, { useEffect, useRef } from "react";
-import { useThree } from "@react-three/fiber";
-import { useGLTF } from "@react-three/drei";
+import { useFrame, useThree } from "@react-three/fiber";
+import { useGLTF, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
 import { OrbitControls } from "@react-three/drei";
-import { rotate } from "three/src/nodes/TSL.js";
 import PostProcessingEffects from "./PostProcessingEffects";
+import FlyInEffect2 from "./FlyInEffect2";
+import CameraGUI from "./CameraGUI";
 
 const MOBILE_CAMERA_SETTINGS = {
-  position: [0, 6, 12], // Raised Y position
-  fov: 50,
+  position: [-6.86, 13.3, 12.19],
+  fov: 103,
   near: 0.1,
   far: 200,
 };
@@ -21,9 +22,9 @@ const MOBILE_CONTROL_SETTINGS = {
   minPolarAngle: Math.PI * 0.25,
   maxDistance: 20,
   minDistance: 4,
-  rotateSpeed: 0.7,
+  rotateSpeed: 0.6,
   zoomSpeed: 0.8,
-  target: [0, 4, 0], // Raised target point
+  target: [-3, 22, -8.4],
 };
 
 function MobileModel({ scale, setTooltipData }) {
@@ -31,19 +32,19 @@ function MobileModel({ scale, setTooltipData }) {
   const modelRef = useRef();
   const controlsRef = useRef();
   const { camera, viewport, size } = useThree();
+  const mixerRef = useRef();
+  const { actions, mixer } = useAnimations(gltf.animations, modelRef);
+  const cameraRef = useRef(camera);
 
   // Initialize camera position
   useEffect(() => {
     if (camera) {
-      camera.position.set(
-        MOBILE_CAMERA_SETTINGS.position[0],
-        MOBILE_CAMERA_SETTINGS.position[1],
-        MOBILE_CAMERA_SETTINGS.position[2]
-      );
+      // Don't set initial position here anymore, let FlyInEffect2 handle it
       camera.fov = MOBILE_CAMERA_SETTINGS.fov;
       camera.near = MOBILE_CAMERA_SETTINGS.near;
       camera.far = MOBILE_CAMERA_SETTINGS.far;
       camera.updateProjectionMatrix();
+      cameraRef.current = camera; // Update camera reference
     }
   }, [camera]);
 
@@ -56,46 +57,40 @@ function MobileModel({ scale, setTooltipData }) {
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
 
-    console.log("Model dimensions:", {
-      size: size.toArray(),
-      center: center.toArray(),
-      originalPosition: modelRef.current.position.toArray(),
-    });
-
     // Center the model
     modelRef.current.position.set(-center.x, -center.y + size.y / 2, -center.z);
 
-    console.log("New position:", modelRef.current.position.toArray());
-
-    // Update camera and controls
-    if (camera && controlsRef?.current) {
-      const distance = size.length() * 1.5;
-      camera.position.set(0, size.y / 2, distance);
-      camera.lookAt(0, size.y / 2, 0);
-      camera.updateProjectionMatrix();
-
+    if (controlsRef?.current) {
       controlsRef.current.target.set(0, size.y / 2, 0);
       controlsRef.current.update();
-
-      console.log("Camera setup:", {
-        position: camera.position.toArray(),
-        target: controlsRef.current.target.toArray(),
-        distance,
-      });
     }
   }, [camera, modelRef.current]);
+
+  useEffect(() => {
+    if (gltf.animations.length) {
+      mixerRef.current = new THREE.AnimationMixer(gltf.scene);
+      const animationClip = gltf.animations.find((clip) =>
+        clip.name.startsWith("Take 001")
+      );
+      if (animationClip) {
+        const action = mixerRef.current.clipAction(animationClip);
+        action.play();
+      }
+    }
+  }, [gltf]);
+
+  useFrame((state, delta) => {
+    if (mixerRef.current) mixerRef.current.update(delta);
+  });
 
   // Handle mobile interactions
   const handleMobileInteraction = (event) => {
     if (!camera || !modelRef.current) return;
 
-    // R3F provides normalized device coordinates directly
     const mouse = new THREE.Vector2(event.point.x, event.point.y);
-
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
-    // Only check for candle intersections
     const candleObjects = [];
     modelRef.current.traverse((object) => {
       if (
@@ -122,7 +117,6 @@ function MobileModel({ scale, setTooltipData }) {
           zCandle.getWorldPosition(worldPos);
           worldPos.project(camera);
 
-          // Convert to screen coordinates
           const x = ((worldPos.x + 1) * size.width) / 2;
           const y = ((-worldPos.y + 1) * size.height) / 2;
 
@@ -144,9 +138,8 @@ function MobileModel({ scale, setTooltipData }) {
       <primitive
         ref={modelRef}
         object={gltf.scene}
-        scale={scale}
-        position={[0, 8.6, -1]}
-        rotation={[0, Math.PI * 0.1, 0]}
+        scale={7}
+        position={[0, 8.3, -0.5]}
         onClick={(e) => {
           e.stopPropagation();
           handleMobileInteraction(e);
@@ -157,7 +150,7 @@ function MobileModel({ scale, setTooltipData }) {
         }}
       />
       <PostProcessingEffects />
-
+      <FlyInEffect2 cameraRef={cameraRef} duration={8} />
       <OrbitControls
         ref={controlsRef}
         {...MOBILE_CONTROL_SETTINGS}
@@ -166,8 +159,12 @@ function MobileModel({ scale, setTooltipData }) {
           TWO: THREE.TOUCH.DOLLY_PAN,
         }}
       />
-
-      {/* Mobile-optimized lighting */}
+      <CameraGUI
+        cameraRef={cameraRef}
+        controlsRef={controlsRef}
+        onGuiStart={() => {}}
+        onGuiEnd={() => {}}
+      />
       <ambientLight intensity={1} />
       <directionalLight
         position={[5, 5, 5]}
@@ -178,7 +175,6 @@ function MobileModel({ scale, setTooltipData }) {
   );
 }
 
-// Preload the mobile model
 useGLTF.preload("/mobileVersion.glb");
 
 export default MobileModel;

@@ -21,29 +21,29 @@ export const getScreenCategory = () => {
   const isIpad =
     /iPad|Macintosh/.test(navigator.userAgent) && "ontouchend" in document;
 
-  console.log(`
-    Screen Detection Log:
-    ---------------------
-    Width: ${width}px
-    Height: ${height}px
-    Larger Dimension: ${largerDimension}px
-    Aspect Ratio: ${aspectRatio.toFixed(2)}
-    Landscape Mode: ${isLandscape}
-    Is iPad: ${isIpad}
-  `);
+  // console.log(`
+  //   Screen Detection Log:
+  //   ---------------------
+  //   Width: ${width}px
+  //   Height: ${height}px
+  //   Larger Dimension: ${largerDimension}px
+  //   Aspect Ratio: ${aspectRatio.toFixed(2)}
+  //   Landscape Mode: ${isLandscape}
+  //   Is iPad: ${isIpad}
+  // `);
 
   // Detect iPad Mini
   if (isIpad && largerDimension === 1024) {
     if (isLandscape && width === 1024 && height === 768) {
-      console.log(
-        `Detected Screen Category: tablet-small-landscape (iPad Mini detected)`
-      );
+      // console.log(
+      //   `Detected Screen Category: tablet-small-landscape (iPad Mini detected)`
+      // );
       return "tablet-small-landscape";
     }
     if (!isLandscape && width === 768 && height === 1024) {
-      console.log(
-        `Detected Screen Category: tablet-small-portrait (iPad Mini detected)`
-      );
+      // console.log(
+      //   `Detected Screen Category: tablet-small-portrait (iPad Mini detected)`
+      // );
       return "tablet-small-portrait";
     }
   }
@@ -53,8 +53,8 @@ export const getScreenCategory = () => {
     const category = isLandscape
       ? "tablet-medium-landscape"
       : "tablet-medium-portrait";
-    console.log(`Detected Screen Category: ${category} (iPad Air detected)`);
-    return category;
+    // console.log(`Detected Screen Category: ${category} (iPad Air detected)`);
+    // return category;
   }
 
   // Detect iPad Pro (tablet-large)
@@ -62,8 +62,8 @@ export const getScreenCategory = () => {
     const category = isLandscape
       ? "tablet-large-landscape"
       : "tablet-large-portrait";
-    console.log(`Detected Screen Category: ${category} (iPad Pro detected)`);
-    return category;
+    // console.log(`Detected Screen Category: ${category} (iPad Pro detected)`);
+    // return category;
   }
 
   // General iPad detection (if no specific model matches)
@@ -71,9 +71,9 @@ export const getScreenCategory = () => {
     const category = isLandscape
       ? "tablet-large-landscape"
       : "tablet-large-portrait";
-    console.log(
-      `Detected Screen Category: ${category} (General iPad detected)`
-    );
+    // console.log(
+    //   `Detected Screen Category: ${category} (General iPad detected)`
+    // );
     return category;
   }
 
@@ -85,8 +85,8 @@ export const getScreenCategory = () => {
         : width <= BREAKPOINTS.PHONE_MEDIUM
         ? "phone-medium"
         : "phone-large";
-    console.log(`Detected Screen Category: ${category}`);
-    return category;
+    // console.log(`Detected Screen Category: ${category}`);
+    // return category;
   }
 
   // Tablet detection (non-iPad devices)
@@ -94,8 +94,8 @@ export const getScreenCategory = () => {
     const category = isLandscape
       ? "tablet-small-landscape"
       : "tablet-small-portrait";
-    console.log(`Detected Screen Category: ${category}`);
-    return category;
+    // console.log(`Detected Screen Category: ${category}`);
+    // return category;
   }
 
   if (
@@ -105,8 +105,8 @@ export const getScreenCategory = () => {
     const category = isLandscape
       ? "tablet-medium-landscape"
       : "tablet-medium-portrait";
-    console.log(`Detected Screen Category: ${category}`);
-    return category;
+    // console.log(`Detected Screen Category: ${category}`);
+    // return category;
   }
 
   if (
@@ -116,8 +116,8 @@ export const getScreenCategory = () => {
     const category = isLandscape
       ? "tablet-large-landscape"
       : "tablet-large-portrait";
-    console.log(`Detected Screen Category: ${category}`);
-    return category;
+    // console.log(`Detected Screen Category: ${category}`);
+    // return category;
   }
 
   // Desktop detection
@@ -128,11 +128,11 @@ export const getScreenCategory = () => {
         : width <= BREAKPOINTS.DESKTOP_MEDIUM
         ? "desktop-medium"
         : "desktop-large";
-    console.log(`Detected Screen Category: ${category}`);
-    return category;
+    // console.log(`Detected Screen Category: ${category}`);
+    // return category;
   }
 
   // Fallback
-  console.log("Detected Screen Category: desktop-medium (fallback)");
-  return "desktop-medium";
+  // console.log("Detected Screen Category: desktop-medium (fallback)");
+  // return "desktop-medium";
 };

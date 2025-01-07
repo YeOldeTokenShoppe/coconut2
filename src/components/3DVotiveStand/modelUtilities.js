@@ -443,47 +443,47 @@ export const SCREEN_VIEWS = {
   Screen1: {
     cameraView: {
       "tablet-small-landscape": {
-        position: () => ({ x: 3.17, y: 2.7, z: 7.81 }),
+        position: () => ({ x: 3.17, y: 1.8, z: 7.81 }),
         target: () => ({ x: -0.7, y: 1.8, z: 5.8 }),
         fov: 84.8,
       },
       "tablet-small-portrait": {
-        position: () => ({ x: 4.8, y: 2.8, z: 9.21 }),
+        position: () => ({ x: 4.8, y: 1.2, z: 9.21 }),
         target: () => ({ x: 0, y: 2.3, z: 5.9 }),
         fov: 42,
       },
       "tablet-medium-landscape": {
-        position: () => ({ x: 3.17, y: 2.7, z: 7.81 }),
+        position: () => ({ x: 3.17, y: 1.8, z: 7.81 }),
         target: () => ({ x: -0.7, y: 1.8, z: 5.8 }),
         fov: 84.8,
       },
       "tablet-medium-portrait": {
-        position: () => ({ x: 4.8, y: 2.8, z: 9.21 }),
+        position: () => ({ x: 4.8, y: 1.2, z: 9.21 }),
         target: () => ({ x: 0, y: 2.3, z: 5.9 }),
         fov: 42,
       },
       "tablet-large-landscape": {
-        position: () => ({ x: 3.17, y: 2.7, z: 7.81 }),
+        position: () => ({ x: 3.17, y: 1.8, z: 7.81 }),
         target: () => ({ x: -0.7, y: 1.8, z: 5.8 }),
         fov: 84.8,
       },
       "tablet-large-portrait": {
-        position: () => ({ x: 4.8, y: 2.8, z: 9.21 }),
+        position: () => ({ x: 4.8, y: 1.2, z: 9.21 }),
         target: () => ({ x: 0, y: 2.3, z: 5.9 }),
         fov: 42,
       },
       "desktop-small": {
-        position: () => ({ x: 3.17, y: 2.7, z: 7.81 }),
+        position: () => ({ x: 3.17, y: 1.8, z: 7.81 }),
         target: () => ({ x: -0.7, y: 1.8, z: 5.8 }),
         fov: 84.8,
       },
       "desktop-medium": {
-        position: () => ({ x: 3.17, y: 2.7, z: 7.81 }),
+        position: () => ({ x: 3.17, y: 1.8, z: 7.81 }),
         target: () => ({ x: -0.7, y: 1.8, z: 5.8 }),
         fov: 84.8,
       },
       "desktop-large": {
-        position: () => ({ x: 3.17, y: 2.7, z: 7.81 }),
+        position: () => ({ x: 3.17, y: 1.8, z: 7.81 }),
         target: () => ({ x: -0.7, y: 1.8, z: 5.8 }),
         fov: 84.8,
       },
@@ -541,48 +541,48 @@ export const SCREEN_VIEWS = {
   Screen2: {
     cameraView: {
       "tablet-small-landscape": {
-        position: () => ({ x: 5.38, y: 4.6, z: 7.04 }),
-        target: () => ({ x: -12.8, y: 3.4, z: -1 }),
+        position: () => ({ x: 5.15, y: 3.9, z: 6.94 }),
+        target: () => ({ x: -12.8, y: 2.7, z: -1 }),
         fov: 42.4,
       },
       "tablet-small-portrait": {
-        position: () => ({ x: 5.89, y: 3.7, z: 7.29 }),
-        target: () => ({ x: -11.2, y: 5.9, z: -2.1 }),
-        fov: 48,
+        position: () => ({ x: 5.24, y: 3.36, z: 6.97 }),
+        target: () => ({ x: -11.1, y: 5.9, z: -2.1 }),
+        fov: 55.8,
       },
       "tablet-medium-landscape": {
-        position: () => ({ x: 5.38, y: 4.6, z: 7.04 }),
-        target: () => ({ x: -12.8, y: 3.4, z: -1 }),
+        position: () => ({ x: 5.15, y: 3.9, z: 6.94 }),
+        target: () => ({ x: -12.8, y: 2.7, z: -1 }),
         fov: 42.4,
       },
       "tablet-medium-portrait": {
-        position: () => ({ x: 5.89, y: 3.7, z: 7.29 }),
-        target: () => ({ x: -11.2, y: 5.9, z: -2.1 }),
-        fov: 48,
+        position: () => ({ x: 5.24, y: 3.36, z: 6.97 }),
+        target: () => ({ x: -11.1, y: 5.9, z: -2.1 }),
+        fov: 55.8,
       },
       "tablet-large-landscape": {
-        position: () => ({ x: 5.38, y: 4.6, z: 7.04 }),
-        target: () => ({ x: -12.8, y: 3.4, z: -1 }),
+        position: () => ({ x: 5.15, y: 3.9, z: 6.94 }),
+        target: () => ({ x: -12.8, y: 2.7, z: -1 }),
         fov: 42.4,
       },
       "tablet-large-portrait": {
-        position: () => ({ x: 5.89, y: 3.7, z: 7.29 }),
-        target: () => ({ x: -11.2, y: 5.9, z: -2.1 }),
-        fov: 48,
+        position: () => ({ x: 5.24, y: 3.36, z: 6.97 }),
+        target: () => ({ x: -11.1, y: 5.9, z: -2.1 }),
+        fov: 55.8,
       },
       "desktop-small": {
-        position: () => ({ x: 5.38, y: 4.6, z: 7.04 }),
-        target: () => ({ x: -12.8, y: 3.4, z: -1 }),
+        position: () => ({ x: 5.15, y: 3.9, z: 6.94 }),
+        target: () => ({ x: -12.8, y: 2.7, z: -1 }),
         fov: 42.4,
       },
       "desktop-medium": {
-        position: () => ({ x: 5.38, y: 4.6, z: 7.04 }),
-        target: () => ({ x: -12.8, y: 3.4, z: -1 }),
+        position: () => ({ x: 5.15, y: 3.9, z: 6.94 }),
+        target: () => ({ x: -12.8, y: 2.7, z: -1 }),
         fov: 42.4,
       },
       "desktop-large": {
-        position: () => ({ x: 5.38, y: 4.6, z: 7.04 }),
-        target: () => ({ x: -12.8, y: 3.4, z: -1 }),
+        position: () => ({ x: 5.15, y: 3.9, z: 6.94 }),
+        target: () => ({ x: -12.8, y: 2.7, z: -1 }),
         fov: 42.4,
       },
     },
@@ -597,7 +597,7 @@ export const SCREEN_VIEWS = {
       },
       "tablet-small-portrait": {
         xPercent: 40,
-        yPercent: 60,
+        yPercent: 70,
       },
       "tablet-medium-landscape": {
         xPercent: 50,
@@ -605,7 +605,7 @@ export const SCREEN_VIEWS = {
       },
       "tablet-medium-portrait": {
         xPercent: 40,
-        yPercent: 60,
+        yPercent: 70,
       },
       "tablet-large-landscape": {
         xPercent: 50,
@@ -613,7 +613,7 @@ export const SCREEN_VIEWS = {
       },
       "tablet-large-portrait": {
         xPercent: 40,
-        yPercent: 60,
+        yPercent: 70,
       },
       "desktop-small": {
         xPercent: 50,
@@ -638,49 +638,49 @@ export const SCREEN_VIEWS = {
   Screen3: {
     cameraView: {
       "tablet-small-landscape": {
-        position: () => ({ x: 4.58, y: 3.1, z: 7.5 }),
-        target: () => ({ x: 5.1, y: 3.3, z: 5.1 }),
-        fov: 47,
+        position: () => ({ x: 4.9, y: 2.88, z: 6.9 }),
+        target: () => ({ x: 4.9, y: 2.8, z: 5.1 }),
+        fov: 56.1,
       },
       "tablet-small-portrait": {
-        position: () => ({ x: 4.8, y: 2.8, z: 9.21 }),
-        target: () => ({ x: 0, y: 2.3, z: 5.9 }),
-        fov: 42,
+        position: () => ({ x: 4.9, y: 2.9, z: 7.26 }),
+        target: () => ({ x: 4.4, y: 2.1, z: -2.1 }),
+        fov: 57.6,
       },
       "tablet-medium-landscape": {
-        position: () => ({ x: 4.58, y: 3.1, z: 7.5 }),
-        target: () => ({ x: 5.1, y: 3.3, z: 5.1 }),
-        fov: 47,
+        position: () => ({ x: 4.9, y: 2.88, z: 6.9 }),
+        target: () => ({ x: 4.9, y: 2.8, z: 5.1 }),
+        fov: 56.1,
       },
       "tablet-medium-portrait": {
-        position: () => ({ x: 4.8, y: 2.8, z: 9.21 }),
-        target: () => ({ x: 0, y: 2.3, z: 5.9 }),
-        fov: 42,
+        position: () => ({ x: 4.9, y: 2.9, z: 7.26 }),
+        target: () => ({ x: 4.4, y: 2.1, z: -2.1 }),
+        fov: 57.6,
       },
       "tablet-large-landscape": {
-        position: () => ({ x: 4.58, y: 3.1, z: 7.5 }),
-        target: () => ({ x: 5.1, y: 3.3, z: 5.1 }),
-        fov: 47,
+        position: () => ({ x: 4.9, y: 2.88, z: 6.9 }),
+        target: () => ({ x: 4.9, y: 2.8, z: 5.1 }),
+        fov: 56.1,
       },
       "tablet-large-portrait": {
-        position: () => ({ x: 4.8, y: 2.8, z: 9.21 }),
-        target: () => ({ x: 0, y: 2.3, z: 5.9 }),
-        fov: 42,
+        position: () => ({ x: 4.9, y: 2.9, z: 7.26 }),
+        target: () => ({ x: 4.4, y: 2.1, z: -2.1 }),
+        fov: 57.6,
       },
       "desktop-small": {
-        position: () => ({ x: 4.58, y: 3.1, z: 7.5 }),
-        target: () => ({ x: 5.1, y: 3.3, z: 5.1 }),
-        fov: 47,
+        position: () => ({ x: 4.9, y: 2.88, z: 6.9 }),
+        target: () => ({ x: 4.9, y: 2.8, z: 5.1 }),
+        fov: 56.1,
       },
       "desktop-medium": {
-        position: () => ({ x: 4.58, y: 3.1, z: 7.5 }),
-        target: () => ({ x: 5.1, y: 3.3, z: 5.1 }),
-        fov: 47,
+        position: () => ({ x: 4.9, y: 2.88, z: 6.9 }),
+        target: () => ({ x: 4.9, y: 2.8, z: 5.1 }),
+        fov: 56.1,
       },
       "desktop-large": {
-        position: () => ({ x: 4.58, y: 3.1, z: 7.5 }),
-        target: () => ({ x: 5.1, y: 3.3, z: 5.1 }),
-        fov: 47,
+        position: () => ({ x: 4.9, y: 2.88, z: 6.9 }),
+        target: () => ({ x: 4.9, y: 2.8, z: 5.1 }),
+        fov: 56.1,
       },
     },
     getDescription: () => {
@@ -690,7 +690,7 @@ export const SCREEN_VIEWS = {
     annotationPosition: {
       "tablet-small-landscape": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
       "tablet-small-portrait": {
         xPercent: 50,
@@ -698,7 +698,7 @@ export const SCREEN_VIEWS = {
       },
       "tablet-medium-landscape": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
       "tablet-medium-portrait": {
         xPercent: 50,
@@ -706,7 +706,7 @@ export const SCREEN_VIEWS = {
       },
       "tablet-large-landscape": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
       "tablet-large-portrait": {
         xPercent: 50,
@@ -714,15 +714,15 @@ export const SCREEN_VIEWS = {
       },
       "desktop-small": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
       "desktop-medium": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
       "desktop-large": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
     },
     handleClick: (moveCamera, markers) => {
@@ -735,49 +735,49 @@ export const SCREEN_VIEWS = {
   Screen4: {
     cameraView: {
       "tablet-small-landscape": {
-        position: () => ({ x: 6.8, y: 4.2, z: 6 }),
-        target: () => ({ x: 9.4, y: 3.8, z: -5.8 }),
-        fov: 92,
+        position: () => ({ x: 6.6, y: 3.1, z: 6.2 }),
+        target: () => ({ x: 9.3, y: 4.6, z: -2.1 }),
+        fov: 75.3,
       },
       "tablet-small-portrait": {
-        position: () => ({ x: 4.8, y: 2.8, z: 9.21 }),
-        target: () => ({ x: 0, y: 2.3, z: 5.9 }),
-        fov: 42,
+        position: () => ({ x: 6.6, y: 3.1, z: 6.2 }),
+        target: () => ({ x: 9.3, y: 4.6, z: -2.1 }),
+        fov: 75.3,
       },
       "tablet-medium-landscape": {
-        position: () => ({ x: 6.8, y: 4.2, z: 6 }),
-        target: () => ({ x: 9.4, y: 3.8, z: -5.8 }),
-        fov: 92,
+        position: () => ({ x: 6.6, y: 3.1, z: 6.2 }),
+        target: () => ({ x: 9.3, y: 4.6, z: -2.1 }),
+        fov: 75.3,
       },
       "tablet-medium-portrait": {
-        position: () => ({ x: 4.8, y: 2.8, z: 9.21 }),
-        target: () => ({ x: 0, y: 2.3, z: 5.9 }),
-        fov: 42,
+        position: () => ({ x: 6.6, y: 3.1, z: 6.2 }),
+        target: () => ({ x: 9.3, y: 4.6, z: -2.1 }),
+        fov: 75.3,
       },
       "tablet-large-landscape": {
-        position: () => ({ x: 6.8, y: 4.2, z: 6 }),
-        target: () => ({ x: 9.4, y: 3.8, z: -5.8 }),
-        fov: 92,
+        position: () => ({ x: 6.6, y: 3.1, z: 6.2 }),
+        target: () => ({ x: 9.3, y: 4.6, z: -2.1 }),
+        fov: 75.3,
       },
       "tablet-large-portrait": {
-        position: () => ({ x: 4.8, y: 2.8, z: 9.21 }),
-        target: () => ({ x: 0, y: 2.3, z: 5.9 }),
-        fov: 42,
+        position: () => ({ x: 6.6, y: 3.1, z: 6.2 }),
+        target: () => ({ x: 9.3, y: 4.6, z: -2.1 }),
+        fov: 75.3,
       },
       "desktop-small": {
-        position: () => ({ x: 6.8, y: 4.2, z: 6 }),
-        target: () => ({ x: 9.4, y: 3.8, z: -5.8 }),
-        fov: 92,
+        position: () => ({ x: 6.6, y: 3.1, z: 6.2 }),
+        target: () => ({ x: 9.3, y: 4.6, z: -2.1 }),
+        fov: 75.3,
       },
       "desktop-medium": {
-        position: () => ({ x: 6.8, y: 4.2, z: 6 }),
-        target: () => ({ x: 9.4, y: 3.8, z: -5.8 }),
-        fov: 92,
+        position: () => ({ x: 6.6, y: 3.1, z: 6.2 }),
+        target: () => ({ x: 9.3, y: 4.6, z: -2.1 }),
+        fov: 75.3,
       },
       "desktop-large": {
-        position: () => ({ x: 6.8, y: 4.2, z: 6 }),
-        target: () => ({ x: 9.4, y: 3.8, z: -5.8 }),
-        fov: 92,
+        position: () => ({ x: 6.6, y: 3.1, z: 6.2 }),
+        target: () => ({ x: 9.3, y: 4.6, z: -2.1 }),
+        fov: 75.3,
       },
     },
     getDescription: () => {
@@ -791,7 +791,7 @@ export const SCREEN_VIEWS = {
       },
       "tablet-small-portrait": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
       "tablet-medium-landscape": {
         xPercent: 40,
@@ -799,7 +799,7 @@ export const SCREEN_VIEWS = {
       },
       "tablet-medium-portrait": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
       "tablet-large-landscape": {
         xPercent: 40,
@@ -807,7 +807,7 @@ export const SCREEN_VIEWS = {
       },
       "tablet-large-portrait": {
         xPercent: 50,
-        yPercent: 75,
+        yPercent: 80,
       },
       "desktop-small": {
         xPercent: 40,
@@ -832,9 +832,9 @@ export const SCREEN_VIEWS = {
   Screen5: {
     cameraView: {
       "tablet-small-landscape": {
-        position: () => ({ x: 6.54, y: 3.71, z: 8.57 }),
-        target: () => ({ x: 20.7, y: 5.8, z: -5.4 }),
-        fov: 57,
+        position: () => ({ x: 6.55, y: 3.2, z: 8.65 }),
+        target: () => ({ x: 19.3, y: 4.5, z: -6.1 }),
+        fov: 49.1,
       },
       "tablet-small-portrait": {
         position: () => ({ x: 6.89, y: 4, z: 8.1 }),
@@ -842,9 +842,9 @@ export const SCREEN_VIEWS = {
         fov: 97,
       },
       "tablet-medium-landscape": {
-        position: () => ({ x: 6.54, y: 3.71, z: 8.57 }),
-        target: () => ({ x: 20.7, y: 5.8, z: -5.4 }),
-        fov: 57,
+        position: () => ({ x: 6.55, y: 3.2, z: 8.65 }),
+        target: () => ({ x: 19.3, y: 4.5, z: -6.1 }),
+        fov: 49.1,
       },
       "tablet-medium-portrait": {
         position: () => ({ x: 6.89, y: 4, z: 8.1 }),
@@ -852,9 +852,9 @@ export const SCREEN_VIEWS = {
         fov: 97,
       },
       "tablet-large-landscape": {
-        position: () => ({ x: 6.54, y: 3.71, z: 8.57 }),
-        target: () => ({ x: 20.7, y: 5.8, z: -5.4 }),
-        fov: 57,
+        position: () => ({ x: 6.55, y: 3.2, z: 8.65 }),
+        target: () => ({ x: 19.3, y: 4.5, z: -6.1 }),
+        fov: 49.1,
       },
       "tablet-large-portrait": {
         position: () => ({ x: 6.89, y: 4, z: 8.1 }),
@@ -862,19 +862,19 @@ export const SCREEN_VIEWS = {
         fov: 97,
       },
       "desktop-small": {
-        position: () => ({ x: 6.54, y: 3.71, z: 8.57 }),
-        target: () => ({ x: 20.7, y: 5.8, z: -5.4 }),
-        fov: 57,
+        position: () => ({ x: 6.55, y: 3.2, z: 8.65 }),
+        target: () => ({ x: 19.3, y: 4.5, z: -6.1 }),
+        fov: 49.1,
       },
       "desktop-medium": {
-        position: () => ({ x: 6.54, y: 3.71, z: 8.57 }),
-        target: () => ({ x: 20.7, y: 5.8, z: -5.4 }),
-        fov: 57,
+        position: () => ({ x: 6.55, y: 3.2, z: 8.65 }),
+        target: () => ({ x: 19.3, y: 4.5, z: -6.1 }),
+        fov: 49.1,
       },
       "desktop-large": {
-        position: () => ({ x: 6.54, y: 3.71, z: 8.57 }),
-        target: () => ({ x: 20.7, y: 5.8, z: -5.4 }),
-        fov: 57,
+        position: () => ({ x: 6.55, y: 3.2, z: 8.65 }),
+        target: () => ({ x: 19.3, y: 4.5, z: -6.1 }),
+        fov: 49.1,
       },
     },
     getDescription: () => {
@@ -884,7 +884,7 @@ export const SCREEN_VIEWS = {
     annotationPosition: {
       "tablet-small-landscape": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
       "tablet-small-portrait": {
         xPercent: 50,
@@ -892,7 +892,7 @@ export const SCREEN_VIEWS = {
       },
       "tablet-medium-landscape": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
       "tablet-medium-portrait": {
         xPercent: 50,
@@ -900,7 +900,7 @@ export const SCREEN_VIEWS = {
       },
       "tablet-large-landscape": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
       "tablet-large-portrait": {
         xPercent: 50,
@@ -908,15 +908,15 @@ export const SCREEN_VIEWS = {
       },
       "desktop-small": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
       "desktop-medium": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
       "desktop-large": {
         xPercent: 50,
-        yPercent: 70,
+        yPercent: 80,
       },
     },
     handleClick: (moveCamera, markers) => {
@@ -929,9 +929,9 @@ export const SCREEN_VIEWS = {
   Screen6: {
     cameraView: {
       "tablet-small-landscape": {
-        position: () => ({ x: 6, y: 2.39, z: 7.04 }),
-        target: () => ({ x: 9.4, y: 0.5, z: -5.8 }),
-        fov: 92,
+        position: () => ({ x: 5.8, y: 1.6, z: 8.8 }),
+        target: () => ({ x: 8, y: 2.1, z: -2.4 }),
+        fov: 39.1,
       },
       "tablet-small-portrait": {
         position: () => ({ x: 5.8, y: 2.01, z: 7.6 }),
@@ -939,9 +939,9 @@ export const SCREEN_VIEWS = {
         fov: 86.4,
       },
       "tablet-medium-landscape": {
-        position: () => ({ x: 6, y: 2.39, z: 7.04 }),
-        target: () => ({ x: 9.4, y: 0.5, z: -5.8 }),
-        fov: 92,
+        position: () => ({ x: 5.8, y: 1.6, z: 8.8 }),
+        target: () => ({ x: 8, y: 2.1, z: -2.4 }),
+        fov: 39.1,
       },
       "tablet-medium-portrait": {
         position: () => ({ x: 5.8, y: 2.01, z: 7.6 }),
@@ -949,9 +949,9 @@ export const SCREEN_VIEWS = {
         fov: 86.4,
       },
       "tablet-large-landscape": {
-        position: () => ({ x: 6, y: 2.39, z: 7.04 }),
-        target: () => ({ x: 9.4, y: 0.5, z: -5.8 }),
-        fov: 92,
+        position: () => ({ x: 5.8, y: 1.6, z: 8.8 }),
+        target: () => ({ x: 8, y: 2.1, z: -2.4 }),
+        fov: 39.1,
       },
       "tablet-large-portrait": {
         position: () => ({ x: 5.8, y: 2.01, z: 7.6 }),
@@ -959,21 +959,21 @@ export const SCREEN_VIEWS = {
         fov: 86.4,
       },
       "desktop-small": {
-        position: () => ({ x: 6, y: 2.39, z: 7.04 }),
-        target: () => ({ x: 9.4, y: 0.5, z: -5.8 }),
-        fov: 92,
+        position: () => ({ x: 5.8, y: 1.6, z: 8.8 }),
+        target: () => ({ x: 8, y: 2.1, z: -2.4 }),
+        fov: 39.1,
       },
     },
     "desktop-medium": {
-      position: () => ({ x: 6, y: 2.39, z: 7.04 }),
-      target: () => ({ x: 9.4, y: 0.5, z: -5.8 }),
-      fov: 92,
+      position: () => ({ x: 5.8, y: 1.6, z: 8.8 }),
+      target: () => ({ x: 8, y: 2.1, z: -2.4 }),
+      fov: 39.1,
     },
 
     "desktop-large": {
-      position: () => ({ x: 6, y: 2.39, z: 7.04 }),
-      target: () => ({ x: 9.4, y: 0.5, z: -5.8 }),
-      fov: 92,
+      position: () => ({ x: 5.8, y: 1.6, z: 8.8 }),
+      target: () => ({ x: 8, y: 2.1, z: -2.4 }),
+      fov: 39.1,
     },
 
     getDescription: () => {

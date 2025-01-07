@@ -157,7 +157,7 @@ function Header() {
                   <div id="logo">
                     <img
                       className="logo"
-                      src="./rl80logo.png"
+                      src="./electricRL80.png"
                       width="10rem"
                       height="10rem"
                       alt="Logo"

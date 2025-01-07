@@ -8,7 +8,7 @@ const RocketSimulator = () => {
   const { user } = useUser(); // Access the logged-in user
   const userAvatarUrl = user ? user.imageUrl : "/brett.jpg";
   const containerRef = useRef(null);
-  const [countdown, setCountdown] = useState(20);
+  const [countdown, setCountdown] = useState(10);
   let currentFace = 1; // Track the current face
   let toggled = false; // Track the toggle state for visibility
   const raysRef = useRef(null);
