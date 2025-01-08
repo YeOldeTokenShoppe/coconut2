@@ -24,7 +24,7 @@ function Model({
   handlePointerMove,
   onButtonClick,
 }) {
-  const gltf = useGLTF("/slimUltima2025.glb");
+  const gltf = useGLTF("/slimUltima2027.glb");
   const { actions, mixer } = useAnimations(gltf.animations, modelRef);
   const { camera, size } = useThree();
   const [results, setResults] = useState([]);
@@ -330,25 +330,37 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
     const shuffled = [...results].sort(() => Math.random() - 0.5);
 
     // Create indices for assignment (52 candles)
-    const candleIndexes = Array.from({ length: 52 }, (_, i) => i);
+    const candleIndexes = Array.from({ length: 19 }, (_, i) => i);
     const assignedIndices = candleIndexes
       .sort(() => Math.random() - 0.5)
       .slice(0, shuffled.length);
 
     // First, reset ALL candles and flames to unassigned state
+    // First, reset ALL candles and flames to unassigned state
     modelRef.current.traverse((child) => {
       if (child.name.startsWith("ZCandle")) {
+        // Find the flame within this candle's hierarchy
+        let flame;
+        child.traverse((descendant) => {
+          if (descendant.name.startsWith("ZFlame")) {
+            flame = descendant;
+          }
+        });
+
         // Reset candle state
         child.userData = {
           isMelting: false,
           initialHeight: child.scale.y,
           userName: "Anonymous",
           burnedAmount: 1,
-          meltingProgress: undefined, // Clear any previous melting progress
+          meltingProgress: undefined,
+          flame: flame, // Store reference to associated flame
         };
-      } else if (child.name.startsWith("ZFlame")) {
-        // Reset all flames to invisible first
-        child.visible = false;
+
+        // Reset flame visibility if found
+        if (flame) {
+          flame.visible = false;
+        }
       }
     });
 
@@ -360,19 +372,29 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
 
         if (userIndex !== -1) {
           const user = shuffled[userIndex];
+
+          // Find the flame within this candle's hierarchy
+          let flame;
+          child.traverse((descendant) => {
+            if (descendant.name.startsWith("ZFlame")) {
+              flame = descendant;
+            }
+          });
+
           child.userData = {
             isMelting: true,
             initialHeight: child.scale.y,
             userName: user.userName,
             burnedAmount: user.burnedAmount || 1,
-            meltingProgress: 0, // Initialize melting progress
+            meltingProgress: 0,
+            flame: flame,
           };
+
+          // Set flame visibility if found
+          if (flame) {
+            flame.visible = true;
+          }
         }
-      }
-      // Handle flame visibility
-      else if (child.name.startsWith("ZFlame")) {
-        const flameIndex = parseInt(child.name.replace("ZFlame", ""), 10);
-        child.visible = assignedIndices.includes(flameIndex);
       }
     });
 

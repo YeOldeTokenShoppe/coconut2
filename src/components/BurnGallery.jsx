@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter } from "next/router";
 import {
   Accordion,
@@ -41,10 +41,10 @@ import { utils, ethers } from "ethers";
 import styled from "styled-components";
 import Candle from "../components/Candle";
 import { useUser, useClerk } from "@clerk/nextjs";
-// import DoorComponent from "./Door";
-// import GLBViewer from "./3dObject";
+import { Canvas } from "@react-three/fiber";
 import Scene from "./3dChandelier";
 import ThreeDVotiveStand from "./3DVotiveStand/index";
+import MobileStand from "./3DVotiveStand/MobileStand";
 
 import NeonSign from "./NeonSign";
 
@@ -101,17 +101,21 @@ function BurnGallery({ setBurnGalleryLoaded }) {
   const [currentPath, setCurrentPath] = useState("/");
   const [marginTop, setMarginTop] = useState("17rem");
   const [isLoading, setIsLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [currentView, setCurrentView] = useState("main");
+  const [tooltipData, setTooltipData] = useState([]);
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = window.innerWidth <= 576;
-      setIsMobile(mobile);
+      const mobile = typeof window !== "undefined" && window.innerWidth <= 576;
+      setIsMobileView(mobile);
     };
 
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    // Only add event listener if window exists
+    if (typeof window !== "undefined") {
+      checkMobile();
+      window.addEventListener("resize", checkMobile);
+      return () => window.removeEventListener("resize", checkMobile);
+    }
   }, []);
 
   useEffect(() => {
@@ -182,56 +186,164 @@ function BurnGallery({ setBurnGalleryLoaded }) {
     setIsAuthModalOpen(false); // Close the AuthModal
   };
 
+  // Handler for screen clicks in the mobile model
+  const handleScreenClick = (view) => {
+    setCurrentView(view);
+  };
+
+  // Handler to return to the main view
+  const handleBack = () => {
+    setCurrentView("main");
+  };
+
+  const handleTooltipUpdate = (newTooltipData) => {
+    setTooltipData(newTooltipData);
+  };
+
   return (
     <>
       <Box py="0" position="relative" height="100vh" width="100%">
         <Grid gap={0} width="100%">
           <GridItem width="100%" zIndex={isChandelierVisible ? 5 : 3}>
-            {!isMobile && isMounted && <Scene visible={isVisible} />}
+            {!isMobileView && isMounted && <Scene visible={isVisible} />}
           </GridItem>
 
           <GridItem width="100%" zIndex={4}>
-            <ThreeDVotiveStand
-              isMobile={isMobile}
-              setIsLoading={() => setIsLoading(true)}
-              onCameraMove={() => {
-                setIsInMarkerView(true);
-                setIsChandelierVisible(false);
-              }}
-              onResetView={() => {
-                setIsInMarkerView(false);
-                // Only show chandelier on reset if not mobile
-                setIsChandelierVisible(!isMobile);
-              }}
-              onZoom={() => {
-                if (!isInMarkerView) {
+            {currentView === "main" ? (
+              <ThreeDVotiveStand
+                isMobileView={isMobileView}
+                onScreenClick={handleScreenClick}
+                setIsLoading={() => setIsLoading(true)}
+                onCameraMove={() => {
+                  setIsInMarkerView(true);
                   setIsChandelierVisible(false);
-                }
-              }}
-            />
+                }}
+                onResetView={() => {
+                  setIsInMarkerView(false);
+                  // Only show chandelier on reset if not mobile
+                  setIsChandelierVisible(!isMobileView);
+                }}
+                onZoom={() => {
+                  if (!isInMarkerView) {
+                    setIsChandelierVisible(false);
+                  }
+                }}
+              />
+            ) : currentView === "stand1" ? (
+              <div
+                style={{
+                  position: "relative",
+                  width: "100vw", // Full viewport width
+                  height: "100vh", // Full viewport height
+                  maxWidth: "none", // Override parent constraints
+                  maxHeight: "none",
+                }}
+              >
+                <Canvas
+                  camera={{
+                    fov: 75,
+                    near: 0.1,
+                    far: 1000,
+                    position: [0, 5, 15],
+                  }}
+                >
+                  <Suspense fallback={null}>
+                    <MobileStand
+                      onBack={handleBack}
+                      onTooltipUpdate={handleTooltipUpdate}
+                      scale={7}
+                    />
+                  </Suspense>
+                </Canvas>
+                <Box
+                  position="absolute"
+                  bottom="10%"
+                  left="4"
+                  zIndex={500}
+                  pointerEvents="auto"
+                >
+                  <Button
+                    width="7rem"
+                    background="#8e662b"
+                    color="white"
+                    onClick={handleBack}
+                    className="w-56 text-xl px-4 py-2 bg-black/70 text-white rounded-lg hover:bg-black/90 transition-colors"
+                  >
+                    ← Back
+                  </Button>
+                </Box>
+                {/* Mobile Stand Instructions */}
+                {isMobileView && (
+                  <Box
+                    position="absolute"
+                    top="10%"
+                    zIndex={500}
+                    textAlign="right"
+                    width="100%"
+                    px="4"
+                    pointerEvents="none"
+                  >
+                    <h1 className="thelma1">RL80 is Lit!</h1>
+                    <Text fontSize={"1rem"}>
+                      Hover over the candles to see who lit them. Click anywhere
+                      to return to the main view.
+                    </Text>
+                  </Box>
+                )}
+
+                {/* Tooltips */}
+                <div className="tooltip-wrapper absolute inset-0 pointer-events-none">
+                  {tooltipData.map((tooltip, index) => (
+                    <div
+                      key={index}
+                      className="tooltip-container"
+                      style={{
+                        position: "absolute",
+                        padding: "8px 12px",
+                        left: `${tooltip.position.x}px`,
+                        top: `${tooltip.position.y}px`,
+                        transform: "translate(-50%, -100%)",
+                        backgroundColor: "rgba(0, 0, 0, 0.9)",
+                        color: "white",
+                        borderRadius: "4px",
+                        zIndex: 1000,
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        opacity: tooltip.userName ? 1 : 0,
+                        visibility: tooltip.userName ? "visible" : "hidden",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {tooltip.userName}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </GridItem>
         </Grid>
-        <Box>
-          {isMobile && (
-            <Box
-              position="absolute"
-              top="10%"
-              // left="18%"
-              zIndex={500} // Ensure it's above other layers
-              textAlign="right"
-              width="100%"
-              justifyContent="center"
-              alignItems="center"
-            >
-              <h1 className="thelma1">Peril & Piety</h1>
-              <Text margin="2rem" fontSize={"1rem"}>
-                Prow scuttle parrel provost Sail ho shrouds spirits boom
-                mizzenmast yardarm. Pinnace holystone mizzenmast quarter crow's
-                nest nipperkin grog yardarm hempen halter furl.
-              </Text>
-            </Box>
-          )}
-          {/* <Box
+
+        {/* Main view text overlay */}
+        {isMobileView && currentView === "main" && (
+          <Box
+            position="absolute"
+            top="10%"
+            zIndex={500}
+            textAlign="right"
+            width="100%"
+            px="4"
+            pointerEvents="none"
+          >
+            <h1 className="thelma1">Peril & Piety</h1>
+            <Text margin="2rem" fontSize={"1rem"}>
+              Prow scuttle parrel provost Sail ho shrouds spirits boom
+              mizzenmast yardarm. Pinnace holystone mizzenmast quarter crow's
+              nest nipperkin grog yardarm hempen halter furl.
+            </Text>
+          </Box>
+        )}
+
+        {/* <Box
             display="flex"
             justifyContent="center"
             alignItems="center"
@@ -246,23 +358,22 @@ function BurnGallery({ setBurnGalleryLoaded }) {
               Burn Tokens
             </Button>
           </Box> */}
-          {/* </Box>  */}
+        {/* </Box>  */}
 
-          {isBurnModalOpen && (
-            <BurnModal
-              isOpen={isBurnModalOpen}
-              onClose={() => setIsBurnModalOpen(false)}
-              selectedImage={selectedImage}
-              setSelectedImage={setSelectedImage}
-              burnedAmount={burnedAmount}
-              setBurnedAmount={setBurnedAmount}
-              setIsResultSaved={setIsResultSaved}
-              setSaveMessage={setSaveMessage}
-              isResultSaved={isResultSaved}
-              saveMessage={saveMessage}
-            />
-          )}
-        </Box>
+        {isBurnModalOpen && (
+          <BurnModal
+            isOpen={isBurnModalOpen}
+            onClose={() => setIsBurnModalOpen(false)}
+            selectedImage={selectedImage}
+            setSelectedImage={setSelectedImage}
+            burnedAmount={burnedAmount}
+            setBurnedAmount={setBurnedAmount}
+            setIsResultSaved={setIsResultSaved}
+            setSaveMessage={setSaveMessage}
+            isResultSaved={isResultSaved}
+            saveMessage={saveMessage}
+          />
+        )}
       </Box>
     </>
   );

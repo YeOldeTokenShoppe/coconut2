@@ -27,11 +27,11 @@ const MOBILE_CONTROL_SETTINGS = {
   target: [-3, 22, -8.4],
 };
 
-function MobileModel({ scale, setTooltipData }) {
+function MobileModel({ scale, setTooltipData, onScreenClick }) {
   const gltf = useGLTF("/mobileVersion.glb");
   const modelRef = useRef();
   const controlsRef = useRef();
-  const { camera, viewport, size } = useThree();
+  const { camera, viewport, size, gl } = useThree();
   const mixerRef = useRef();
   const { actions, mixer } = useAnimations(gltf.animations, modelRef);
   const cameraRef = useRef(camera);
@@ -82,55 +82,71 @@ function MobileModel({ scale, setTooltipData }) {
   useFrame((state, delta) => {
     if (mixerRef.current) mixerRef.current.update(delta);
   });
+  const screenActions = {
+    Screen1: () => {
+      console.log("Screen1 clicked!");
+      if (onScreenClick) onScreenClick("stand1"); // Trigger parent callback
+    },
+    Screen2: () => console.log("Screen2 clicked!"),
+    Screen3: () => console.log("Screen3 clicked!"),
+    Screen4: () => console.log("Screen4 clicked!"),
+    Screen5: () => console.log("Screen5 clicked!"),
+    Screen6: () => console.log("Screen6 clicked!"),
+  };
 
-  // Handle mobile interactions
-  const handleMobileInteraction = (event) => {
+  const handlePointerMove = (event) => {
     if (!camera || !modelRef.current) return;
 
-    const mouse = new THREE.Vector2(event.point.x, event.point.y);
+    const canvas = gl.domElement; // Use the canvas reference
+    const rect = canvas.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
+
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
-    const candleObjects = [];
+    const screenObjects = [];
     modelRef.current.traverse((object) => {
-      if (
-        object.name.startsWith("ZCandle") ||
-        object.name.startsWith("ZFlame")
-      ) {
-        candleObjects.push(object);
+      if (object.isMesh && object.name.startsWith("Screen")) {
+        screenObjects.push(object);
       }
     });
 
-    const intersects = raycaster.intersectObjects(candleObjects, true);
+    const intersects = raycaster.intersectObjects(screenObjects, true);
+    document.body.style.cursor = intersects.length > 0 ? "pointer" : "default";
+  };
 
+  const handleClick = (event) => {
+    if (!camera || !modelRef.current) return;
+
+    const canvas = gl.domElement; // Use the canvas reference
+    const rect = canvas.getBoundingClientRect();
+
+    const mouse = new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+
+    const screenObjects = [];
+    modelRef.current.traverse((object) => {
+      if (object.isMesh && object.name.startsWith("Screen")) {
+        screenObjects.push(object);
+      }
+    });
+
+    const intersects = raycaster.intersectObjects(screenObjects, true);
     if (intersects.length > 0) {
-      const intersectedObject = intersects[0].object;
-      const candleNumber = intersectedObject.name.match(/\d+/)?.[0];
-
-      if (candleNumber) {
-        const zCandle = modelRef.current.getObjectByName(
-          `ZCandle${candleNumber}`
-        );
-
-        if (zCandle?.userData?.isMelting) {
-          const worldPos = new THREE.Vector3();
-          zCandle.getWorldPosition(worldPos);
-          worldPos.project(camera);
-
-          const x = ((worldPos.x + 1) * size.width) / 2;
-          const y = ((-worldPos.y + 1) * size.height) / 2;
-
-          setTooltipData([
-            {
-              userName: zCandle.userData?.userName || "Anonymous",
-              position: { x, y },
-            },
-          ]);
-          return;
-        }
+      const clickedObject = intersects[0].object;
+      const action = screenActions[clickedObject.name];
+      if (action) {
+        action();
       }
     }
-    setTooltipData([]);
   };
 
   return (
@@ -140,14 +156,8 @@ function MobileModel({ scale, setTooltipData }) {
         object={gltf.scene}
         scale={7}
         position={[0, 8.3, -0.5]}
-        onClick={(e) => {
-          e.stopPropagation();
-          handleMobileInteraction(e);
-        }}
-        onPointerMove={(e) => {
-          e.stopPropagation();
-          handleMobileInteraction(e);
-        }}
+        onPointerMove={handlePointerMove}
+        onClick={handleClick}
       />
       <PostProcessingEffects />
       <FlyInEffect2 cameraRef={cameraRef} duration={8} />
@@ -159,12 +169,12 @@ function MobileModel({ scale, setTooltipData }) {
           TWO: THREE.TOUCH.DOLLY_PAN,
         }}
       />
-      <CameraGUI
+      {/* <CameraGUI
         cameraRef={cameraRef}
         controlsRef={controlsRef}
         onGuiStart={() => {}}
         onGuiEnd={() => {}}
-      />
+      /> */}
       <ambientLight intensity={1} />
       <directionalLight
         position={[5, 5, 5]}

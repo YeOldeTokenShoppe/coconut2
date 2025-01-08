@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import * as THREE from "three";
 
-function FlyInEffect2({ cameraRef, duration = 8 }) {
+function FlyInEffect2({ cameraRef, duration = 6 }) {
   const animationCompleted = useRef(false);
 
   useEffect(() => {

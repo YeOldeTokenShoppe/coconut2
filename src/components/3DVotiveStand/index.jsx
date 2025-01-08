@@ -41,6 +41,8 @@ function ThreeDVotiveStand({
   onResetView,
   onZoom,
   isInMarkerView,
+  isMobileView,
+  onScreenClick,
 }) {
   const [userData, setUserData] = useState([]);
   const [tooltipData, setTooltipData] = useState([]);
@@ -680,7 +682,7 @@ function ThreeDVotiveStand({
   const lastFOV = useRef(null);
   return (
     <>
-      {isMobile ? (
+      {isMobileView ? (
         // Mobile version - much simpler Canvas setup
         <Canvas
           style={{
@@ -694,7 +696,11 @@ function ThreeDVotiveStand({
             setCamera(camera);
           }}
         >
-          <MobileModel scale={modelScale} setTooltipData={setTooltipData} />
+          <MobileModel
+            onScreenClick={onScreenClick}
+            scale={modelScale}
+            setTooltipData={setTooltipData}
+          />
         </Canvas>
       ) : (
         <div
@@ -775,7 +781,7 @@ function ThreeDVotiveStand({
             <directionalLight position={[0, 5, 0]} castShadow />
 
             <Model
-              url="/slimUltima2025.glb"
+              url="/slimUltima2027.glb"
               scale={modelScale}
               setIsLoading={setIsLoading}
               controlsRef={controlsRef}

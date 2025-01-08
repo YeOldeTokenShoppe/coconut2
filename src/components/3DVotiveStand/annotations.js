@@ -142,7 +142,7 @@ export const Annotations = ({
         color: "#fff",
         fontSize: "20px",
         borderRadius: ".5rem",
-        zIndex: 100000,
+        zIndex: 10000000,
         opacity: delayedVisibility ? 1 : 0,
         visibility: isVisible ? "visible" : "hidden",
         display: isVisible ? "flex" : "none",
@@ -209,7 +209,7 @@ export const Annotations = ({
         }}
         style={{
           position: "relative",
-          zIndex: 100001,
+          zIndex: 10000001,
           pointerEvents: "all",
           cursor: "pointer",
           padding: "10px",
