@@ -7,7 +7,7 @@ import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
 import { db } from "../../utilities/firebaseClient";
 
 function MobileStand({ scale, onBack, onTooltipUpdate }) {
-  const gltf = useGLTF("/candleStandOnly.glb");
+  const gltf = useGLTF("/5ShelvesWithPlaceholders.glb");
   const modelRef = useRef();
   const controlsRef = useRef();
   const { camera, gl } = useThree();
@@ -40,17 +40,17 @@ function MobileStand({ scale, onBack, onTooltipUpdate }) {
 
     // Position model
     modelRef.current.position.set(
-      4.5, // Center horizontally
-      -3, // Use original height
+      0, // Center horizontally
+      -1, // Use original height
       0 // Center depth
     );
 
     // Set up camera - positioning relative to model's center
-    camera.position.set(0, 15, 4); // Higher and further back
-    camera.fov = 35;
+    camera.position.set(0, 3, 1); // Higher and further back
+    camera.fov = 40;
     camera.near = 0.001;
     camera.far = 200;
-    camera.lookAt(0, 8.3, 5); // Look at the model's actual center
+    camera.lookAt(0, 1, 0); // Look at the model's actual center
     camera.updateProjectionMatrix();
 
     // Update controls
@@ -296,13 +296,13 @@ function MobileStand({ scale, onBack, onTooltipUpdate }) {
         object={gltf.scene}
         scale={7}
         onPointerMove={handlePointerMove}
-        onClick={handleScreenClick}
+        // onClick={handleScreenClick}
       />
 
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 15, 10]} intensity={0.8} castShadow />
-      <directionalLight position={[-5, 10, -5]} intensity={0.4} />
-      <directionalLight position={[0, 10, -8]} intensity={0.3} />
+      <ambientLight intensity={4.5} />
+      <directionalLight position={[1, 4, 1]} intensity={0.8} castShadow />
+      <directionalLight position={[1, 4, 0]} intensity={0.4} />
+      <directionalLight position={[0, 1, 0]} intensity={0.3} />
 
       <OrbitControls
         ref={controlsRef}
@@ -310,7 +310,7 @@ function MobileStand({ scale, onBack, onTooltipUpdate }) {
         enablePan={true}
         enableRotate={true}
         minDistance={0.00001}
-        maxDistance={1000}
+        maxDistance={100}
         maxPolarAngle={Math.PI * 0.75}
         minPolarAngle={Math.PI * 0.25}
         rotateSpeed={0.6}
@@ -323,6 +323,6 @@ function MobileStand({ scale, onBack, onTooltipUpdate }) {
   );
 }
 
-useGLTF.preload("/candleStandOnly.glb");
+useGLTF.preload("/5ShelvesWithPlaceholders.glb");
 
 export default MobileStand;

@@ -13,7 +13,7 @@ export default function GalleryPage() {
     if (burnGalleryLoaded && communionLoaded) {
       setIsLoading(false);
 
-      const scrollPosition = window.innerWidth < 768 ? 50 : 150;
+      const scrollPosition = window.innerWidth < 768 ? 50 : 100;
 
       window.scrollTo({
         top: scrollPosition,

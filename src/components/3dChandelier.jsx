@@ -224,13 +224,33 @@ function PhysicsChandelier({ url, visible = true }) {
 }
 
 function Scene({ visible = true }) {
+  const [topPosition, setTopPosition] = useState("-8rem");
+
+  useEffect(() => {
+    const updateTopPosition = () => {
+      const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+      setTopPosition(isPortrait ? "-8rem" : "-4rem");
+    };
+
+    // Initial check
+    updateTopPosition();
+
+    // Update on resize or orientation change
+    window.addEventListener("resize", updateTopPosition);
+    window.addEventListener("orientationchange", updateTopPosition);
+
+    // Cleanup event listeners
+    return () => {
+      window.removeEventListener("resize", updateTopPosition);
+      window.removeEventListener("orientationchange", updateTopPosition);
+    };
+  }, []);
   return (
     <div
       className="canvas-container"
       style={{
         position: "absolute",
-        top: "-2rem",
-        // inset: 0, // This sets left, right, top, bottom to 0
+        top: topPosition,
         margin: "auto",
         height: "35vh",
         width: "100%",
@@ -250,7 +270,7 @@ function Scene({ visible = true }) {
           contain: "layout paint size", // Improve performance and prevent overflow
         }}
       >
-        <ambientLight intensity={0.9} />
+        <ambientLight intensity={1.5} />
         {/* <gridHelper args={[10, 10]} /> */}
         <Physics gravity={[0, -20, 0]}>
           <PhysicsChandelier url="/chandelier2.glb" visible={visible} />

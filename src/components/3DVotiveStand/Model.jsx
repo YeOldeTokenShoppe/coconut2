@@ -10,6 +10,7 @@ import {
   setupVideoTextures,
   handleCandles,
 } from "./modelUtilities";
+import gsap from "gsap";
 
 function Model({
   scale,
@@ -24,7 +25,7 @@ function Model({
   handlePointerMove,
   onButtonClick,
 }) {
-  const gltf = useGLTF("/slimUltima2027.glb");
+  const gltf = useGLTF("/slimUltima2028.glb");
   const { actions, mixer } = useAnimations(gltf.animations, modelRef);
   const { camera, size } = useThree();
   const [results, setResults] = useState([]);
@@ -32,6 +33,7 @@ function Model({
   const [shuffledCandleIndices, setShuffledCandleIndices] = useState([]);
   const mixerRef = useRef();
   const scene = gltf.scene;
+  const rotateStandsRef = useRef(null);
 
   // Center and align model
   useEffect(() => {
@@ -136,6 +138,116 @@ function Model({
       });
     };
   }, [markers, camera, gltf.scene]);
+
+  const audioListener = useRef(new THREE.AudioListener());
+  const sound = useRef(new THREE.Audio(audioListener.current));
+
+  // Add this effect to load the sound
+  useEffect(() => {
+    if (!camera) return;
+
+    // Add listener to camera
+    camera.add(audioListener.current);
+
+    // Load the sound file
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load("/mech.mp3", (buffer) => {
+      sound.current.setBuffer(buffer);
+      sound.current.setVolume(0.5);
+      sound.current.setLoop(false);
+    });
+
+    // Cleanup
+    return () => {
+      camera.remove(audioListener.current);
+      sound.current.stop();
+    };
+  }, [camera]);
+
+  useEffect(() => {
+    // Wait for both the model reference and animations to be ready
+    if (!modelRef.current || !actions) return;
+
+    try {
+      // Get our objects from modelRef instead of gltf.scene
+      const rotationPivot = modelRef.current.getObjectByName("RotationPivot");
+
+      if (!rotationPivot) {
+        console.error("RotationPivot not found in model");
+        return;
+      }
+
+      const stand1Group = rotationPivot.getObjectByName("Stand1Group");
+      const stand2Group = rotationPivot.getObjectByName("Stand2Group");
+      const button1 = modelRef.current.getObjectByName("VisibleButton1");
+      const button2 = modelRef.current.getObjectByName("VisibleButton2");
+
+      // Initially hide Stand2
+      if (stand2Group) {
+        stand2Group.visible = true;
+      }
+
+      // Define rotation function
+      const rotateStands = () => {
+        // Play button animation once
+        const buttonAnim = actions["SK_Button|Anim_ButtonPress"];
+        if (buttonAnim) {
+          buttonAnim
+            .reset()
+            .setLoop(THREE.LoopOnce) // Play only once
+            .setEffectiveTimeScale(1) // Normal speed
+            .setEffectiveWeight(1) // Full influence
+            .play();
+        }
+
+        // Slower rotation with sound
+        const rotationDuration = 4; // 4 seconds instead of 2
+
+        // Play creaky sound (assuming you have the audio file)
+        const sound = new Audio("/mech.mp3");
+        sound.play();
+
+        gsap.to(rotationPivot.rotation, {
+          y: rotationPivot.rotation.y + Math.PI,
+          duration: rotationDuration,
+          ease: "power1.inOut", // Smoother easing for mechanical feel
+          onStart: () => {
+            // Could start sound here instead
+          },
+          onComplete: () => {
+            rotationPivot.rotation.y %= 2 * Math.PI;
+            // Could stop or fade out sound here
+          },
+        });
+      };
+      // Store rotation function in ref
+      rotateStandsRef.current = rotateStands;
+
+      // Add click handlers to buttons
+      if (button1) {
+        button1.userData.clickHandler = rotateStands;
+      }
+      if (button2) {
+        button2.userData.clickHandler = rotateStands;
+      }
+
+      console.log("Rotation setup complete", {
+        rotationPivot: !!rotationPivot,
+        stand1Group: !!stand1Group,
+        stand2Group: !!stand2Group,
+        button1: !!button1,
+        button2: !!button2,
+      });
+    } catch (error) {
+      console.error("Error setting up rotation:", error);
+    }
+  }, [modelRef.current, actions]); // Add both dependencies
+
+  const handleClick = (event) => {
+    if (event.object.userData.clickHandler) {
+      event.object.userData.clickHandler();
+    }
+  };
   const createCandleShaderMaterial = (colorOffset, timeScale, offsetX) => {
     return new THREE.ShaderMaterial({
       uniforms: {
@@ -307,7 +419,11 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
   //   });
   // }, [modelRef]);
 
-  // Fetch results from Firestore
+  const candleCache = {
+    bodies: new Map(), // ZCandle -> {flame, topMesh}
+    tops: new Map(), // ZCandleTop -> originalScale
+  };
+
   // Fetch results from Firestore
   useEffect(() => {
     const q = query(collection(db, "results"), orderBy("createdAt", "desc"));
@@ -322,97 +438,129 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
     return () => unsubscribe();
   }, []);
 
-  // Assign Candles and Flames
+  const initializeCandleCache = (model) => {
+    model.traverse((child) => {
+      if (child.name.startsWith("XCandle")) {
+        let flame;
+        let candleMesh; // This will be our Candle_default_ mesh
+
+        // Find associated components
+        child.traverse((descendant) => {
+          if (descendant.name.startsWith("XFlame")) {
+            flame = descendant;
+          }
+          if (descendant.name.startsWith("")) {
+            candleMesh = descendant;
+          }
+        });
+
+        // Store references and initial height of the actual candle mesh
+        candleCache.bodies.set(child, {
+          flame,
+          candleMesh,
+          initialHeight: candleMesh ? candleMesh.scale.z : 1,
+        });
+      }
+    });
+  };
 
   useEffect(() => {
     if (results.length === 0 || !modelRef.current) return;
 
     const shuffled = [...results].sort(() => Math.random() - 0.5);
 
-    // Create indices for assignment (52 candles)
-    const candleIndexes = Array.from({ length: 19 }, (_, i) => i);
+    // Adjust for 001-009 format
+    const candleIndexes = Array.from({ length: 9 }, (_, i) => i + 1); // Will create [1,2,3,4,5,6,7,8,9]
     const assignedIndices = candleIndexes
       .sort(() => Math.random() - 0.5)
       .slice(0, shuffled.length);
 
-    // First, reset ALL candles and flames to unassigned state
-    // First, reset ALL candles and flames to unassigned state
+    console.log("Number of results:", results.length);
+    console.log("Available candle indices:", candleIndexes);
+    console.log("Assigned indices:", assignedIndices);
+
+    // Reset all candles
     modelRef.current.traverse((child) => {
-      if (child.name.startsWith("ZCandle")) {
-        // Find the flame within this candle's hierarchy
-        let flame;
-        child.traverse((descendant) => {
-          if (descendant.name.startsWith("ZFlame")) {
-            flame = descendant;
-          }
-        });
+      if (child.name.startsWith("XCandle")) {
+        console.log("Found candle:", child.name); // Debug log
+
+        // Store original scale first time we see it
+        if (!child.userData.originalScale) {
+          child.userData.originalScale = {
+            x: child.scale.x,
+            y: child.scale.y,
+            z: child.scale.z,
+          };
+        }
 
         // Reset candle state
         child.userData = {
           isMelting: false,
-          initialHeight: child.scale.y,
+          originalScale: child.userData.originalScale,
           userName: "Anonymous",
           burnedAmount: 1,
           meltingProgress: undefined,
-          flame: flame, // Store reference to associated flame
         };
 
-        // Reset flame visibility if found
-        if (flame) {
-          flame.visible = false;
-        }
+        // Find and reset flame
+        child.traverse((descendant) => {
+          if (descendant.name.startsWith("XFlame")) {
+            descendant.visible = false;
+          }
+        });
       }
     });
 
-    // Then assign only the selected candles
+    // Assign selected candles
     modelRef.current.traverse((child) => {
-      if (child.name.startsWith("ZCandle")) {
-        const candleIndex = parseInt(child.name.replace("ZCandle", ""), 10);
+      if (child.name.startsWith("XCandle")) {
+        // Parse the index, converting "001" to 1, "002" to 2, etc.
+        const candleIndex = parseInt(child.name.slice(-3), 10);
         const userIndex = assignedIndices.indexOf(candleIndex);
+
+        console.log(
+          `Candle ${child.name}: index=${candleIndex}, userIndex=${userIndex}`
+        ); // Debug log
 
         if (userIndex !== -1) {
           const user = shuffled[userIndex];
-
-          // Find the flame within this candle's hierarchy
-          let flame;
-          child.traverse((descendant) => {
-            if (descendant.name.startsWith("ZFlame")) {
-              flame = descendant;
-            }
-          });
+          console.log(
+            `Assigning user ${user.userName} to candle ${child.name}`
+          ); // Debug log
 
           child.userData = {
             isMelting: true,
-            initialHeight: child.scale.y,
+            originalScale: child.userData.originalScale,
             userName: user.userName,
             burnedAmount: user.burnedAmount || 1,
             meltingProgress: 0,
-            flame: flame,
           };
 
-          // Set flame visibility if found
-          if (flame) {
-            flame.visible = true;
-          }
+          // Find and show flame
+          child.traverse((descendant) => {
+            if (descendant.name.startsWith("XFlame")) {
+              descendant.visible = true;
+            }
+          });
         }
       }
     });
 
     setShuffledResults(shuffled);
   }, [results, modelRef]);
-  // Handle Melting Effect and Tooltips
+
+  // Modified useFrame for melting
   useFrame((state, delta) => {
-    const { clock } = state; // Access the clock from the state
+    const { clock } = state;
 
     if (mixerRef.current) {
-      mixerRef.current.update(delta); // Update the mixer
+      mixerRef.current.update(delta);
     }
 
     if (!modelRef.current) return;
 
-    let meltingCount = 0;
-
     modelRef.current.traverse((child) => {
+      // Update shader time
       if (
         child.name.startsWith("Selection") &&
         child.material.uniforms?.iTime
@@ -420,48 +568,26 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
         child.material.uniforms.iTime.value = clock.getElapsedTime();
       }
 
-      // Handle melting logic for ZCandle objects
+      // Handle melting for ZCandle objects
       if (
-        child.name.startsWith("ZCandle") &&
+        child.name.startsWith("XCandle") &&
         child.userData?.isMelting === true
       ) {
-        meltingCount++;
-
-        // Initialize melting progress and originalScale if not set
-        if (!child.userData.originalScale) {
-          child.userData = {
-            ...child.userData,
-            meltingProgress: 0,
-            originalScale: {
-              x: child.scale.x,
-              y: child.scale.y,
-              z: child.scale.z,
-            },
-          };
-        }
-
         // Update melting progress
         child.userData.meltingProgress += delta;
 
-        const burnAmount = child.userData.burnedAmount || 1;
         const meltingSpeed = 0.01;
+        const MIN_SCALE = 0.1;
 
-        // Calculate the desired minimum scale (e.g., 0.01 for 1% of original height)
-        const MIN_SCALE = 0.1; // Change this value to set minimum height percentage
-
-        // Calculate scale directly as a percentage of original height
+        // Calculate scale as percentage of original height
         const percentageRemaining = Math.max(
           1 - meltingSpeed * child.userData.meltingProgress,
           MIN_SCALE
         );
 
-        // Store original values before change
-        const oldScale = child.scale.y;
-
-        // Only proceed if we have valid originalScale
-        if (child.userData.originalScale?.y) {
-          // Apply new scale
-          child.scale.y = child.userData.originalScale.y * percentageRemaining;
+        // Apply scale if we have valid originalScale
+        if (child.userData.originalScale?.z) {
+          child.scale.z = child.userData.originalScale.z * percentageRemaining;
         }
       }
     });
@@ -481,12 +607,8 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
       onClick={(e) => {
         e.stopPropagation();
         handlePointerMove(e.nativeEvent);
-        console.log("Model clicked:", e.object.name);
+        handleClick(e);
       }}
-      // onClick={(e) => {
-      //   e.stopPropagation();
-      //   handlePointerMove(e.nativeEvent);
-      // }}
       onPointerMove={(e) => handlePointerMove(e.nativeEvent)}
     />
   );

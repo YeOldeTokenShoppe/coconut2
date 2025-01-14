@@ -84,13 +84,47 @@ export const createMarkerFace = (index) => {
 };
 
 export function setupVideoTextures(modelRef) {
-  const shaderMaterials = {};
-  const overlayMaterials = {}; // Separate storage for overlays
+  const videoMaterials = {};
+  const overlayMaterials = {};
   let animationFrameId = null;
   let unsubscribeFirestore;
   let userNames = [];
   const overlayMeshes = {};
   let userDataInterval;
+
+  // Array of video URLs - replace these with your actual MP4 URLs
+  const videoUrls = [
+    "/1.mp4",
+    "/2.mp4",
+    "/3.mp4",
+    "/4.mp4",
+    "/5.mp4",
+    "/6.mp4",
+    "/7.mp4",
+    "/8.mp4",
+    "/9.mp4",
+  ];
+
+  // Function to create video texture
+  const createVideoTexture = (videoUrl) => {
+    const video = document.createElement("video");
+    video.src = videoUrl;
+    video.crossOrigin = "anonymous";
+    video.loop = true;
+    video.muted = true;
+    video.play();
+
+    const texture = new THREE.VideoTexture(video);
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.format = THREE.RGBAFormat;
+
+    // Create a matrix to rotate 90 degrees and flip on Y-axis
+    texture.matrix.setUvTransform(0, 0, -1, 1, Math.PI / 2, 0.5, 0.5);
+    texture.matrixAutoUpdate = false;
+
+    return { texture, video };
+  };
 
   const fetchUserNames = async () => {
     try {
@@ -102,7 +136,6 @@ export function setupVideoTextures(modelRef) {
       unsubscribeFirestore = onSnapshot(q, (querySnapshot) => {
         const newUserNames = querySnapshot.docs.map((doc) => {
           const data = doc.data();
-
           return {
             userName: data.userName || "Anonymous",
             burnedAmount: data.burnedAmount || 0,
@@ -110,7 +143,6 @@ export function setupVideoTextures(modelRef) {
           };
         });
 
-        // Only update if there are actual changes
         if (JSON.stringify(newUserNames) !== JSON.stringify(userNames)) {
           userNames = newUserNames;
           updateScreens();
@@ -123,6 +155,32 @@ export function setupVideoTextures(modelRef) {
       ];
     }
   };
+
+  const initializeScreens = () => {
+    if (modelRef.current) {
+      const screens = [];
+      modelRef.current.traverse((child) => {
+        if (child.isMesh && child.name.startsWith("Screen")) {
+          screens.push(child);
+        }
+      });
+
+      // Distribute videos among screens
+      screens.forEach((screen, index) => {
+        const videoUrl = videoUrls[index % videoUrls.length];
+        const { texture, video } = createVideoTexture(videoUrl);
+
+        const material = new THREE.MeshBasicMaterial({
+          map: texture,
+          side: THREE.DoubleSide,
+        });
+
+        videoMaterials[screen.name] = { material, video };
+        screen.material = material;
+      });
+    }
+  };
+
   const createTextTexture = (textData) => {
     return new Promise((resolve) => {
       const canvas = document.createElement("canvas");
@@ -133,71 +191,32 @@ export function setupVideoTextures(modelRef) {
       if (textData.image) {
         const img = new Image();
         img.onload = () => {
-          // Fill entire canvas with image
           context.save();
-          context.scale(1, -1); // Your existing flip
-          context.rotate(-Math.PI / 2); // Your existing rotation
+          context.scale(1, -1);
+          context.rotate(-Math.PI / 2);
 
-          // Draw image to fill canvas while maintaining aspect ratio
           const scale =
             Math.max(canvas.width / img.width, canvas.height / img.height) *
-            1.1; // Increased from 1.0 to 1.2
-          // Adjust position to ensure image is centered and covers left edge
-          const x = (canvas.width - img.width * scale) / 1.8; // Adjusted divisor from 2 to 1.8
+            1.1;
+          const x = (canvas.width - img.width * scale) / 1.8;
           const y = (canvas.height - img.height * scale) / 2;
 
           context.drawImage(img, x, y, img.width * scale, img.height * scale);
           context.restore();
 
-          // Draw text over image
+          // Draw text
           context.save();
-          // Add semi-transparent dark overlay for text readability
-          context.fillStyle = "rgba(0, 0, 0, 0.7)";
-          context.fillRect(0, 0, canvas.width, canvas.height);
-
-          // Position and rotate text
           context.translate(canvas.width / 2 + 70, canvas.height / 2);
-          context.scale(-1, 1); // Flip on y-axis
-          context.rotate(Math.PI / 2); // Rotate 90 degrees
+          context.scale(-1, 1);
+          context.rotate(Math.PI / 2);
 
-          // Text settings
           context.fillStyle = "#ffffff";
           context.font = "bold 90px Oleo Script";
           context.textAlign = "center";
           context.textBaseline = "middle";
 
-          // Wrap text
-          const wrapText = (text, maxWidth) => {
-            const words = text.split(" ");
-            const lines = [];
-            let currentLine = words[0];
-
-            for (let i = 1; i < words.length; i++) {
-              const width = context.measureText(
-                currentLine + " " + words[i]
-              ).width;
-              if (width < maxWidth) {
-                currentLine += " " + words[i];
-              } else {
-                lines.push(currentLine);
-                currentLine = words[i];
-              }
-            }
-            lines.push(currentLine);
-            return lines;
-          };
-
-          // const text = `${textData.userName} staked ${textData.burnedAmount}`;
           const text = `${textData.userName}`;
-          const maxWidth = 450;
-          const lines = wrapText(text, maxWidth);
-          const lineHeight = 100; // Adjust for your large font size
-
-          lines.forEach((line, i) => {
-            const yPos = (i - (lines.length - 1) / 2) * lineHeight;
-            context.fillText(line, 0, yPos);
-          });
-
+          context.fillText(text, 0, 0);
           context.restore();
 
           const texture = new THREE.CanvasTexture(canvas);
@@ -208,40 +227,7 @@ export function setupVideoTextures(modelRef) {
       }
     });
   };
-  const initializeScreens = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 512;
-    const context = canvas.getContext("2d");
-    const avatarX = canvas.width * 0.52; // Or whatever your current value is
 
-    const avatarY = canvas.height * 0.5;
-
-    if (modelRef.current) {
-      modelRef.current.traverse((child) => {
-        if (child.isMesh && child.name.startsWith("Screen")) {
-          const randomEffect = getRandomShader();
-
-          // Verify shader structure
-          if (randomEffect && randomEffect.shader) {
-            const material = new THREE.ShaderMaterial({
-              uniforms: {
-                time: { value: 0 },
-                ...randomEffect.shader.uniforms,
-              },
-              vertexShader: randomEffect.shader.vertexShader,
-              fragmentShader: randomEffect.shader.fragmentShader,
-            });
-            shaderMaterials[child.name] = material;
-            child.material = material;
-          }
-        }
-      });
-    }
-  };
-  let displayTextures = {}; // Make sure this is defined
-
-  // Modify addOverlays to store initial textures
   const addOverlays = () => {
     if (modelRef.current) {
       modelRef.current.traverse((child) => {
@@ -250,7 +236,7 @@ export function setupVideoTextures(modelRef) {
             child.geometry.clone(),
             new THREE.MeshBasicMaterial({
               transparent: true,
-              opacity: 1.0, // Make it fully visible now
+              opacity: 1.0,
               depthTest: true,
             })
           );
@@ -262,101 +248,48 @@ export function setupVideoTextures(modelRef) {
 
           child.parent.add(overlayMesh);
           overlayMeshes[child.name] = overlayMesh;
-          displayTextures[child.name] = null; // Initialize texture slot
         }
       });
     }
   };
-  // Update the updateScreens function to handle overlays
-  // Modified updateScreens function to ensure unique user display
+
   const updateScreens = async () => {
     await fetchUserNames();
 
-    // Track which users have been displayed
-    const usedUsers = new Set();
-
-    // Calculate how many screens should show user data vs shaders
-    const totalScreens = Object.keys(displayTextures).length;
-    const availableUsers = userNames.filter(
-      (user) => !usedUsers.has(user.userName)
-    );
-    const userScreenCount = Math.min(4, availableUsers.length);
-
-    // Reset all screen content
-    Object.keys(screenStateManager.screenContent).forEach((key) => {
-      screenStateManager.clearContent(key);
-    });
-
-    // Create array of screen names and shuffle it
-    const screenNames = Object.keys(displayTextures);
+    // Get all screen names and shuffle them
+    const screenNames = Object.keys(overlayMeshes);
     const shuffledScreens = [...screenNames].sort(() => Math.random() - 0.5);
 
-    // Create a copy of userNames and shuffle it
-    const shuffledUsers = [...userNames].sort(() => Math.random() - 0.5);
+    // Reset all overlays to hide them initially
+    Object.values(overlayMeshes).forEach((mesh) => {
+      mesh.visible = false;
+    });
 
-    // First handle user data screens
-    for (let i = 0; i < userScreenCount; i++) {
-      const screenName = shuffledScreens[i];
-      const user = shuffledUsers[i];
+    // If we have users to display
+    if (userNames.length > 0) {
+      // Select one random screen to show user data
+      const selectedScreen = shuffledScreens[0];
 
-      // Skip if we've already used this user
-      if (usedUsers.has(user.userName)) continue;
+      // Select one random user
+      const selectedUser =
+        userNames[Math.floor(Math.random() * userNames.length)];
 
-      const texture = await createTextTexture(user);
-      if (overlayMeshes[screenName]) {
-        overlayMeshes[screenName].material.map = texture;
-        overlayMeshes[screenName].visible = true;
-        overlayMeshes[screenName].material.needsUpdate = true;
-
-        screenStateManager.updateContent(screenName, user);
-        usedUsers.add(user.userName);
-      }
-    }
-
-    // Then handle remaining screens with shaders
-    for (let i = userScreenCount; i < totalScreens; i++) {
-      const screenName = shuffledScreens[i];
-      if (overlayMeshes[screenName]) {
-        overlayMeshes[screenName].visible = false;
-        screenStateManager.clearContent(screenName);
+      // Create and apply texture for the selected user
+      const texture = await createTextTexture(selectedUser);
+      if (overlayMeshes[selectedScreen]) {
+        overlayMeshes[selectedScreen].material.map = texture;
+        overlayMeshes[selectedScreen].visible = true;
+        overlayMeshes[selectedScreen].material.needsUpdate = true;
       }
     }
   };
+
   const animate = () => {
     animationFrameId = requestAnimationFrame(animate);
-    const currentTime = performance.now() * 0.001;
-
-    for (let screenName in shaderMaterials) {
-      const material = shaderMaterials[screenName];
-      if (material && material.uniforms && material.uniforms.time) {
-        material.uniforms.time.value = currentTime;
-      }
-    }
+    // No need to update uniforms for videos
   };
-  // Update user data every 10 seconds
-  userDataInterval = setInterval(updateScreens, 10000);
 
-  const shaderInterval = setInterval(() => {
-    // Add safety check for modelRef.current
-    if (modelRef.current) {
-      modelRef.current.traverse((child) => {
-        if (child.isMesh && child.name.startsWith("Screen")) {
-          if (!overlayMeshes[child.name].visible) {
-            // Only update if showing shader
-            const randomEffect = getRandomShader();
-            const material = shaderMaterials[child.name];
-            material.uniforms = {
-              time: { value: material.uniforms.time.value },
-              ...randomEffect.shader.uniforms,
-            };
-            material.fragmentShader = randomEffect.shader.fragmentShader;
-            material.vertexShader = randomEffect.shader.vertexShader;
-            material.needsUpdate = true;
-          }
-        }
-      });
-    }
-  }, 5000);
+  userDataInterval = setInterval(updateScreens, 10000);
 
   const cleanup = () => {
     if (animationFrameId != null) {
@@ -366,22 +299,25 @@ export function setupVideoTextures(modelRef) {
     if (userDataInterval) {
       clearInterval(userDataInterval);
     }
-    if (shaderInterval) {
-      // Add this
-      clearInterval(shaderInterval);
-    }
-    // Clear all screen content on cleanup
-    Object.keys(screenStateManager.screenContent).forEach((key) => {
-      screenStateManager.clearContent(key);
+
+    // Cleanup videos
+    Object.values(videoMaterials).forEach(({ material, video }) => {
+      video.pause();
+      video.src = "";
+      video.load();
+      material.dispose();
     });
-    Object.values(shaderMaterials).forEach((material) => material.dispose());
+
+    // Cleanup overlays
     Object.values(overlayMeshes).forEach((mesh) => {
+      if (mesh.material.map) {
+        mesh.material.map.dispose();
+      }
       mesh.material.dispose();
       mesh.removeFromParent();
     });
   };
 
-  // Just initialize screens for now
   initializeScreens();
   addOverlays();
   animate();
@@ -1065,30 +1001,3 @@ export const screenStateManager = {
 //   console.log("Screen content updated:", content);
 // });
 // For the candle machine buttons:
-
-export const BUTTON_MESSAGES = {
-  Button1: {
-    title: "Button 1",
-    message: "You've pressed the first button. This one controls X feature.",
-    // You can add more properties like:
-    action: "feature1",
-    description: "Longer description if needed",
-    position: { x: 0, y: 0, z: 0 }, // If you need position data
-  },
-  Button2: {
-    title: "Button 2",
-    message: "Second button pressed! This controls Y feature.",
-    action: "feature2",
-    description: "Another description",
-  },
-  // Add entries for all your buttons
-  Button3: {
-    title: "Button 3",
-    message: "Third button activated. This one manages Z feature.",
-  },
-  // You can add a default message for any unrecognized buttons
-  default: {
-    title: "Button Pressed",
-    message: "You've activated a button",
-  },
-};

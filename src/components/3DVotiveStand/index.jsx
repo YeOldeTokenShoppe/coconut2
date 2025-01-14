@@ -49,7 +49,7 @@ function ThreeDVotiveStand({
   const [isMarkerMovement, setIsMarkerMovement] = useState(false);
   const [modelScale, setModelScale] = useState(7);
   const [buttonPopupVisible, setButtonPopupVisible] = useState(false);
-  const [clickedButtonName, setClickedButtonName] = useState("");
+  // const [clickedButtonName, setClickedButtonName] = useState("");
   const [buttonData, setButtonData] = useState("");
   const [camera, setCamera] = useState(null);
   const [markers, setMarkers] = useState(DEFAULT_MARKERS);
@@ -250,27 +250,27 @@ function ThreeDVotiveStand({
     }
     setIsGuiMode(false);
   };
-  const handleButtonClick = (buttonNumber) => {
-    if (!modelRef.current) return;
+  // const handleButtonClick = (buttonNumber) => {
+  //   if (!modelRef.current) return;
 
-    const selectionMesh = modelRef.current.getObjectByName(
-      `Selection${buttonNumber}`
-    );
-    if (selectionMesh && selectionMesh.material) {
-      gsap.to(selectionMesh.material.uniforms.emission, {
-        value: 1,
-        duration: 0.9,
-        ease: "power2.out",
-        onComplete: () => {
-          gsap.to(selectionMesh.material.uniforms.emission, {
-            value: 0,
-            duration: 0.9,
-            ease: "power2.in",
-          });
-        },
-      });
-    }
-  };
+  //   const selectionMesh = modelRef.current.getObjectByName(
+  //     `Selection${buttonNumber}`
+  //   );
+  //   if (selectionMesh && selectionMesh.material) {
+  //     gsap.to(selectionMesh.material.uniforms.emission, {
+  //       value: 1,
+  //       duration: 0.9,
+  //       ease: "power2.out",
+  //       onComplete: () => {
+  //         gsap.to(selectionMesh.material.uniforms.emission, {
+  //           value: 0,
+  //           duration: 0.9,
+  //           ease: "power2.in",
+  //         });
+  //       },
+  //     });
+  //   }
+  // };
 
   // Animate function for billboarding
   useEffect(() => {
@@ -324,9 +324,10 @@ function ThreeDVotiveStand({
       }
       // Collect candle-related objects
       if (
-        object.name.startsWith("ZCandle") ||
-        object.name.startsWith("CandleBase") ||
-        object.name.startsWith("ZFlame")
+        object.name.startsWith("Candle") ||
+        object.name.startsWith("XBase") ||
+        object.name.startsWith("XFlame") ||
+        object.name.startsWith("XRope")
       ) {
         interactiveObjects.push(object);
       }
@@ -392,16 +393,16 @@ function ThreeDVotiveStand({
       const candleNumber = intersectedObject.name.match(/\d+/)?.[0];
 
       if (candleNumber) {
-        let zCandle = null;
+        let xCandle = null;
         modelRef.current.traverse((object) => {
-          if (object.name === `ZCandle${candleNumber}`) {
-            zCandle = object;
+          if (object.name === `XCandle${candleNumber}`) {
+            xCandle = object;
           }
         });
 
-        if (zCandle && zCandle.userData?.isMelting) {
+        if (xCandle && xCandle.userData?.isMelting) {
           const worldPos = new THREE.Vector3();
-          zCandle.getWorldPosition(worldPos);
+          xCandle.getWorldPosition(worldPos);
           worldPos.y += 0.5;
           worldPos.project(camera);
 
@@ -409,7 +410,7 @@ function ThreeDVotiveStand({
           const y = (0.5 - worldPos.y / 2) * canvas.clientHeight;
 
           newTooltipData.push({
-            userName: zCandle.userData?.userName || "Anonymous",
+            userName: xCandle.userData?.userName || "Anonymous",
             position: { x, y },
             distance: intersection.distance, // Add distance for potential z-ordering
           });
@@ -427,28 +428,28 @@ function ThreeDVotiveStand({
       // Clear tooltips if no intersections
       setTooltipData([]);
     }
-    if (event.type === "click") {
-      const buttonObjects = [];
-      modelRef.current.traverse((object) => {
-        if (object.name.includes("Button")) {
-          buttonObjects.push(object);
-        }
-      });
+    // if (event.type === "click") {
+    //   const buttonObjects = [];
+    //   modelRef.current.traverse((object) => {
+    //     if (object.name.includes("Button")) {
+    //       buttonObjects.push(object);
+    //     }
+    //   });
 
-      const buttonIntersects = raycaster.intersectObjects(buttonObjects, true);
-      if (buttonIntersects.length > 0) {
-        const hitObject = buttonIntersects[0].object;
-        const buttonNumber = hitObject.name.replace("Button", "");
-        const buttonData =
-          BUTTON_MESSAGES[hitObject.name] || BUTTON_MESSAGES.default;
+    //   const buttonIntersects = raycaster.intersectObjects(buttonObjects, true);
+    //   if (buttonIntersects.length > 0) {
+    //     const hitObject = buttonIntersects[0].object;
+    //     const buttonNumber = hitObject.name.replace("Button", "");
+    //     const buttonData =
+    //       BUTTON_MESSAGES[hitObject.name] || BUTTON_MESSAGES.default;
 
-        console.log(`${hitObject.name} clicked!`);
-        setClickedButtonName(hitObject.name);
-        setButtonData(buttonData); // Make sure this state exists
-        setButtonPopupVisible(true);
-        handleButtonClick(buttonNumber); // Keep the glow effect
-      }
-    }
+    //     console.log(`${hitObject.name} clicked!`);
+    //     setClickedButtonName(hitObject.name);
+    //     setButtonData(buttonData); // Make sure this state exists
+    //     setButtonPopupVisible(true);
+    //     handleButtonClick(buttonNumber); // Keep the glow effect
+    //   }
+    // }
   };
   //
 
@@ -776,12 +777,17 @@ function ThreeDVotiveStand({
             {/* <Perf position="top-left" /> */}
             <RoomWalls />
 
-            <ambientLight intensity={0.8} />
+            <ambientLight intensity={0.7} />
 
-            <directionalLight position={[0, 5, 0]} castShadow />
+            <directionalLight position={[4, 4, 0]} castShadow />
+            <directionalLight
+              position={[-2.85, 3, -3]}
+              intensity={2}
+              castShadow
+            />
 
             <Model
-              url="/slimUltima2027.glb"
+              url="/slimUltima2028.glb"
               scale={modelScale}
               setIsLoading={setIsLoading}
               controlsRef={controlsRef}
@@ -793,7 +799,7 @@ function ThreeDVotiveStand({
               userData={userData}
               moveCamera={moveCamera}
               setTooltipData={setTooltipData}
-              onButtonClick={handleButtonClick}
+              // onButtonClick={handleClick}
             />
             {/* use this version only when using gui */}
 
@@ -836,11 +842,11 @@ function ThreeDVotiveStand({
                   );
 
                   // If we're in a zoomed state (z < 10), stay zoomed
-                  if (camera.position.z < 10) {
+                  if (camera.position.z < 8) {
                     onZoom?.();
                   }
                   // Only reset view if we're actually returning to main view
-                  else if (camera.position.z > 10) {
+                  else if (camera.position.z > 8) {
                     onResetView?.();
                   }
 
@@ -960,7 +966,7 @@ function ThreeDVotiveStand({
                 {buttonData.message}
               </p>
               <button
-                onClick={() => setButtonPopupVisible(false)}
+                // onClick={() => setButtonPopupVisible(false)}
                 style={{
                   position: "relative",
                   zIndex: 100001,

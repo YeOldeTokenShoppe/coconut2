@@ -101,25 +101,25 @@ export const Annotations = ({
   const getStylesForScreenCategory = (category) => {
     if (category.startsWith("phone")) {
       return {
-        fontSize: "16px",
+        fontSize: "1rem",
         padding: "15px",
         maxWidth: "8rem",
-        buttonFontSize: "14px",
+        buttonFontSize: "1rem",
       };
     }
     if (category.startsWith("tablet")) {
       return {
-        fontSize: "18px",
-        padding: "18px",
+        fontSize: "1.3rem",
+        padding: "1.3rem",
         maxWidth: "9rem",
-        buttonFontSize: "15px",
+        buttonFontSize: "1rem",
       };
     }
     return {
-      fontSize: "20px",
-      padding: "20px",
-      maxWidth: "10rem",
-      buttonFontSize: "16px",
+      fontSize: "1.3ren",
+      padding: "1.3rem",
+      maxWidth: ".6rem",
+      buttonFontSize: "1rem",
     };
   };
 
@@ -140,7 +140,7 @@ export const Annotations = ({
         )}px`,
         backgroundColor: "rgba(0, 0, 0, 0.8)",
         color: "#fff",
-        fontSize: "20px",
+        fontSize: "1.5rem",
         borderRadius: ".5rem",
         zIndex: 10000000,
         opacity: delayedVisibility ? 1 : 0,
@@ -152,7 +152,7 @@ export const Annotations = ({
         padding: "20px",
         maxWidth: "10rem",
         pointerEvents: isVisible && delayedVisibility ? "all" : "none",
-        border: "2px solid #ffff00",
+        border: "2px solid #ffffad",
         transition: "opacity 0.3s ease-in-out, transform 0.3s ease-in-out",
         transform: delayedVisibility ? "translateY(0)" : "translateY(10px)",
       }}
@@ -166,7 +166,7 @@ export const Annotations = ({
           backgroundColor: "transparent",
           color: "#fff",
           border: "none",
-          fontSize: "20px",
+          fontSize: "1.5rem",
           fontWeight: "bold",
           cursor: "pointer",
           padding: "5px",
@@ -189,10 +189,11 @@ export const Annotations = ({
       <p
         style={{
           fontFamily: "Miltonian Tattoo",
-          fontSize: "18px",
+          fontSize: "1.3rem",
+          minWidth: "12rem",
           margin: 0,
-          paddingBottom: "10px",
-          paddingTop: "10px",
+          padding: "1rem",
+
           opacity: delayedVisibility ? 1 : 0,
           transform: delayedVisibility ? "translateY(0)" : "translateY(5px)",
           transition: "opacity 0.3s ease-in-out, transform 0.3s ease-in-out",
@@ -214,7 +215,7 @@ export const Annotations = ({
           cursor: "pointer",
           padding: "10px",
           marginTop: "auto",
-          backgroundColor: "#ffff00",
+          backgroundColor: "#ffffad",
           color: "#000000",
           border: "none",
           borderRadius: "1rem",
@@ -224,7 +225,7 @@ export const Annotations = ({
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          fontSize: "16px",
+          fontSize: "1rem",
 
           fontWeight: "bold",
           boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
@@ -270,7 +271,7 @@ export const Annotations = ({
             color: "#fff",
             textDecoration: "none",
             borderRadius: "8px",
-            fontSize: "16px",
+            fontSize: "1rem",
             fontWeight: "bold",
             border: "none",
             cursor: "pointer",

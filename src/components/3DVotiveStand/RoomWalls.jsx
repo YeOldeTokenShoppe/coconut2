@@ -23,16 +23,16 @@ function RoomWalls() {
   const doorRef = useRef();
   const portalMaterial = useRef();
 
-  const roomSize = 30;
+  const roomSize = 22;
   const wallHeight = 10;
   const frameWidth = 5;
   const frameHeight = 7;
-  const heightOffset = 7;
+  const heightOffset = 9;
 
   const offsets = {
     back: { x: -2, y: 1 },
     left: { x: 2, y: 1 },
-    right: { x: -1, y: 0 },
+    right: { x: -1, y: 1 },
   };
 
   useFrame((state, delta) => {
@@ -49,8 +49,8 @@ function RoomWalls() {
 
       // Setup door
       scene.scale.set(5, 5, 5);
-      scene.position.set(roomSize / 2, -5.9, offsets.right.x + 2);
-      scene.rotation.y = -Math.PI;
+      scene.position.set(-6, -5.9, offsets.right.x - 12);
+      scene.rotation.y = -Math.PI / 2;
 
       // Find portalLight and create a new material for it
       const portalLight = scene.getObjectByName("portalLight");
@@ -101,8 +101,8 @@ function RoomWalls() {
         {/* Back wall */}
         <mesh
           position={[
-            offsets.back.x,
-            wallHeight / 2 + offsets.back.y,
+            offsets.back.x + 7,
+            wallHeight / 2 + offsets.back.y + 2,
             -roomSize / 2,
           ]}
           rotation={[0, Math.PI, 0]}
@@ -127,7 +127,25 @@ function RoomWalls() {
         >
           <planeGeometry args={[frameWidth, frameHeight]} />
           <meshBasicMaterial
-            map={createWallMaterial("/sgframed.png").map}
+            map={createWallMaterial("/sgframed2.png").map}
+            transparent
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+
+        {/* right wall */}
+        <mesh
+          position={[
+            roomSize / 2,
+            wallHeight / 2 + offsets.right.y,
+            offsets.right.x,
+          ]}
+          rotation={[0, Math.PI / 2, 0]}
+        >
+          <planeGeometry args={[frameWidth, frameHeight]} />
+          <meshBasicMaterial
+            map={createWallMaterial("/sgframed3.png").map}
             transparent
             side={THREE.DoubleSide}
             depthWrite={false}
