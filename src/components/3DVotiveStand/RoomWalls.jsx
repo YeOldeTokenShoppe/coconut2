@@ -1,26 +1,11 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { shaderMaterial } from "@react-three/drei";
-import { ShaderMaterial } from "three";
-import { extend, useFrame } from "@react-three/fiber";
-import portalVertexShader from "../3DVotiveStand/shaders/vertex.glsl";
-import portalFragmentShader from "../3DVotiveStand/shaders/fragment.glsl";
-
-const portalMaterial = new THREE.ShaderMaterial({
-  uniforms: {
-    uTime: { value: 0.0 }, // Wrap primitive values in an object with "value"
-    uColorStart: { value: new THREE.Color(0xffffff) }, // Color uniforms need "value"
-    uColorEnd: { value: new THREE.Color(0xdd58dd) },
-  },
-  vertexShader: portalVertexShader, // Updated vertex shader
-  fragmentShader: portalFragmentShader, // Existing fragment shader
-});
-
-extend({ portalMaterial });
+import { useGLTF } from "@react-three/drei";
 
 function RoomWalls() {
   const doorRef = useRef();
+  const shelfRef = useRef();
   const portalMaterial = useRef();
 
   const roomSize = 22;
@@ -35,73 +20,25 @@ function RoomWalls() {
     right: { x: -1, y: 1 },
   };
 
+  const portal = useGLTF("/portal4.glb");
+  const wallShelf = useGLTF("/wallShelf.glb");
+
   useFrame((state, delta) => {
     if (portalMaterial.current?.uniforms?.uTime) {
       portalMaterial.current.uniforms.uTime.value += delta;
     }
   });
 
-  useEffect(() => {
-    const loader = new GLTFLoader();
-
-    loader.load("/portal4.glb", (gltf) => {
-      const scene = gltf.scene;
-
-      // Setup door
-      scene.scale.set(5, 5, 5);
-      scene.position.set(-6, -5.9, offsets.right.x - 12);
-      scene.rotation.y = -Math.PI / 2;
-
-      // Find portalLight and create a new material for it
-      const portalLight = scene.getObjectByName("portalLight");
-      if (portalLight) {
-        // Create ShaderMaterial
-        const shaderMaterial = new THREE.ShaderMaterial({
-          uniforms: {
-            uTime: { value: 0.0 },
-            uColorStart: { value: new THREE.Color(0xff0000) },
-            uColorEnd: { value: new THREE.Color(0x402da9) },
-          },
-          vertexShader: portalVertexShader,
-          fragmentShader: portalFragmentShader,
-          side: THREE.DoubleSide,
-        });
-
-        portalLight.material = shaderMaterial;
-
-        // Store shaderMaterial for animation
-        portalMaterial.current = shaderMaterial;
-      }
-
-      if (doorRef.current) {
-        doorRef.current.add(scene);
-      }
-    });
-  }, [roomSize, offsets.right.x]);
-
-  const createWallMaterial = (imagePath) => {
-    const texture = new THREE.TextureLoader().load(imagePath);
-    return new THREE.MeshBasicMaterial({
-      map: texture,
-      transparent: true,
-      side: THREE.DoubleSide,
-      depthWrite: false, // Add this
-      depthTest: true, // Add this
-      alphaTest: 0.1, // Add this
-    });
-  };
-
   return (
     <group position={[0, heightOffset, 0]}>
-      {/* Portal/Door first */}
-      <group ref={doorRef} renderOrder={1} />
+      {/* Portal/Door */}
 
-      {/* Then walls with explicit render order */}
+      {/* Walls */}
       <group renderOrder={2}>
         {/* Back wall */}
         <mesh
           position={[
-            offsets.back.x + 7,
+            offsets.back.x - 4,
             wallHeight / 2 + offsets.back.y + 2,
             -roomSize / 2,
           ]}
@@ -109,7 +46,7 @@ function RoomWalls() {
         >
           <planeGeometry args={[frameWidth, frameHeight]} />
           <meshBasicMaterial
-            map={createWallMaterial("/sgframed.png").map}
+            map={new THREE.TextureLoader().load("/sgframed.png")}
             transparent
             side={THREE.DoubleSide}
             depthWrite={false}
@@ -127,14 +64,14 @@ function RoomWalls() {
         >
           <planeGeometry args={[frameWidth, frameHeight]} />
           <meshBasicMaterial
-            map={createWallMaterial("/sgframed2.png").map}
+            map={new THREE.TextureLoader().load("/sgframed2.png")}
             transparent
             side={THREE.DoubleSide}
             depthWrite={false}
           />
         </mesh>
 
-        {/* right wall */}
+        {/* Right wall */}
         <mesh
           position={[
             roomSize / 2,
@@ -145,13 +82,27 @@ function RoomWalls() {
         >
           <planeGeometry args={[frameWidth, frameHeight]} />
           <meshBasicMaterial
-            map={createWallMaterial("/sgframed3.png").map}
+            map={new THREE.TextureLoader().load("/sgframed3.png")}
             transparent
             side={THREE.DoubleSide}
             depthWrite={false}
           />
         </mesh>
       </group>
+
+      {/* Shelf */}
+      {/* <group ref={shelfRef}>
+        <primitive
+          object={wallShelf.scene}
+          scale={[1.5, 1.5, 1.5]}
+          position={[
+            -roomSize / 2 + 1,
+            wallHeight / 2 + offsets.left.y - 3.2,
+            offsets.left.x,
+          ]}
+          rotation={[0, Math.PI / 2, 0]} // Face the correct wall
+        />
+      </group> */}
     </group>
   );
 }

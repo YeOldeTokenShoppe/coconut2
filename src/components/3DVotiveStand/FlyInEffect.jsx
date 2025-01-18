@@ -48,7 +48,7 @@ function FlyInEffect({ cameraRef, duration = 4 }) {
 
     // Initial Camera Setup for Fly-In
     const startDistance = 40; // Starting far away, can be dynamic if needed
-    camera.position.set(startDistance, startDistance, startDistance);
+    camera.position.set(-startDistance, startDistance, -startDistance);
 
     const tempLookAt = new THREE.Vector3();
 

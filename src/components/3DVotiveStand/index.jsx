@@ -34,6 +34,7 @@ import { ScreenAnnotation } from "./screenAnnotations";
 import FlyInEffect from "./FlyInEffect";
 import { debounce } from "lodash";
 import MobileModel from "./MobileModel";
+import TickerDisplay from "./TickerDisplay";
 
 function ThreeDVotiveStand({
   setIsLoading,
@@ -302,15 +303,42 @@ function ThreeDVotiveStand({
 
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
-    // Add these before the intersectObjects call
     raycaster.near = 0.1;
-    raycaster.far = 1000; // Adjust based on your scene scale
+    raycaster.far = 1000;
+
     // Collect all interactive objects at once
     const screenObjects = [];
     const markerObjects = [];
     const interactiveObjects = [];
+    const laserObjects = [];
 
+    // First pass: ensure all laser objects have unique materials
+    if (!window.lasersInitialized) {
+      modelRef.current.traverse((object) => {
+        if (
+          object.isMesh &&
+          object.material &&
+          object.material.name === "Laser"
+        ) {
+          // Clone the material for this specific object
+          object.material = object.material.clone();
+          // Store the original color in userData
+          object.userData.originalColor = object.material.color.clone();
+        }
+      });
+      window.lasersInitialized = true;
+    }
+
+    // Second pass: collect all objects
     modelRef.current.traverse((object) => {
+      // Collect objects that had Laser material
+      if (
+        object.isMesh &&
+        object.material &&
+        object.material.name === "Laser"
+      ) {
+        laserObjects.push(object);
+      }
       // Collect screens
       if (
         (object.isMesh && object.name.startsWith("Screen")) ||
@@ -333,7 +361,45 @@ function ThreeDVotiveStand({
       }
     });
 
-    // Check screen intersections first
+    // Check laser intersections first
+    if (laserObjects.length > 0) {
+      const laserIntersects = raycaster.intersectObjects(laserObjects, true);
+
+      // Reset all laser colors and emissive properties first
+      laserObjects.forEach((laser) => {
+        if (laser.userData.originalColor) {
+          laser.material.color.copy(laser.userData.originalColor);
+          laser.material.emissive.setHex(0x000000);
+          laser.material.emissiveIntensity = 0;
+        }
+      });
+
+      if (laserIntersects.length > 0) {
+        // Change color and add emissive glow to intersected laser
+        const intersectedLaser = laserIntersects[0].object;
+        const glowColor = 0x39ff14; // Neon green
+        intersectedLaser.material.color.setHex(glowColor);
+        intersectedLaser.material.emissive.setHex(glowColor);
+        intersectedLaser.material.emissiveIntensity = 2.0; // Adjust this value to control glow strength
+
+        // Play sound if not already playing
+        if (!window.laserSoundPlaying) {
+          const laserSound = new Audio("/beep.mp3");
+          laserSound.play().catch((error) => {
+            console.error("Error playing laser sound:", error);
+          });
+          window.laserSoundPlaying = true;
+        }
+      } else {
+        // Reset sound playing state when mouse leaves all laser objects
+        if (window.laserSoundPlaying) {
+          window.laserSoundPlaying = false;
+        }
+      }
+    }
+
+    // Rest of your existing intersection checks...
+    // Check screen intersections
     const screenIntersects = raycaster.intersectObjects(screenObjects, true);
     if (screenIntersects.length > 0 && event.type === "click") {
       const clickedObject = screenIntersects[0].object;
@@ -344,14 +410,11 @@ function ThreeDVotiveStand({
       const screenView = SCREEN_VIEWS[screenName];
 
       if (screenView) {
-        // Get current content for this screen
         const currentContent = screenStateManager.screenContent[screenName];
-
-        // Create view object with description from current content
         const viewWithDescription = {
           ...screenView,
           fromScreen: true,
-          screenName: screenName, // Add screenName for annotation component
+          screenName: screenName,
           description: currentContent ? currentContent.userName : null,
           showAnnotation: !!currentContent,
         };
@@ -361,7 +424,7 @@ function ThreeDVotiveStand({
       }
     }
 
-    // Check marker intersections second
+    // Check marker intersections
     const markerIntersects = raycaster.intersectObjects(markerObjects, true);
     if (markerIntersects.length > 0) {
       let markerObject = markerIntersects[0].object;
@@ -379,13 +442,11 @@ function ThreeDVotiveStand({
       return;
     }
 
-    // Check candle intersections last
+    // Check candle intersections
     const candleIntersects = raycaster.intersectObjects(
       interactiveObjects,
       true
     );
-
-    // Handle all intersections instead of just the first one
     const newTooltipData = [];
 
     candleIntersects.forEach((intersection) => {
@@ -412,22 +473,20 @@ function ThreeDVotiveStand({
           newTooltipData.push({
             userName: xCandle.userData?.userName || "Anonymous",
             position: { x, y },
-            distance: intersection.distance, // Add distance for potential z-ordering
+            distance: intersection.distance,
           });
         }
       }
     });
 
-    // Sort tooltips by distance if needed (optional)
     newTooltipData.sort((a, b) => a.distance - b.distance);
 
-    // Update tooltip data with all found intersections
     if (newTooltipData.length > 0) {
       setTooltipData(newTooltipData);
     } else {
-      // Clear tooltips if no intersections
       setTooltipData([]);
     }
+
     // if (event.type === "click") {
     //   const buttonObjects = [];
     //   modelRef.current.traverse((object) => {
@@ -776,18 +835,22 @@ function ThreeDVotiveStand({
             />
             {/* <Perf position="top-left" /> */}
             <RoomWalls />
-
+            {/* <TickerDisplay
+              position={[0, 2, 0]}
+              rotation={[0, 0, 0]}
+              scale={[18, 0.8, 0.01]}
+            /> */}
+            // In your parent component
+            <TickerDisplay />
             <ambientLight intensity={0.7} />
-
             <directionalLight position={[4, 4, 0]} castShadow />
             <directionalLight
               position={[-2.85, 3, -3]}
               intensity={2}
               castShadow
             />
-
             <Model
-              url="/slimUltima2028.glb"
+              url="/testUltima.glb"
               scale={modelScale}
               setIsLoading={setIsLoading}
               controlsRef={controlsRef}
@@ -802,7 +865,6 @@ function ThreeDVotiveStand({
               // onButtonClick={handleClick}
             />
             {/* use this version only when using gui */}
-
             <OrbitControls
               autoRotate={false}
               autoRotateSpeed={0.001}
@@ -860,7 +922,6 @@ function ThreeDVotiveStand({
                 event.preventDefault();
               }}
             />
-
             <PostProcessingEffects />
           </Canvas>
           {activeAnnotation && activeAnnotation.fromScreen ? (

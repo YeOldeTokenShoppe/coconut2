@@ -127,7 +127,7 @@ export const Annotations = ({
 
   return (
     <div
-      className="marker-annotation"
+      className="gold_container gold_card"
       style={{
         position: "fixed",
         left: `${Math.max(
@@ -138,10 +138,10 @@ export const Annotations = ({
           Math.min(screenPos.y, containerSize.height - 100),
           10
         )}px`,
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        color: "#fff",
-        fontSize: "1.5rem",
-        borderRadius: ".5rem",
+        // backgroundColor: "rgba(0, 0, 0, 0.8)",
+        // color: "#fff",
+        // fontSize: "1rem",
+        // borderRadius: ".5rem",
         zIndex: 10000000,
         opacity: delayedVisibility ? 1 : 0,
         visibility: isVisible ? "visible" : "hidden",
@@ -150,28 +150,34 @@ export const Annotations = ({
         justifyContent: "space-between",
         alignItems: "center",
         padding: "20px",
-        maxWidth: "10rem",
+        maxWidth: "14rem",
         pointerEvents: isVisible && delayedVisibility ? "all" : "none",
-        border: "2px solid #ffffad",
+        // border: "2px solid #c48901",
         transition: "opacity 0.3s ease-in-out, transform 0.3s ease-in-out",
         transform: delayedVisibility ? "translateY(0)" : "translateY(10px)",
       }}
     >
       <button
+        // className="gold_card"
         onClick={() => setIsVisible(false)}
         style={{
           position: "absolute",
           top: "5px",
-          right: "5px",
+          right: "-10px",
           backgroundColor: "transparent",
           color: "#fff",
           border: "none",
-          fontSize: "1.5rem",
+          fontSize: "2rem",
+          width: "3rem",
+          height: "3rem",
+          lineHeight: "3rem", // Matches the button's height
+          display: "inline-block",
           fontWeight: "bold",
           cursor: "pointer",
-          padding: "5px",
+          padding: "0",
           borderRadius: "50%",
-          transition: "background-color 0.3s ease, transform 0.2s ease",
+          textAlign: "center",
+          // transition: "background-color 0.3s ease, transform 0.2s ease",
           transform: "scale(1)",
         }}
         onMouseOver={(e) => {
@@ -187,9 +193,10 @@ export const Annotations = ({
       </button>
 
       <p
+        // className="gold_card"
         style={{
           fontFamily: "Miltonian Tattoo",
-          fontSize: "1.3rem",
+          fontSize: "1rem",
           minWidth: "12rem",
           margin: 0,
           padding: "1rem",
@@ -204,6 +211,7 @@ export const Annotations = ({
       </p>
 
       <button
+        className="gold_container"
         onClick={(e) => {
           e.stopPropagation();
           onReset();
@@ -215,10 +223,11 @@ export const Annotations = ({
           cursor: "pointer",
           padding: "10px",
           marginTop: "auto",
-          backgroundColor: "#ffffad",
-          color: "#000000",
-          border: "none",
-          borderRadius: "1rem",
+          backgroundColor: "#c48901",
+          // color: "#ffffff",
+
+          borderRadius: "10px",
+          border: "1px white solid",
           width: "auto",
           minWidth: "70px",
           height: "auto",
@@ -227,8 +236,7 @@ export const Annotations = ({
           alignItems: "center",
           fontSize: "1rem",
 
-          fontWeight: "bold",
-          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+          // boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
           transition: "all 0.3s ease-in-out",
           opacity: delayedVisibility ? 1 : 0,
           transform: delayedVisibility ? "translateY(0)" : "translateY(5px)",
@@ -237,6 +245,14 @@ export const Annotations = ({
             transform: "translateY(-2px)",
             boxShadow: "0 6px 8px rgba(0, 0, 0, 0.2)",
           },
+        }}
+        onMouseOver={(e) => {
+          // e.target.style.backgroundColor = "rgba(255,255,255,0.2)";
+          e.target.style.transform = "scale(1.1)";
+        }}
+        onMouseOut={(e) => {
+          // e.target.style.backgroundColor = "transparent";
+          e.target.style.transform = "scale(1)";
         }}
       >
         {buttonLabel}
@@ -283,6 +299,14 @@ export const Annotations = ({
               transform: "translateY(-2px)",
               boxShadow: "0 6px 8px rgba(0, 0, 0, 0.2)",
             },
+          }}
+          onMouseOver={(e) => {
+            // e.target.style.backgroundColor = "rgba(255,255,255,0.2)";
+            e.target.style.transform = "scale(1.1)";
+          }}
+          onMouseOut={(e) => {
+            // e.target.style.backgroundColor = "transparent";
+            e.target.style.transform = "scale(1)";
           }}
         >
           {extraButton.label}

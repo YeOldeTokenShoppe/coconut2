@@ -2,12 +2,14 @@ export const CONTROL_SETTINGS = {
   default: {
     // enableRotate: true,
     // rotateSpeed: 0.1,
+
+    autoRotate: false,
     enableDamping: true,
     dampingFactor: 0.03,
     minDistance: 0, // Single definition
-    maxDistance: 20, // Single definition
+    maxDistance: 50, // Single definition
     minPolarAngle: 0,
-    maxPolarAngle: Math.PI / 1.75,
+    maxPolarAngle: Math.PI / 1.6,
     enablePan: true,
     enableZoom: true,
     zoomSpeed: 0.5,
@@ -18,11 +20,12 @@ export const CONTROL_SETTINGS = {
     enableTouchZoom: true,
   },
   guiMode: {
+    autoRotate: false,
     enableDamping: false,
     minDistance: 0,
     maxDistance: Infinity,
     minPolarAngle: 0,
-    maxPolarAngle: Math.PI,
+    maxPolarAngle: Math.PI / 1.6,
     enablePan: true,
     enableZoom: true,
     zoomSpeed: 0.5,

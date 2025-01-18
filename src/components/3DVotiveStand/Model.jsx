@@ -25,7 +25,7 @@ function Model({
   handlePointerMove,
   onButtonClick,
 }) {
-  const gltf = useGLTF("/slimUltima2028.glb");
+  const gltf = useGLTF("/testUltima.glb");
   const { actions, mixer } = useAnimations(gltf.animations, modelRef);
   const { camera, size } = useThree();
   const [results, setResults] = useState([]);
@@ -35,28 +35,7 @@ function Model({
   const scene = gltf.scene;
   const rotateStandsRef = useRef(null);
 
-  // Center and align model
-  useEffect(() => {
-    if (!modelRef.current) return;
-
-    const box = new THREE.Box3().setFromObject(modelRef.current);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-
-    console.log("Bounding Box:", box);
-    console.log("Center of Model:", center);
-    console.log("Dimensions (Width, Height, Depth):", size);
-
-    // Center the model
-    modelRef.current.position.sub(center);
-    modelRef.current.position.y += size.y / 2; // Align to ground
-
-    // Update controls if they exist
-    if (controlsRef?.current) {
-      controlsRef.current.target.copy(center);
-      controlsRef.current.update();
-    }
-  }, [controlsRef]);
+  const box = new THREE.Box3();
 
   // Use this to find the position of a specific object in the scene
   // const Button1 = scene.getObjectByName("Button1");
@@ -68,6 +47,28 @@ function Model({
   // } else {
   //   console.error("ButtonPosition not found in the scene.");
   // }
+  useEffect(() => {
+    if (!modelRef.current) return;
+
+    const box = new THREE.Box3().setFromObject(modelRef.current);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+
+    // console.log("Bounding Box:", box);
+    // console.log("Center of Model:", center);
+    // console.log("Dimensions (Width, Height, Depth):", size);
+
+    // Center the model
+    modelRef.current.position.sub(center);
+    modelRef.current.position.y += size.y / 2; // Align to ground
+    // modelRef.current.position.z += size.z / 2 - 0.025;
+
+    // Update controls if they exist
+    if (controlsRef?.current) {
+      controlsRef.current.target.copy(center);
+      controlsRef.current.update();
+    }
+  }, [controlsRef]);
 
   useEffect(() => {
     if (typeof setMarkers === "function") {
@@ -172,10 +173,10 @@ function Model({
       // Get our objects from modelRef instead of gltf.scene
       const rotationPivot = modelRef.current.getObjectByName("RotationPivot");
 
-      if (!rotationPivot) {
-        console.error("RotationPivot not found in model");
-        return;
-      }
+      // if (!rotationPivot) {
+      //   console.error("RotationPivot not found in model");
+      //   return;
+      // }
 
       const stand1Group = rotationPivot.getObjectByName("Stand1Group");
       const stand2Group = rotationPivot.getObjectByName("Stand2Group");
@@ -231,13 +232,13 @@ function Model({
         button2.userData.clickHandler = rotateStands;
       }
 
-      console.log("Rotation setup complete", {
-        rotationPivot: !!rotationPivot,
-        stand1Group: !!stand1Group,
-        stand2Group: !!stand2Group,
-        button1: !!button1,
-        button2: !!button2,
-      });
+      // console.log("Rotation setup complete", {
+      //   rotationPivot: !!rotationPivot,
+      //   stand1Group: !!stand1Group,
+      //   stand2Group: !!stand2Group,
+      //   button1: !!button1,
+      //   button2: !!button2,
+      // });
     } catch (error) {
       console.error("Error setting up rotation:", error);
     }
@@ -475,14 +476,14 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
       .sort(() => Math.random() - 0.5)
       .slice(0, shuffled.length);
 
-    console.log("Number of results:", results.length);
-    console.log("Available candle indices:", candleIndexes);
-    console.log("Assigned indices:", assignedIndices);
+    // console.log("Number of results:", results.length);
+    // console.log("Available candle indices:", candleIndexes);
+    // console.log("Assigned indices:", assignedIndices);
 
     // Reset all candles
     modelRef.current.traverse((child) => {
       if (child.name.startsWith("XCandle")) {
-        console.log("Found candle:", child.name); // Debug log
+        // console.log("Found candle:", child.name); // Debug log
 
         // Store original scale first time we see it
         if (!child.userData.originalScale) {
@@ -518,15 +519,11 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
         const candleIndex = parseInt(child.name.slice(-3), 10);
         const userIndex = assignedIndices.indexOf(candleIndex);
 
-        console.log(
-          `Candle ${child.name}: index=${candleIndex}, userIndex=${userIndex}`
-        ); // Debug log
-
         if (userIndex !== -1) {
           const user = shuffled[userIndex];
-          console.log(
-            `Assigning user ${user.userName} to candle ${child.name}`
-          ); // Debug log
+          // console.log(
+          //   `Assigning user ${user.userName} to candle ${child.name}`
+          // ); // Debug log
 
           child.userData = {
             isMelting: true,
@@ -601,7 +598,7 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
     <primitive
       ref={modelRef}
       object={gltf.scene}
-      position={[0, 0, 0]}
+      position={[0, 0, -1.5]}
       scale={scale}
       rotation={rotation}
       onClick={(e) => {

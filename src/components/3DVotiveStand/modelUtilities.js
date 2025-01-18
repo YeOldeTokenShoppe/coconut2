@@ -20,6 +20,42 @@ export const createMarkerFace = (index) => {
       side: THREE.DoubleSide,
     })
   );
+
+  function createGradientTexture() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 256;
+
+    const ctx = canvas.getContext("2d");
+
+    // Create gradient
+    const gradient = ctx.createLinearGradient(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+    gradient.addColorStop(0, "#584827");
+    gradient.addColorStop(0.37, "#c7a03c");
+    gradient.addColorStop(0.3, "#f9de90");
+    gradient.addColorStop(0.33, "#c7a03c");
+    gradient.addColorStop(0.4, "#584827");
+    gradient.addColorStop(0.5, "#584827");
+    gradient.addColorStop(0.77, "#c7a03c");
+    gradient.addColorStop(0.8, "#f9de90");
+    gradient.addColorStop(0.83, "#c7a03c");
+    gradient.addColorStop(1, "#584827");
+
+    // Apply gradient to canvas
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Create texture
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+
+    return texture;
+  }
   container.isMarker = true;
   container.markerIndex = index;
   container.scale.set(0.15, 0.15, 0.15);
@@ -38,8 +74,9 @@ export const createMarkerFace = (index) => {
   // Marker Border (with emissive glow)
   const borderGeometry = new THREE.RingGeometry(0.16, 0.2, 32);
   const borderMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffff00,
-    emissive: 0xffff00,
+    map: createGradientTexture(),
+
+    emissive: 0xc7a03c,
     emissiveIntensity: 1,
     side: THREE.DoubleSide,
   });

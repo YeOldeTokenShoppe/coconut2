@@ -1,9 +1,9 @@
 import { DEFAULT_CAMERA } from "./defaultCamera";
 export const MODEL_SETTINGS = {
   modelCenter: {
-    x: 0,
-    y: 12,
-    z: -1,
+    x: -2.739100388770322,
+    y: 12.56223828830614,
+    z: -5.342886144954164,
   },
 
   cachedCenter: null,

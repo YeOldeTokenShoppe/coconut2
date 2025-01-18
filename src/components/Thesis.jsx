@@ -45,15 +45,15 @@ function Thesis({ setThesisLoaded }) {
           align="center"
         >
           <Box
-            mt={5}
+            mt={"5rem"}
             flex={["1 0 100%", "1 0 100%", "1 0 50%"]}
             minH={{ base: "300px", md: "auto" }}
           >
             <iframe
               src={scrollUrl}
               style={{
-                width: "500px",
-                height: windowWidth < 400 ? "48vh" : "42vh",
+                width: "28rem",
+                height: windowWidth < 400 ? "48vh" : "50vh",
                 border: "none",
               }}
               allowFullScreen
@@ -78,6 +78,8 @@ function Thesis({ setThesisLoaded }) {
             flexDirection="column"
             alignItems="center"
             pl={[0, 0, 5, 12]}
+            mt={"3rem"}
+            mb={"5rem"}
           >
             <h1 style={{ fontSize: "3em" }}>Thesis</h1>
             <Text fontSize="lg" mb={5} ml={8}>
@@ -96,10 +98,10 @@ function Thesis({ setThesisLoaded }) {
             </div> */}
             <Skeleton isLoaded={imageLoaded}>
               <Image
-                src="/crier.png"
+                src="/s8ntgr81.png"
                 alt="crier"
-                height="250"
-                width="250"
+                height="441"
+                width="423"
                 onLoad={() => setImageLoaded(true)}
               />
             </Skeleton>
