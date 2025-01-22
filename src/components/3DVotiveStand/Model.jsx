@@ -9,7 +9,9 @@ import {
   createMarkerFace,
   setupVideoTextures,
   handleCandles,
+  initializeScreenManagement,
 } from "./modelUtilities";
+
 import gsap from "gsap";
 
 function Model({
@@ -80,7 +82,7 @@ function Model({
   useEffect(() => {
     if (!modelRef.current) return;
 
-    setupVideoTextures(modelRef);
+    // setupVideoTextures(modelRef);
 
     const markerRefs = [];
 
@@ -244,6 +246,445 @@ function Model({
     }
   }, [modelRef.current, actions]); // Add both dependencies
 
+  useEffect(() => {
+    const video = document.createElement("video");
+    video.src = "/buyButton.mp4";
+    video.loop = true;
+    video.muted = true;
+    video.play();
+
+    const videoTexture = new THREE.VideoTexture(video);
+    videoTexture.minFilter = THREE.LinearFilter;
+    videoTexture.magFilter = THREE.LinearFilter;
+    videoTexture.format = THREE.RGBAFormat;
+
+    const imageTexture = new THREE.TextureLoader().load(
+      "/buy3.jpg",
+      undefined,
+      undefined,
+      (error) => console.error("Error loading image texture:", error)
+    );
+
+    // Set up common texture properties
+    const setupTexture = (texture) => {
+      texture.center.set(0.5, 0.5);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+    };
+
+    setupTexture(videoTexture);
+    setupTexture(imageTexture);
+
+    const intervals = [];
+
+    if (modelRef.current) {
+      modelRef.current.traverse((object) => {
+        if (object.name.startsWith("tv1") && object.isMesh) {
+          // Compute geometry bounding box
+          object.geometry.computeBoundingBox();
+          const box = object.geometry.boundingBox;
+
+          const meshWidth = Math.abs(box.max.x - box.min.x);
+          const meshHeight = Math.abs(box.max.y - box.min.y);
+          const meshAspect = meshWidth / meshHeight;
+          const videoAspect = 210 / 270; // Your video dimensions
+
+          console.log("Dimensions:", {
+            meshWidth,
+            meshHeight,
+            meshAspect,
+            videoAspect,
+          });
+
+          // Configure textures to fill screen
+          const configureTexture = (texture) => {
+            // Start with a base scale that ensures coverage
+            const scaleFactor = 1.5; // Adjust this value to zoom in/out
+
+            let scaleX = scaleFactor;
+            let scaleY = scaleFactor;
+
+            // Adjust scale based on aspect ratios
+            if (videoAspect > meshAspect) {
+              scaleY = scaleY * (meshAspect / videoAspect);
+            } else {
+              scaleX = scaleX * (videoAspect / meshAspect);
+            }
+
+            texture.repeat.set(scaleX, scaleY);
+            texture.rotation = Math.PI * 1.5;
+            texture.offset.set(0, 0.1);
+          };
+
+          // Apply configuration to both textures
+          configureTexture(videoTexture);
+          configureTexture(imageTexture);
+
+          // Create material with video texture
+          const material = new THREE.MeshBasicMaterial({
+            map: videoTexture,
+            side: THREE.DoubleSide,
+          });
+
+          object.material = material;
+          object.rotation.y = Math.PI * 1; // Keep your Y rotation
+
+          // Set up alternating interval
+          let isVideo = true;
+          const interval = setInterval(() => {
+            if (!isVideo) {
+              material.map = imageTexture;
+            } else {
+              material.map = videoTexture;
+            }
+            material.needsUpdate = true;
+            isVideo = !isVideo;
+          }, 5000);
+
+          intervals.push(interval);
+          object.userData.videoInterval = interval;
+        }
+      });
+    }
+
+    return () => {
+      // Clean up video and textures
+      video.pause();
+      video.src = "";
+      video.load();
+      videoTexture.dispose();
+      imageTexture.dispose();
+
+      // Clean up intervals
+      intervals.forEach((interval) => clearInterval(interval));
+
+      // Safely clean up model references
+      if (modelRef.current) {
+        modelRef.current.traverse((object) => {
+          if (object.userData.videoInterval) {
+            clearInterval(object.userData.videoInterval);
+          }
+        });
+      }
+    };
+  }, []);
+  useEffect(() => {
+    const video = document.createElement("video");
+    video.src = "/evil.mp4";
+    video.loop = true;
+    video.muted = true;
+    video.play();
+
+    const videoTexture = new THREE.VideoTexture(video);
+    videoTexture.minFilter = THREE.LinearFilter;
+    videoTexture.magFilter = THREE.LinearFilter;
+    videoTexture.format = THREE.RGBAFormat;
+
+    const imageTexture = new THREE.TextureLoader().load(
+      "/fight4.jpg",
+      (texture) => {
+        console.log("Image texture loaded successfully");
+      },
+      undefined,
+      (error) => {
+        console.error("Error loading image texture:", error);
+      }
+    );
+    imageTexture.minFilter = THREE.LinearFilter;
+    imageTexture.magFilter = THREE.LinearFilter;
+    imageTexture.wrapS = THREE.RepeatWrapping;
+    imageTexture.repeat.x = -1; // This will flip the image on Y axis
+
+    const intervals = [];
+
+    if (modelRef.current) {
+      modelRef.current.traverse((object) => {
+        if (object.name.startsWith("tv2") && object.isMesh) {
+          object.geometry.computeBoundingBox();
+          const box = object.geometry.boundingBox;
+          const meshWidth = Math.abs(box.max.x - box.min.x);
+          const meshHeight = Math.abs(box.max.y - box.min.y);
+          const meshAspect = meshWidth / meshHeight;
+
+          const videoAspect = 300 / 300;
+          object.scale.set(videoAspect, 1.3, 1);
+
+          const scaleFactor = 3;
+          const offsetX = -0.55;
+
+          const uvAttribute = object.geometry.attributes.uv;
+          const positions = uvAttribute.array;
+
+          for (let i = 0; i < positions.length; i += 2) {
+            positions[i] = positions[i] * meshAspect * scaleFactor;
+            positions[i] = (positions[i] - 0.5) * videoAspect + 0.5 + offsetX;
+          }
+
+          uvAttribute.needsUpdate = true;
+
+          let isVideo = true;
+
+          const material = new THREE.MeshBasicMaterial({
+            map: videoTexture,
+            side: THREE.DoubleSide,
+          });
+
+          object.material = material;
+          object.rotation.z = Math.PI * -1.5;
+          object.updateMatrixWorld();
+
+          const interval = setInterval(() => {
+            if (!isVideo) {
+              material.map = imageTexture;
+            } else {
+              material.map = videoTexture;
+            }
+            material.needsUpdate = true;
+            isVideo = !isVideo;
+          }, 5000);
+
+          intervals.push(interval);
+          object.userData.videoInterval = interval;
+        }
+      });
+    }
+    return () => {
+      // Clean up video and textures
+      video.pause();
+      video.src = "";
+      video.load();
+      videoTexture.dispose();
+      imageTexture.dispose();
+
+      // Clean up intervals
+      intervals.forEach((interval) => clearInterval(interval));
+
+      // Safely clean up model references
+      if (modelRef.current) {
+        modelRef.current.traverse((object) => {
+          if (object.userData.videoInterval) {
+            clearInterval(object.userData.videoInterval);
+          }
+        });
+      }
+    };
+  }, []);
+  useEffect(() => {
+    // Set up video
+    const video = document.createElement("video");
+    video.src = "/8ball2.mp4";
+    video.loop = true;
+    video.muted = true;
+    video.play();
+
+    // Create video texture
+    const videoTexture = new THREE.VideoTexture(video);
+    videoTexture.minFilter = THREE.LinearFilter;
+    videoTexture.magFilter = THREE.LinearFilter;
+    videoTexture.format = THREE.RGBAFormat;
+
+    // Create image texture
+    const imageTexture = new THREE.TextureLoader().load(
+      "/bgr8.jpg",
+      undefined,
+      undefined,
+      (error) => console.error("Error loading image texture:", error)
+    );
+
+    // Set up common texture properties
+    const setupTexture = (texture) => {
+      texture.center.set(0.5, 0.5);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+    };
+
+    setupTexture(videoTexture);
+    setupTexture(imageTexture);
+
+    const intervals = [];
+
+    if (modelRef.current) {
+      modelRef.current.traverse((object) => {
+        if (object.name.startsWith("tv3") && object.isMesh) {
+          // Compute geometry bounding box
+          object.geometry.computeBoundingBox();
+          const box = object.geometry.boundingBox;
+
+          // Get mesh dimensions and center
+          const meshWidth = Math.abs(box.max.x - box.min.x);
+          const meshHeight = Math.abs(box.max.y - box.min.y);
+          const meshAspect = meshWidth / meshHeight;
+
+          // Scale and offset settings (adjust these to match your previous setup)
+          const scaleFactor = 6;
+          const offsetX = 0.75; // Adjust based on your needs
+
+          // Function to configure texture scaling and position
+          const configureTexture = (texture) => {
+            texture.repeat.set(scaleFactor, scaleFactor);
+            texture.offset.set(offsetX, 0);
+            texture.rotation = Math.PI * 1.5; // Match your previous rotation
+          };
+
+          // Configure both textures
+          configureTexture(videoTexture);
+          configureTexture(imageTexture);
+
+          // Create material with initial video texture
+          const material = new THREE.MeshBasicMaterial({
+            map: videoTexture,
+            side: THREE.DoubleSide,
+          });
+
+          object.material = material;
+
+          // Set up the alternating interval
+          let isVideo = true;
+          const interval = setInterval(() => {
+            if (!isVideo) {
+              material.map = imageTexture;
+            } else {
+              material.map = videoTexture;
+            }
+            material.needsUpdate = true;
+            isVideo = !isVideo;
+          }, 5000);
+
+          intervals.push(interval);
+          object.userData.videoInterval = interval;
+        }
+      });
+    }
+
+    return () => {
+      // Clean up video and textures
+      video.pause();
+      video.src = "";
+      video.load();
+      videoTexture.dispose();
+      imageTexture.dispose();
+
+      // Clean up intervals
+      intervals.forEach((interval) => clearInterval(interval));
+
+      // Safely clean up model references
+      if (modelRef.current) {
+        modelRef.current.traverse((object) => {
+          if (object.userData.videoInterval) {
+            clearInterval(object.userData.videoInterval);
+          }
+        });
+      }
+    };
+  }, []);
+  useEffect(() => {
+    // Set up video
+    const video = document.createElement("video");
+    video.src = "/gr80h20.mp4";
+    video.loop = true;
+    video.muted = true;
+    video.play();
+
+    // Create video texture
+    const videoTexture = new THREE.VideoTexture(video);
+    videoTexture.minFilter = THREE.LinearFilter;
+    videoTexture.magFilter = THREE.LinearFilter;
+    videoTexture.format = THREE.RGBAFormat;
+
+    // Create image texture
+    const imageTexture = new THREE.TextureLoader().load(
+      "/caveat.jpg",
+      undefined,
+      undefined,
+      (error) => console.error("Error loading image texture:", error)
+    );
+
+    // Set up common texture properties
+    const setupTexture = (texture) => {
+      texture.center.set(0.5, 0.5);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+    };
+
+    setupTexture(videoTexture);
+    setupTexture(imageTexture);
+
+    const intervals = [];
+
+    if (modelRef.current) {
+      modelRef.current.traverse((object) => {
+        if (object.name.startsWith("tv4") && object.isMesh) {
+          // Compute geometry bounding box
+          object.geometry.computeBoundingBox();
+          const box = object.geometry.boundingBox;
+
+          // Get mesh dimensions and center
+          const meshWidth = Math.abs(box.max.x - box.min.x);
+          const meshHeight = Math.abs(box.max.y - box.min.y);
+          const meshAspect = meshWidth / meshHeight;
+
+          // Scale and offset settings (adjust these to match your previous setup)
+          const scaleFactor = 4.5;
+          const offsetX = 0.55; // Adjust based on your needs
+
+          // Function to configure texture scaling and position
+          const configureTexture = (texture) => {
+            texture.repeat.set(scaleFactor, scaleFactor);
+            texture.offset.set(offsetX, 0);
+            texture.rotation = Math.PI * 1.5; // Match your previous rotation
+          };
+
+          // Configure both textures
+          configureTexture(videoTexture);
+          configureTexture(imageTexture);
+
+          // Create material with initial video texture
+          const material = new THREE.MeshBasicMaterial({
+            map: videoTexture,
+            side: THREE.DoubleSide,
+          });
+
+          object.material = material;
+
+          // Set up the alternating interval
+          let isVideo = true;
+          const interval = setInterval(() => {
+            if (!isVideo) {
+              material.map = imageTexture;
+            } else {
+              material.map = videoTexture;
+            }
+            material.needsUpdate = true;
+            isVideo = !isVideo;
+          }, 5000);
+
+          intervals.push(interval);
+          object.userData.videoInterval = interval;
+        }
+      });
+    }
+
+    return () => {
+      // Clean up video and textures
+      video.pause();
+      video.src = "";
+      video.load();
+      videoTexture.dispose();
+      imageTexture.dispose();
+
+      // Clean up intervals
+      intervals.forEach((interval) => clearInterval(interval));
+
+      // Safely clean up model references
+      if (modelRef.current) {
+        modelRef.current.traverse((object) => {
+          if (object.userData.videoInterval) {
+            clearInterval(object.userData.videoInterval);
+          }
+        });
+      }
+    };
+  }, []);
   const handleClick = (event) => {
     if (event.object.userData.clickHandler) {
       event.object.userData.clickHandler();

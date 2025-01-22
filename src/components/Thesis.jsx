@@ -81,7 +81,9 @@ function Thesis({ setThesisLoaded }) {
             mt={"3rem"}
             mb={"5rem"}
           >
-            <h1 style={{ fontSize: "3em" }}>Thesis</h1>
+            <h1 className="thelma1" style={{ fontSize: "3em", zIndex: "0" }}>
+              Thesis
+            </h1>
             <Text fontSize="lg" mb={5} ml={8}>
               A treatise in which we discuss ethics, economics, metaphysics and
               the future of the{" "}

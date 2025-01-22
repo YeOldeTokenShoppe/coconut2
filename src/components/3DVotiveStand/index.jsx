@@ -35,6 +35,7 @@ import FlyInEffect from "./FlyInEffect";
 import { debounce } from "lodash";
 import MobileModel from "./MobileModel";
 import TickerDisplay from "./TickerDisplay";
+import { db } from "../../utilities/firebaseClient";
 
 function ThreeDVotiveStand({
   setIsLoading,
@@ -311,6 +312,10 @@ function ThreeDVotiveStand({
     const markerObjects = [];
     const interactiveObjects = [];
     const laserObjects = [];
+    const tvObjects = [];
+    const tv1Objects = [];
+    const tv3Objects = [];
+    const tv4Objects = [];
 
     // First pass: ensure all laser objects have unique materials
     if (!window.lasersInitialized) {
@@ -331,7 +336,18 @@ function ThreeDVotiveStand({
 
     // Second pass: collect all objects
     modelRef.current.traverse((object) => {
-      // Collect objects that had Laser material
+      if (object.name === "tv1") {
+        tv1Objects.push(object);
+      }
+      if (object.name === "tv2") {
+        tvObjects.push(object);
+      }
+      if (object.name === "tv3") {
+        tv3Objects.push(object);
+      }
+      if (object.name === "tv4") {
+        tv4Objects.push(object);
+      }
       if (
         object.isMesh &&
         object.material &&
@@ -360,7 +376,48 @@ function ThreeDVotiveStand({
         interactiveObjects.push(object);
       }
     });
+    // Handle tvScreen interactions
+    const tvIntersects = raycaster.intersectObjects(tvObjects, true);
 
+    if (tvIntersects.length > 0) {
+      const clickedObject = tvIntersects[0].object;
+
+      if (event.type === "click") {
+        // Open hyperlink on click
+        window.open("https://rl80.xyz", "_blank");
+      }
+    }
+    // Handle tv3 interactions
+    const tv1Intersects = raycaster.intersectObjects(tv1Objects, true);
+
+    if (tv1Intersects.length > 0) {
+      const clickedObject = tv1Intersects[0].object;
+
+      if (event.type === "click") {
+        // Open hyperlink for tv3
+        window.open("https://costco.com/", "_blank");
+      }
+    }
+    const tv3Intersects = raycaster.intersectObjects(tv3Objects, true);
+
+    if (tv3Intersects.length > 0) {
+      const clickedObject = tv3Intersects[0].object;
+
+      if (event.type === "click") {
+        // Open hyperlink for tv3
+        window.open("https://costco.com/", "_blank");
+      }
+    }
+    const tv4Intersects = raycaster.intersectObjects(tv4Objects, true);
+
+    if (tv4Intersects.length > 0) {
+      const clickedObject = tv4Intersects[0].object;
+
+      if (event.type === "click") {
+        // Open hyperlink for tv3
+        window.open("https://costco.com/", "_blank");
+      }
+    }
     // Check laser intersections first
     if (laserObjects.length > 0) {
       const laserIntersects = raycaster.intersectObjects(laserObjects, true);
@@ -380,11 +437,11 @@ function ThreeDVotiveStand({
         const glowColor = 0x39ff14; // Neon green
         intersectedLaser.material.color.setHex(glowColor);
         intersectedLaser.material.emissive.setHex(glowColor);
-        intersectedLaser.material.emissiveIntensity = 2.0; // Adjust this value to control glow strength
+        intersectedLaser.material.emissiveIntensity = 5.0; // Adjust this value to control glow strength
 
         // Play sound if not already playing
         if (!window.laserSoundPlaying) {
-          const laserSound = new Audio("/beep.mp3");
+          const laserSound = new Audio("/beep1.mp3");
           laserSound.play().catch((error) => {
             console.error("Error playing laser sound:", error);
           });
@@ -748,7 +805,7 @@ function ThreeDVotiveStand({
           style={{
             width: "100vw",
             height: "100vh",
-            maxWidth: "none",
+            maxWidth: "1400px",
             maxHeight: "none",
           }}
           onCreated={({ camera }) => {
@@ -771,7 +828,7 @@ function ThreeDVotiveStand({
             margin: "auto",
             height: "100vh",
             width: "100%",
-            maxWidth: "100vw",
+            maxWidth: "1400px",
             pointerEvents: "auto",
           }}
         >
@@ -802,14 +859,14 @@ function ThreeDVotiveStand({
           />
         )} */}
 
-          {/* <CameraGUI
+          <CameraGUI
             cameraRef={cameraRef}
             controlsRef={controlsRef}
             onGuiStart={handleGuiStart}
             onGuiEnd={handleGuiEnd}
             activeAnnotation={activeAnnotation}
             style={{ pointerEvents: "auto" }} // Add this
-          /> */}
+          />
           <Canvas
             onPointerMove={handlePointerMove}
             onPointerOut={() => setTooltipData([])} // Clear tooltips when pointer leaves canvas
@@ -818,7 +875,7 @@ function ThreeDVotiveStand({
               // opacity: 0.9,
               width: "100vw", // Full viewport width
               height: "100vh", // Full viewport height
-              maxWidth: "none", // Override parent constraints
+              maxWidth: "1400px", // Override parent constraints
               maxHeight: "none",
             }}
             camera={getCameraConfig(screenCategory)}
@@ -834,13 +891,8 @@ function ThreeDVotiveStand({
               duration={3}
             />
             {/* <Perf position="top-left" /> */}
-            <RoomWalls />
-            {/* <TickerDisplay
-              position={[0, 2, 0]}
-              rotation={[0, 0, 0]}
-              scale={[18, 0.8, 0.01]}
-            /> */}
-            // In your parent component
+            <RoomWalls db={db} />
+
             <TickerDisplay />
             <ambientLight intensity={0.7} />
             <directionalLight position={[4, 4, 0]} castShadow />
@@ -893,7 +945,7 @@ function ThreeDVotiveStand({
                 if (camera && !isInMarkerView) {
                   if (lastCameraPosition.current === null) {
                     lastCameraPosition.current = camera.position.z;
-                    if (camera.position.z < 10) {
+                    if (camera.position.z < 20) {
                       onZoom?.();
                     }
                     return;
@@ -904,11 +956,11 @@ function ThreeDVotiveStand({
                   );
 
                   // If we're in a zoomed state (z < 10), stay zoomed
-                  if (camera.position.z < 8) {
+                  if (camera.position.z < 20) {
                     onZoom?.();
                   }
                   // Only reset view if we're actually returning to main view
-                  else if (camera.position.z > 8) {
+                  else if (camera.position.z > 20) {
                     onResetView?.();
                   }
 

@@ -259,10 +259,10 @@ function Scene({ visible = true }) {
     >
       <Canvas
         camera={{
-          position: [0, -3, 6],
+          position: [1, 0, 8],
           fov: 25,
           near: 0.1,
-          far: 100,
+          far: 200,
         }}
         style={{
           width: "100%",

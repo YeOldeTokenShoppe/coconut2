@@ -3,52 +3,52 @@ import * as THREE from "three";
 export const DEFAULT_CAMERA = {
   // iPad Mini and similar
   "tablet-small-landscape": {
-    position: [0, 3.4, 23.8],
-    target: [0.9, 6, 2.8],
-    fov: 31,
+    position: [-2.8, 6.21, 36.9],
+    target: [-0.5, 10.5, 0.6],
+    fov: 29.3,
   },
   "tablet-small-portrait": {
-    position: [-0.64, 8.34, 23.7],
+    position: [-0.42, 6.82, 25.4],
     target: [-0.6, 8, 14.5],
     fov: 40.3,
   },
   // iPad Air/Pro 11"
   "tablet-medium-landscape": {
-    position: [0, 3.4, 23.8],
-    target: [0.9, 6, 2.8],
-    fov: 31,
+    position: [-2.8, 6.21, 36.9],
+    target: [-0.5, 10.5, 0.6],
+    fov: 29.3,
   },
   "tablet-medium-portrait": {
-    position: [-0.64, 8.34, 23.7],
+    position: [-0.42, 6.82, 25.4],
     target: [-0.6, 8, 14.5],
     fov: 40.3,
   },
   // iPad Pro 12.9"
   "tablet-large-landscape": {
-    position: [0, 3.4, 23.8],
-    target: [0.9, 6, 2.8],
-    fov: 31,
+    position: [-2.8, 6.21, 36.9],
+    target: [-0.5, 10.5, 0.6],
+    fov: 29.3,
   },
   "tablet-large-portrait": {
-    position: [-0.64, 8.34, 23.7],
+    position: [-0.42, 6.82, 25.4],
     target: [-0.6, 8, 14.5],
     fov: 40.3,
   },
   // Desktop sizes
   "desktop-small": {
-    position: [0, 3.4, 23.8],
-    target: [0.9, 6, 2.8],
-    fov: 31,
+    position: [-2.8, 6.21, 36.9],
+    target: [-0.5, 10.5, 0.6],
+    fov: 29.3,
   },
   "desktop-medium": {
-    position: [0, 3.4, 23.8],
-    target: [0.9, 6, 2.8],
-    fov: 31,
+    position: [-2.8, 6.21, 36.9],
+    target: [-0.5, 10.5, 0.6],
+    fov: 29.3,
   },
   "desktop-large": {
-    position: [0, 3.4, 23.8],
-    target: [0.9, 6, 2.8],
-    fov: 31,
+    position: [-2.8, 6.21, 36.9],
+    target: [-0.5, 10.5, 0.6],
+    fov: 29.3,
   },
   // Common settings for all screen sizes
   common: {

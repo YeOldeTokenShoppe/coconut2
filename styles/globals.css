@@ -418,7 +418,7 @@ h6 {
 }
 .container {
   /* width: 100%; */
-  max-width: 1200px;
+  max-width: 1400px;
   /* padding: 0 0rem; */
 
   /* margin: 0 auto; */
@@ -4862,7 +4862,7 @@ body {
 .canvas-container {
   position: absolute;
   /* top: -10% !important; */
-  left: 50%;
+  left: 32%;
 
   transform: translateX(-50%);
   /* top: -30rem; */
