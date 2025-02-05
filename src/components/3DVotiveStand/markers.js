@@ -83,13 +83,13 @@ export const DEFAULT_MARKERS = [
   },
 
   {
-    position: new THREE.Vector3(0.58, 1.15, -0.2),
+    position: new THREE.Vector3(0.0, 0.45, -0.8),
     id: "marker2",
     label: "View 2",
     description: "This perspective reveals...",
     buttons: {
       primary: {
-        label: "OK",
+        label: "Back",
         action: "reset",
       },
       extra: {
@@ -105,9 +105,9 @@ export const DEFAULT_MARKERS = [
       //   fov: 32.1,
       // },
       "tablet-small-landscape": {
-        position: () => new THREE.Vector3(0.32, 2.64, 4.93),
-        target: () => new THREE.Vector3(1.8, 3, 1.8),
-        fov: 37.2,
+        position: () => new THREE.Vector3(0, 4.2, 0.6),
+        target: () => new THREE.Vector3(0, 4.8, -3.6),
+        fov: 45,
       },
       "tablet-small-portrait": {
         position: () => new THREE.Vector3(-0.51, 8, 4.1),
@@ -115,9 +115,9 @@ export const DEFAULT_MARKERS = [
         fov: 32,
       },
       "tablet-medium-landscape": {
-        position: () => new THREE.Vector3(1.8, 6.7, 2.4),
-        target: () => new THREE.Vector3(5.4, 13.3, -15.3),
-        fov: 37.2,
+        position: () => new THREE.Vector3(0, 4.2, 0.6),
+        target: () => new THREE.Vector3(0, 4.8, -3.6),
+        fov: 45,
       },
       "tablet-medium-portrait": {
         position: () => new THREE.Vector3(-0.51, 8, 4.1),
@@ -125,9 +125,9 @@ export const DEFAULT_MARKERS = [
         fov: 32,
       },
       "tablet-large-landscape": {
-        position: () => new THREE.Vector3(1.8, 6.7, 2.4),
-        target: () => new THREE.Vector3(5.4, 13.3, -15.3),
-        fov: 37.2,
+        position: () => new THREE.Vector3(0, 4.2, 0.6),
+        target: () => new THREE.Vector3(0, 4.8, -3.6),
+        fov: 45,
       },
       "tablet-large-portrait": {
         position: () => new THREE.Vector3(-0.51, 8, 4.1),
@@ -135,21 +135,20 @@ export const DEFAULT_MARKERS = [
         fov: 32,
       },
       "desktop-small": {
-        position: () => new THREE.Vector3(1.8, 6.7, 2.4),
-        target: () => new THREE.Vector3(5.4, 13.3, -15.3),
-        fov: 37.2,
+        position: () => new THREE.Vector3(0, 4.2, 0.6),
+        target: () => new THREE.Vector3(0, 4.8, -3.6),
+        fov: 45,
       },
-      "desktop-medium": {
-        position: () => new THREE.Vector3(1.8, 6.7, 2.4),
-        target: () => new THREE.Vector3(5.4, 13.3, -15.3),
-        fov: 37.2,
-      },
-      "desktop-large": {
-        position: () => new THREE.Vector3(1.8, 6.7, 2.4),
-        target: () => new THREE.Vector3(5.4, 13.3, -15.3),
-        fov: 37.2,
-      },
+      position: () => new THREE.Vector3(0, 4.2, 0.6),
+      target: () => new THREE.Vector3(0, 4.8, -3.6),
+      fov: 45,
     },
+    "desktop-large": {
+      position: () => new THREE.Vector3(0, 4.2, 0.6),
+      target: () => new THREE.Vector3(0, 4.8, -3.6),
+      fov: 45,
+    },
+
     annotationPosition: {
       phone: { xPercent: 35, yPercent: 70 },
       "tablet-small-landscape": { xPercent: 60, yPercent: 60 },
@@ -164,13 +163,13 @@ export const DEFAULT_MARKERS = [
     },
   },
   {
-    position: new THREE.Vector3(0.65, 0.12, 0.27),
+    position: new THREE.Vector3(-1.5, 2.3, -3.9),
     id: "marker3",
     label: "View 3",
-    description: "She glorifies the 3 top and 3 most recent RL80 stakers.",
+    description: "She.....",
     buttons: {
       primary: {
-        label: "OK",
+        label: "Back",
         action: "reset",
       },
       extra: {
@@ -185,9 +184,9 @@ export const DEFAULT_MARKERS = [
       //   fov: 32.1,
       // },
       "tablet-small-landscape": {
-        position: () => new THREE.Vector3(0.32, 2.64, 4.93),
-        target: () => new THREE.Vector3(1.8, 3, 1.8),
-        fov: 36.3,
+        position: () => new THREE.Vector3(-13.8, 22.8, -17.8),
+        target: () => new THREE.Vector3(-41.8, -12.8, -63.4),
+        fov: 48.5,
       },
       "tablet-small-portrait": {
         position: () => new THREE.Vector3(8.04, 3.8, 3.8),
@@ -195,9 +194,9 @@ export const DEFAULT_MARKERS = [
         fov: 60,
       },
       "tablet-medium-landscape": {
-        position: () => new THREE.Vector3(0.32, 2.64, 4.93),
-        target: () => new THREE.Vector3(1.8, 3, 1.8),
-        fov: 36.3,
+        position: () => new THREE.Vector3(-13.8, 22.8, -17.8),
+        target: () => new THREE.Vector3(-41.8, -12.8, -63.4),
+        fov: 48.5,
       },
       "tablet-medium-portrait": {
         position: () => new THREE.Vector3(8.04, 3.8, 3.8),
@@ -205,9 +204,9 @@ export const DEFAULT_MARKERS = [
         fov: 60,
       },
       "tablet-large-landscape": {
-        position: () => new THREE.Vector3(0.32, 2.64, 4.93),
-        target: () => new THREE.Vector3(1.8, 3, 1.8),
-        fov: 36.3,
+        position: () => new THREE.Vector3(-13.8, 22.8, -17.8),
+        target: () => new THREE.Vector3(-41.8, -12.8, -63.4),
+        fov: 48.5,
       },
       "tablet-large-portrait": {
         position: () => new THREE.Vector3(8.04, 3.8, 3.8),
@@ -215,19 +214,19 @@ export const DEFAULT_MARKERS = [
         fov: 60,
       },
       "desktop-small": {
-        position: () => new THREE.Vector3(0.32, 2.64, 4.93),
-        target: () => new THREE.Vector3(1.8, 3, 1.8),
-        fov: 36.3,
+        position: () => new THREE.Vector3(-13.8, 22.8, -17.8),
+        target: () => new THREE.Vector3(-41.8, -12.8, -63.4),
+        fov: 48.5,
       },
       "desktop-medium": {
-        position: () => new THREE.Vector3(0.32, 2.64, 4.93),
-        target: () => new THREE.Vector3(1.8, 3, 1.8),
-        fov: 36.3,
+        position: () => new THREE.Vector3(-13.8, 22.8, -17.8),
+        target: () => new THREE.Vector3(-41.8, -12.8, -63.4),
+        fov: 48.5,
       },
       "desktop-large": {
-        position: () => new THREE.Vector3(0.32, 2.64, 4.93),
-        target: () => new THREE.Vector3(1.8, 3, 1.8),
-        fov: 36.3,
+        position: () => new THREE.Vector3(-13.8, 22.8, -17.8),
+        target: () => new THREE.Vector3(-41.8, -12.8, -63.4),
+        fov: 48.5,
       },
     },
     annotationPosition: {

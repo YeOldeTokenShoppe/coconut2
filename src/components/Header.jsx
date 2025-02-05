@@ -265,7 +265,13 @@ function Header() {
 
   return (
     <>
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+      <div
+        style={{
+          maxWidth: "1200px",
+          margin: "0 auto",
+          backgroundColor: "transparent",
+        }}
+      >
         <Container
           className="header"
           maxW="1200px"

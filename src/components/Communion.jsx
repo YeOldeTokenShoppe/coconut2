@@ -21,6 +21,7 @@ function Communion({ setCommunionLoaded }) {
         <div className="inner">
           <ul className="icons">
             {[
+              { src: "/3D_spotify.png", alt: "Spotify" },
               { src: "/3D_tiktok.png", alt: "Tiktok" },
               { src: "/3d_discord.png", alt: "Discord" },
               { src: "/3d_X.png", alt: "X" },

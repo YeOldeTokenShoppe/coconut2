@@ -8,16 +8,22 @@ import { db } from "../../utilities/firebaseClient";
 import {
   createMarkerFace,
   setupVideoTextures,
-  handleCandles,
   initializeScreenManagement,
 } from "./modelUtilities";
-
+import { OrbitControls } from "@react-three/drei";
+import { DirectionalLight, PointLight, DirectionalLightHelper } from "three";
 import gsap from "gsap";
+import DarkClouds from "./Clouds";
+import HolographicStatue from "./HolographicStatue";
+import { GUI } from "three/addons/libs/lil-gui.module.min.js";
+import FloatingCandleViewer from "./CandleInteraction";
+import html2canvas from "html2canvas";
+import { TextureLoader, MeshBasicMaterial } from "three";
 
 function Model({
   scale,
   setTooltipData,
-  controlsRef,
+
   setCamera,
   setMarkers,
   markers,
@@ -26,8 +32,12 @@ function Model({
   rotation,
   handlePointerMove,
   onButtonClick,
+  controlsRef,
+  showFloatingViewer,
+  setShowFloatingViewer,
+  onCandleSelect,
 }) {
-  const gltf = useGLTF("/testUltima.glb");
+  const gltf = useGLTF("/isometricScene.glb");
   const { actions, mixer } = useAnimations(gltf.animations, modelRef);
   const { camera, size } = useThree();
   const [results, setResults] = useState([]);
@@ -37,41 +47,258 @@ function Model({
   const scene = gltf.scene;
   const rotateStandsRef = useRef(null);
 
+  const directionalLightRef = useRef();
+  const ambientLightRef = useRef();
+  const hemisphereLightRef = useRef();
+  const directionalLightHelperRef = useRef();
+  const hemisphereLightHelperRef = useRef();
+  const guiRef = useRef();
   const box = new THREE.Box3();
 
-  // Use this to find the position of a specific object in the scene
-  // const Button1 = scene.getObjectByName("Button1");
-  // const ButtonPosition = new THREE.Vector3();
+  const previousCandleRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const mouseDelta = useRef({ x: 0, y: 0 });
+  const previousMousePosition = useRef({ x: 0, y: 0 });
+  // const controlsRef = useRef(); // Reference to OrbitControls
+  const cameraPositions = {
+    default: new THREE.Vector3(-4.03, 25.2, 64.78),
+    closeup: new THREE.Vector3(-13.8, 22.8, -16.8),
+  };
+  const [selectedCandle, setSelectedCandle] = useState(null);
+  const handleCandleClick = (event) => {
+    console.log("Candle click detected");
+    event.stopPropagation();
 
-  // if (Button1) {
-  //   Button1.getWorldPosition(ButtonPosition);
-  //   console.log("Button world position:", ButtonPosition);
-  // } else {
-  //   console.error("ButtonPosition not found in the scene.");
+    if (showFloatingViewer) return;
+
+    // Use normalized coordinates directly from the event
+    const mouse = new THREE.Vector2();
+    mouse.x =
+      (event.nativeEvent.offsetX / event.nativeEvent.target.clientWidth) * 2 -
+      1;
+    mouse.y =
+      -(event.nativeEvent.offsetY / event.nativeEvent.target.clientHeight) * 2 +
+      1;
+
+    console.log("Mouse coordinates:", mouse);
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersectableObjects = [];
+    modelRef.current.traverse((object) => {
+      if (object.name.startsWith("VCANDLE")) {
+        intersectableObjects.push(object);
+
+        object.children.forEach((child) => {
+          if (
+            child.name.includes("wax") ||
+            child.name.includes("glass") ||
+            child.name.startsWith("FLAME")
+          ) {
+            intersectableObjects.push(child);
+          }
+        });
+      }
+    });
+
+    console.log("Checking intersections with candles");
+    const intersects = raycaster.intersectObjects(intersectableObjects, true);
+
+    if (intersects.length > 0) {
+      let candleParent = intersects[0].object;
+      while (candleParent && !candleParent.name.startsWith("VCANDLE")) {
+        candleParent = candleParent.parent;
+      }
+
+      if (candleParent && candleParent.userData.hasUser) {
+        console.log("Found candle with user data:", candleParent.name);
+        const candleData = {
+          userName: candleParent.userData.userName,
+          message: candleParent.userData.message,
+          image: candleParent.userData.image,
+          burnedAmount: candleParent.userData.burnedAmount,
+        };
+
+        console.log("Candle data:", candleData);
+        onCandleSelect(candleData);
+        setShowFloatingViewer(true);
+      }
+    }
+  };
+
+  // useEffect(() => {
+  //   if (modelRef.current) {
+  //     const screen = modelRef.current.getObjectByName("Screen1");
+
+  //     if (screen) {
+  //       const iframe = document.createElement("iframe");
+  //       iframe.src = "/html/magic.html"; // Ensure correct path
+  //       iframe.style.width = "1024px";
+  //       iframe.style.height = "846px";
+  //       iframe.style.border = "none";
+  //       iframe.style.position = "absolute";
+  //       iframe.style.top = "-10000px"; // Hide off-screen
+  //       document.body.appendChild(iframe);
+
+  //       let isRendered = false;
+
+  //       iframe.onload = () => {
+  //         if (isRendered) return;
+  //         isRendered = true;
+
+  //         const iframeDoc =
+  //           iframe.contentDocument || iframe.contentWindow.document;
+  //         const iframeBody = iframeDoc.body;
+
+  //         const canvasWidth = 1024;
+  //         const canvasHeight = 846;
+  //         const canvas = document.createElement("canvas");
+  //         canvas.width = canvasWidth;
+  //         canvas.height = canvasHeight;
+  //         const ctx = canvas.getContext("2d");
+
+  //         try {
+  //           html2canvas(iframeBody, {
+  //             width: canvasWidth,
+  //             height: canvasHeight,
+  //             useCORS: true,
+  //             backgroundColor: null,
+  //             logging: true,
+  //             scale: 1,
+  //           }).then((iframeCanvas) => {
+  //             // Draw the captured iframe content onto the canvas
+  //             ctx.drawImage(iframeCanvas, 0, 0, canvasWidth, canvasHeight);
+
+  //             // Apply canvas as texture
+  //             const texture = new THREE.CanvasTexture(canvas);
+  //             texture.flipY = false; // Correct for Three.js coordinates
+
+  //             // ✅ Rotate the texture 90 degrees (clockwise)
+  //             texture.rotation = Math.PI / -2; // 90 degrees in radians
+  //             texture.center.set(0.5, 0.5); // Rotate around the center
+  //             // texture.offset.set(-0.55, -0.25);
+
+  //             texture.needsUpdate = true;
+
+  //             screen.material = new THREE.MeshBasicMaterial({
+  //               map: texture,
+  //               side: THREE.DoubleSide,
+  //               transparent: false,
+  //               opacity: 1,
+  //               color: 0xffffff,
+  //             });
+  //             screen.material.needsUpdate = true;
+
+  //             // ✅ Clean up: Remove the iframe
+  //             if (iframe.parentNode) {
+  //               document.body.removeChild(iframe);
+  //             }
+  //           });
+  //         } catch (error) {
+  //           console.error("Error rendering iframe:", error);
+  //         }
+  //       };
+  //     }
+  //   }
+  // }, [modelRef.current]);
+  // useEffect(() => {
+  //   if (modelRef.current) {
+  //     const screen = modelRef.current.getObjectByName("Screen1");
+
+  //     if (screen) {
+  //       const loader = new TextureLoader();
+  //       loader.load("/xray.png", (texture) => {
+  //         screen.material = new MeshBasicMaterial({
+  //           map: texture,
+  //           side: THREE.DoubleSide,
+  //         });
+  //         screen.material.needsUpdate = true;
+  //       });
+  //     }
+  //   }
+  // }, [modelRef.current]);
+  // const object3 = scene.getObjectByName("Object_3");
+
+  // if (object3) {
+  //   const worldPosition = new THREE.Vector3();
+  //   object3.getWorldPosition(worldPosition);
+  //   console.log("Object 3 World Position:", worldPosition);
   // }
   useEffect(() => {
-    if (!modelRef.current) return;
+    const pointLight1 = new THREE.PointLight(0xff00ff, 10, 200);
+    pointLight1.position.set(2, 35, -89); // Adjusted position
+    pointLight1.decay = 2;
+    pointLight1.castShadow = true; // Optional: enables shadows
+    const pointLight2 = new THREE.PointLight(0xa6ffff, 10, 200);
+    pointLight2.position.set(-220, 195, 300); // Adjusted position
+    pointLight2.decay = 2;
+    pointLight2.castShadow = true;
+    const lightHelper = new THREE.PointLightHelper(pointLight2, 15);
+    scene.add(pointLight1);
+    // scene.add(pointLight2);
+    // scene.add(lightHelper);
 
-    const box = new THREE.Box3().setFromObject(modelRef.current);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
+    const ambientLight = new THREE.AmbientLight(0x888888, 0.45);
+    const hemiLight = new THREE.HemisphereLight(0x0055ff, 0xff0000, 0.8);
+    hemiLight.position.set(0, 30, 30);
 
-    // console.log("Bounding Box:", box);
-    // console.log("Center of Model:", center);
-    // console.log("Dimensions (Width, Height, Depth):", size);
+    scene.add(ambientLight);
+    scene.add(hemiLight);
 
-    // Center the model
-    modelRef.current.position.sub(center);
-    modelRef.current.position.y += size.y / 2; // Align to ground
-    // modelRef.current.position.z += size.z / 2 - 0.025;
+    return () => {
+      // scene.remove(directionalLight);
+      scene.remove(ambientLight);
+      scene.remove(hemiLight);
+      scene.remove(pointLight1);
+      scene.remove(pointLight2);
+      // scene.remove(hemisphereLight);
+    };
+  }, [scene]);
 
-    // Update controls if they exist
-    if (controlsRef?.current) {
-      controlsRef.current.target.copy(center);
-      controlsRef.current.update();
+  useEffect(() => {
+    if (!modelRef.current) {
+      return;
     }
-  }, [controlsRef]);
 
+    // First, compute the bounding box
+    const boundingBox = new THREE.Box3().setFromObject(modelRef.current);
+
+    // Get the center and dimensions
+    const center = new THREE.Vector3();
+    boundingBox.getCenter(center);
+    const size = new THREE.Vector3();
+    boundingBox.getSize(size);
+
+    console.log("Model dimensions:", {
+      width: size.x,
+      height: size.y,
+      depth: size.z,
+      center: center,
+    });
+
+    // Reset model position first
+    modelRef.current.position.set(0, 0, 0);
+
+    // Move the model up to compensate for the negative center
+    modelRef.current.position.y = 0; // Offset to center vertically
+
+    // // Update OrbitControls target to the new center
+    // if (controlsRef?.current) {
+    //   controlsRef.current.target.set(0, , 0); // Look at middle height of centered model
+    //   controlsRef.current.update();
+    // }
+
+    // Add visual helpers for debugging
+    // const boxHelper = new THREE.BoxHelper(modelRef.current, 0x00ff00);
+    // scene.add(boxHelper);
+
+    // // Add axes helper at origin
+    // const axesHelper = new THREE.AxesHelper(10);
+    // scene.add(axesHelper);
+
+    console.log("New model position:", modelRef.current.position);
+  }, [modelRef.current, controlsRef?.current]);
   useEffect(() => {
     if (typeof setMarkers === "function") {
       setMarkers(DEFAULT_MARKERS);
@@ -142,651 +369,49 @@ function Model({
     };
   }, [markers, camera, gltf.scene]);
 
-  const audioListener = useRef(new THREE.AudioListener());
-  const sound = useRef(new THREE.Audio(audioListener.current));
-
-  // Add this effect to load the sound
   useEffect(() => {
-    if (!camera) return;
-
-    // Add listener to camera
-    camera.add(audioListener.current);
-
-    // Load the sound file
-    const audioLoader = new THREE.AudioLoader();
-    audioLoader.load("/mech.mp3", (buffer) => {
-      sound.current.setBuffer(buffer);
-      sound.current.setVolume(0.5);
-      sound.current.setLoop(false);
-    });
-
-    // Cleanup
-    return () => {
-      camera.remove(audioListener.current);
-      sound.current.stop();
-    };
-  }, [camera]);
-
-  useEffect(() => {
-    // Wait for both the model reference and animations to be ready
     if (!modelRef.current || !actions) return;
 
-    try {
-      // Get our objects from modelRef instead of gltf.scene
-      const rotationPivot = modelRef.current.getObjectByName("RotationPivot");
+    const rotationPivot = modelRef.current.getObjectByName("RotationPivot");
+    const consoleObject = modelRef.current.getObjectByName("Console");
 
-      // if (!rotationPivot) {
-      //   console.error("RotationPivot not found in model");
-      //   return;
-      // }
-
-      const stand1Group = rotationPivot.getObjectByName("Stand1Group");
-      const stand2Group = rotationPivot.getObjectByName("Stand2Group");
-      const button1 = modelRef.current.getObjectByName("VisibleButton1");
-      const button2 = modelRef.current.getObjectByName("VisibleButton2");
-
-      // Initially hide Stand2
-      if (stand2Group) {
-        stand2Group.visible = true;
-      }
-
-      // Define rotation function
-      const rotateStands = () => {
-        // Play button animation once
-        const buttonAnim = actions["SK_Button|Anim_ButtonPress"];
-        if (buttonAnim) {
-          buttonAnim
-            .reset()
-            .setLoop(THREE.LoopOnce) // Play only once
-            .setEffectiveTimeScale(1) // Normal speed
-            .setEffectiveWeight(1) // Full influence
-            .play();
-        }
-
-        // Slower rotation with sound
-        const rotationDuration = 4; // 4 seconds instead of 2
-
-        // Play creaky sound (assuming you have the audio file)
-        const sound = new Audio("/mech.mp3");
-        sound.play();
-
-        gsap.to(rotationPivot.rotation, {
-          y: rotationPivot.rotation.y + Math.PI,
-          duration: rotationDuration,
-          ease: "power1.inOut", // Smoother easing for mechanical feel
-          onStart: () => {
-            // Could start sound here instead
-          },
-          onComplete: () => {
-            rotationPivot.rotation.y %= 2 * Math.PI;
-            // Could stop or fade out sound here
-          },
-        });
-      };
-      // Store rotation function in ref
-      rotateStandsRef.current = rotateStands;
-
-      // Add click handlers to buttons
-      if (button1) {
-        button1.userData.clickHandler = rotateStands;
-      }
-      if (button2) {
-        button2.userData.clickHandler = rotateStands;
-      }
-
-      // console.log("Rotation setup complete", {
-      //   rotationPivot: !!rotationPivot,
-      //   stand1Group: !!stand1Group,
-      //   stand2Group: !!stand2Group,
-      //   button1: !!button1,
-      //   button2: !!button2,
-      // });
-    } catch (error) {
-      console.error("Error setting up rotation:", error);
+    // Make console clickable
+    if (consoleObject && consoleObject.isMesh) {
+      consoleObject.raycast = new THREE.Mesh().raycast;
     }
-  }, [modelRef.current, actions]); // Add both dependencies
 
-  useEffect(() => {
-    const video = document.createElement("video");
-    video.src = "/buyButton.mp4";
-    video.loop = true;
-    video.muted = true;
-    video.play();
+    const rotateStands = () => {
+      if (rotateStandsRef.current?.isRotating) return;
 
-    const videoTexture = new THREE.VideoTexture(video);
-    videoTexture.minFilter = THREE.LinearFilter;
-    videoTexture.magFilter = THREE.LinearFilter;
-    videoTexture.format = THREE.RGBAFormat;
+      rotateStandsRef.current = { isRotating: true };
 
-    const imageTexture = new THREE.TextureLoader().load(
-      "/buy3.jpg",
-      undefined,
-      undefined,
-      (error) => console.error("Error loading image texture:", error)
-    );
-
-    // Set up common texture properties
-    const setupTexture = (texture) => {
-      texture.center.set(0.5, 0.5);
-      texture.minFilter = THREE.LinearFilter;
-      texture.magFilter = THREE.LinearFilter;
+      gsap.to(rotationPivot.rotation, {
+        y: rotationPivot.rotation.y + Math.PI,
+        duration: 4,
+        ease: "power1.inOut",
+        onComplete: () => {
+          rotationPivot.rotation.y %= 2 * Math.PI;
+          rotateStandsRef.current.isRotating = false;
+        },
+      });
     };
 
-    setupTexture(videoTexture);
-    setupTexture(imageTexture);
-
-    const intervals = [];
-
-    if (modelRef.current) {
-      modelRef.current.traverse((object) => {
-        if (object.name.startsWith("tv1") && object.isMesh) {
-          // Compute geometry bounding box
-          object.geometry.computeBoundingBox();
-          const box = object.geometry.boundingBox;
-
-          const meshWidth = Math.abs(box.max.x - box.min.x);
-          const meshHeight = Math.abs(box.max.y - box.min.y);
-          const meshAspect = meshWidth / meshHeight;
-          const videoAspect = 210 / 270; // Your video dimensions
-
-          console.log("Dimensions:", {
-            meshWidth,
-            meshHeight,
-            meshAspect,
-            videoAspect,
-          });
-
-          // Configure textures to fill screen
-          const configureTexture = (texture) => {
-            // Start with a base scale that ensures coverage
-            const scaleFactor = 1.5; // Adjust this value to zoom in/out
-
-            let scaleX = scaleFactor;
-            let scaleY = scaleFactor;
-
-            // Adjust scale based on aspect ratios
-            if (videoAspect > meshAspect) {
-              scaleY = scaleY * (meshAspect / videoAspect);
-            } else {
-              scaleX = scaleX * (videoAspect / meshAspect);
-            }
-
-            texture.repeat.set(scaleX, scaleY);
-            texture.rotation = Math.PI * 1.5;
-            texture.offset.set(0, 0.1);
-          };
-
-          // Apply configuration to both textures
-          configureTexture(videoTexture);
-          configureTexture(imageTexture);
-
-          // Create material with video texture
-          const material = new THREE.MeshBasicMaterial({
-            map: videoTexture,
-            side: THREE.DoubleSide,
-          });
-
-          object.material = material;
-          object.rotation.y = Math.PI * 1; // Keep your Y rotation
-
-          // Set up alternating interval
-          let isVideo = true;
-          const interval = setInterval(() => {
-            if (!isVideo) {
-              material.map = imageTexture;
-            } else {
-              material.map = videoTexture;
-            }
-            material.needsUpdate = true;
-            isVideo = !isVideo;
-          }, 5000);
-
-          intervals.push(interval);
-          object.userData.videoInterval = interval;
-        }
-      });
+    // Explicitly set up console for interaction
+    if (consoleObject) {
+      consoleObject.userData.clickHandler = rotateStands;
+      consoleObject.userData.interactive = true;
     }
 
     return () => {
-      // Clean up video and textures
-      video.pause();
-      video.src = "";
-      video.load();
-      videoTexture.dispose();
-      imageTexture.dispose();
-
-      // Clean up intervals
-      intervals.forEach((interval) => clearInterval(interval));
-
-      // Safely clean up model references
-      if (modelRef.current) {
-        modelRef.current.traverse((object) => {
-          if (object.userData.videoInterval) {
-            clearInterval(object.userData.videoInterval);
-          }
-        });
+      if (consoleObject) {
+        delete consoleObject.userData.clickHandler;
+        delete consoleObject.userData.interactive;
       }
     };
-  }, []);
-  useEffect(() => {
-    const video = document.createElement("video");
-    video.src = "/evil.mp4";
-    video.loop = true;
-    video.muted = true;
-    video.play();
-
-    const videoTexture = new THREE.VideoTexture(video);
-    videoTexture.minFilter = THREE.LinearFilter;
-    videoTexture.magFilter = THREE.LinearFilter;
-    videoTexture.format = THREE.RGBAFormat;
-
-    const imageTexture = new THREE.TextureLoader().load(
-      "/fight4.jpg",
-      (texture) => {
-        console.log("Image texture loaded successfully");
-      },
-      undefined,
-      (error) => {
-        console.error("Error loading image texture:", error);
-      }
-    );
-    imageTexture.minFilter = THREE.LinearFilter;
-    imageTexture.magFilter = THREE.LinearFilter;
-    imageTexture.wrapS = THREE.RepeatWrapping;
-    imageTexture.repeat.x = -1; // This will flip the image on Y axis
-
-    const intervals = [];
-
-    if (modelRef.current) {
-      modelRef.current.traverse((object) => {
-        if (object.name.startsWith("tv2") && object.isMesh) {
-          object.geometry.computeBoundingBox();
-          const box = object.geometry.boundingBox;
-          const meshWidth = Math.abs(box.max.x - box.min.x);
-          const meshHeight = Math.abs(box.max.y - box.min.y);
-          const meshAspect = meshWidth / meshHeight;
-
-          const videoAspect = 300 / 300;
-          object.scale.set(videoAspect, 1.3, 1);
-
-          const scaleFactor = 3;
-          const offsetX = -0.55;
-
-          const uvAttribute = object.geometry.attributes.uv;
-          const positions = uvAttribute.array;
-
-          for (let i = 0; i < positions.length; i += 2) {
-            positions[i] = positions[i] * meshAspect * scaleFactor;
-            positions[i] = (positions[i] - 0.5) * videoAspect + 0.5 + offsetX;
-          }
-
-          uvAttribute.needsUpdate = true;
-
-          let isVideo = true;
-
-          const material = new THREE.MeshBasicMaterial({
-            map: videoTexture,
-            side: THREE.DoubleSide,
-          });
-
-          object.material = material;
-          object.rotation.z = Math.PI * -1.5;
-          object.updateMatrixWorld();
-
-          const interval = setInterval(() => {
-            if (!isVideo) {
-              material.map = imageTexture;
-            } else {
-              material.map = videoTexture;
-            }
-            material.needsUpdate = true;
-            isVideo = !isVideo;
-          }, 5000);
-
-          intervals.push(interval);
-          object.userData.videoInterval = interval;
-        }
-      });
-    }
-    return () => {
-      // Clean up video and textures
-      video.pause();
-      video.src = "";
-      video.load();
-      videoTexture.dispose();
-      imageTexture.dispose();
-
-      // Clean up intervals
-      intervals.forEach((interval) => clearInterval(interval));
-
-      // Safely clean up model references
-      if (modelRef.current) {
-        modelRef.current.traverse((object) => {
-          if (object.userData.videoInterval) {
-            clearInterval(object.userData.videoInterval);
-          }
-        });
-      }
-    };
-  }, []);
-  useEffect(() => {
-    // Set up video
-    const video = document.createElement("video");
-    video.src = "/8ball2.mp4";
-    video.loop = true;
-    video.muted = true;
-    video.play();
-
-    // Create video texture
-    const videoTexture = new THREE.VideoTexture(video);
-    videoTexture.minFilter = THREE.LinearFilter;
-    videoTexture.magFilter = THREE.LinearFilter;
-    videoTexture.format = THREE.RGBAFormat;
-
-    // Create image texture
-    const imageTexture = new THREE.TextureLoader().load(
-      "/bgr8.jpg",
-      undefined,
-      undefined,
-      (error) => console.error("Error loading image texture:", error)
-    );
-
-    // Set up common texture properties
-    const setupTexture = (texture) => {
-      texture.center.set(0.5, 0.5);
-      texture.minFilter = THREE.LinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-    };
-
-    setupTexture(videoTexture);
-    setupTexture(imageTexture);
-
-    const intervals = [];
-
-    if (modelRef.current) {
-      modelRef.current.traverse((object) => {
-        if (object.name.startsWith("tv3") && object.isMesh) {
-          // Compute geometry bounding box
-          object.geometry.computeBoundingBox();
-          const box = object.geometry.boundingBox;
-
-          // Get mesh dimensions and center
-          const meshWidth = Math.abs(box.max.x - box.min.x);
-          const meshHeight = Math.abs(box.max.y - box.min.y);
-          const meshAspect = meshWidth / meshHeight;
-
-          // Scale and offset settings (adjust these to match your previous setup)
-          const scaleFactor = 6;
-          const offsetX = 0.75; // Adjust based on your needs
-
-          // Function to configure texture scaling and position
-          const configureTexture = (texture) => {
-            texture.repeat.set(scaleFactor, scaleFactor);
-            texture.offset.set(offsetX, 0);
-            texture.rotation = Math.PI * 1.5; // Match your previous rotation
-          };
-
-          // Configure both textures
-          configureTexture(videoTexture);
-          configureTexture(imageTexture);
-
-          // Create material with initial video texture
-          const material = new THREE.MeshBasicMaterial({
-            map: videoTexture,
-            side: THREE.DoubleSide,
-          });
-
-          object.material = material;
-
-          // Set up the alternating interval
-          let isVideo = true;
-          const interval = setInterval(() => {
-            if (!isVideo) {
-              material.map = imageTexture;
-            } else {
-              material.map = videoTexture;
-            }
-            material.needsUpdate = true;
-            isVideo = !isVideo;
-          }, 5000);
-
-          intervals.push(interval);
-          object.userData.videoInterval = interval;
-        }
-      });
-    }
-
-    return () => {
-      // Clean up video and textures
-      video.pause();
-      video.src = "";
-      video.load();
-      videoTexture.dispose();
-      imageTexture.dispose();
-
-      // Clean up intervals
-      intervals.forEach((interval) => clearInterval(interval));
-
-      // Safely clean up model references
-      if (modelRef.current) {
-        modelRef.current.traverse((object) => {
-          if (object.userData.videoInterval) {
-            clearInterval(object.userData.videoInterval);
-          }
-        });
-      }
-    };
-  }, []);
-  useEffect(() => {
-    // Set up video
-    const video = document.createElement("video");
-    video.src = "/gr80h20.mp4";
-    video.loop = true;
-    video.muted = true;
-    video.play();
-
-    // Create video texture
-    const videoTexture = new THREE.VideoTexture(video);
-    videoTexture.minFilter = THREE.LinearFilter;
-    videoTexture.magFilter = THREE.LinearFilter;
-    videoTexture.format = THREE.RGBAFormat;
-
-    // Create image texture
-    const imageTexture = new THREE.TextureLoader().load(
-      "/caveat.jpg",
-      undefined,
-      undefined,
-      (error) => console.error("Error loading image texture:", error)
-    );
-
-    // Set up common texture properties
-    const setupTexture = (texture) => {
-      texture.center.set(0.5, 0.5);
-      texture.minFilter = THREE.LinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-    };
-
-    setupTexture(videoTexture);
-    setupTexture(imageTexture);
-
-    const intervals = [];
-
-    if (modelRef.current) {
-      modelRef.current.traverse((object) => {
-        if (object.name.startsWith("tv4") && object.isMesh) {
-          // Compute geometry bounding box
-          object.geometry.computeBoundingBox();
-          const box = object.geometry.boundingBox;
-
-          // Get mesh dimensions and center
-          const meshWidth = Math.abs(box.max.x - box.min.x);
-          const meshHeight = Math.abs(box.max.y - box.min.y);
-          const meshAspect = meshWidth / meshHeight;
-
-          // Scale and offset settings (adjust these to match your previous setup)
-          const scaleFactor = 4.5;
-          const offsetX = 0.55; // Adjust based on your needs
-
-          // Function to configure texture scaling and position
-          const configureTexture = (texture) => {
-            texture.repeat.set(scaleFactor, scaleFactor);
-            texture.offset.set(offsetX, 0);
-            texture.rotation = Math.PI * 1.5; // Match your previous rotation
-          };
-
-          // Configure both textures
-          configureTexture(videoTexture);
-          configureTexture(imageTexture);
-
-          // Create material with initial video texture
-          const material = new THREE.MeshBasicMaterial({
-            map: videoTexture,
-            side: THREE.DoubleSide,
-          });
-
-          object.material = material;
-
-          // Set up the alternating interval
-          let isVideo = true;
-          const interval = setInterval(() => {
-            if (!isVideo) {
-              material.map = imageTexture;
-            } else {
-              material.map = videoTexture;
-            }
-            material.needsUpdate = true;
-            isVideo = !isVideo;
-          }, 5000);
-
-          intervals.push(interval);
-          object.userData.videoInterval = interval;
-        }
-      });
-    }
-
-    return () => {
-      // Clean up video and textures
-      video.pause();
-      video.src = "";
-      video.load();
-      videoTexture.dispose();
-      imageTexture.dispose();
-
-      // Clean up intervals
-      intervals.forEach((interval) => clearInterval(interval));
-
-      // Safely clean up model references
-      if (modelRef.current) {
-        modelRef.current.traverse((object) => {
-          if (object.userData.videoInterval) {
-            clearInterval(object.userData.videoInterval);
-          }
-        });
-      }
-    };
-  }, []);
+  }, [modelRef.current, actions]);
   const handleClick = (event) => {
     if (event.object.userData.clickHandler) {
       event.object.userData.clickHandler();
-    }
-  };
-  const createCandleShaderMaterial = (colorOffset, timeScale, offsetX) => {
-    return new THREE.ShaderMaterial({
-      uniforms: {
-        iTime: { value: 0 },
-        iResolution: {
-          value: new THREE.Vector2(window.innerWidth, window.innerHeight),
-        },
-        offsetX: { value: offsetX },
-        colorOffset: { value: colorOffset },
-        timeScale: { value: timeScale },
-        emission: { value: 0.0 },
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float iTime;
-        uniform vec2 iResolution;
-        uniform float offsetX;
-        uniform vec3 colorOffset;
-        uniform float timeScale;
-        uniform float emission; 
-        varying vec2 vUv;
-  
-        void main() {
-          vec2 uv = vUv;
-          uv.y = 1.0 - uv.y;
-          uv.x += offsetX;
-  
-          // Modify the base colors with colorOffset and timeScale
-          vec3 col = vec3(
-            0.4 + 0.35 * cos(iTime * timeScale * 0.7 + uv.x + 4.5 + colorOffset.x),
-            0.15 + 0.15 * cos(iTime * timeScale * 0.7 + uv.x + 2.0 + colorOffset.y),
-            0.5 + 0.45 * cos(iTime * timeScale * 0.7 + uv.x + 7.0 + colorOffset.z)
-          );
-  
-    // Candle body (now green)
-    float c = smoothstep(0.13, 0.10, abs(0.5 - uv.x));
-    c *= smoothstep(0.6, 0.59, abs(uv.y));
-    col += vec3(0.0, c * 0.5, 0.0); // Green candle
-
-    // Flame (reduced intensity)
-if (uv.y > 0.60) { // Only calculate the flame for the upper half
-    float f = smoothstep(0.04, 0.00, 
-        sin(uv.y * 12.0 + 2.1) * 0.02 + 
-        abs((0.5 + sin(uv.y * 9.1 + iTime) * 0.01) - uv.x));
-    col += vec3(f * 1.0, f * 2.0, f * 0.0);
-}
-
-    // Output final color
-    col += col * emission; 
-    gl_FragColor = vec4(col, 1.0);
-}
-        
-      `,
-    });
-  };
-
-  // Create materials array with variations
-  const shaderMaterials = [
-    createCandleShaderMaterial(new THREE.Vector3(0.0, 0.0, 0.0), 1.0, 0.3), // Original
-    createCandleShaderMaterial(new THREE.Vector3(1.2, 0.5, 0.8), 0.85, 0.32), // Warmer
-    createCandleShaderMaterial(new THREE.Vector3(0.5, 0.8, 1.5), 1.15, 0.28), // Cooler
-    createCandleShaderMaterial(new THREE.Vector3(0.3, 1.0, 0.2), 0.95, 0.31), // Nature
-    createCandleShaderMaterial(new THREE.Vector3(1.0, 0.2, 1.0), 1.05, 0.29), // Mystical
-    createCandleShaderMaterial(new THREE.Vector3(0.2, 0.7, 1.2), 0.9, 0.33), // Ocean
-    createCandleShaderMaterial(new THREE.Vector3(1.4, 0.3, 0.5), 1.1, 0.27), // Sunset
-    createCandleShaderMaterial(new THREE.Vector3(0.7, 0.9, 0.6), 0.98, 0.3), // Forest
-  ];
-
-  // Add this to your Model component
-  const handleButtonClick = (buttonNumber) => {
-    if (!modelRef.current) return;
-
-    // Find the corresponding Selection mesh
-    const selectionMesh = modelRef.current.getObjectByName(
-      `Selection${buttonNumber}`
-    );
-    if (selectionMesh && selectionMesh.material) {
-      // Animate the emission value
-      gsap.to(selectionMesh.material.uniforms.emission, {
-        value: 1,
-        duration: 0.3,
-        ease: "power2.out",
-        onComplete: () => {
-          // Fade back to normal
-          gsap.to(selectionMesh.material.uniforms.emission, {
-            value: 0,
-            duration: 0.5,
-            ease: "power2.in",
-          });
-        },
-      });
     }
   };
 
@@ -803,69 +428,6 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
     }
   }, [gltf]);
 
-  useEffect(() => {
-    if (!modelRef.current) return;
-
-    modelRef.current.traverse((child) => {
-      if (child.name.startsWith("Selection")) {
-        // Get the index from the selection name (1-based to 0-based)
-        const index = parseInt(child.name.replace("Selection", "")) - 1;
-        if (index >= 0 && index < shaderMaterials.length) {
-          child.material = shaderMaterials[index];
-        }
-      }
-    });
-  }, [modelRef]);
-
-  // You can temporarily add this to your Model component to log screen positions:
-  // useEffect(() => {
-  //   if (!modelRef.current) return;
-  //   modelRef.current.traverse((object) => {
-  //     if (object.name.startsWith("Screen")) {
-  //       const position = new THREE.Vector3();
-  //       object.getWorldPosition(position);
-  //       console.log(`${object.name} position:`, position);
-  //     }
-  //   });
-  // }, [modelRef]);
-  // useEffect(() => {
-  //   const video = document.createElement("video");
-  //   video.src = "colaCandle1.mp4"; // Path to your MP4 file
-  //   video.loop = true;
-  //   video.muted = true;
-  //   video.play();
-
-  //   const videoTexture = new THREE.VideoTexture(video);
-  //   videoTexture.minFilter = THREE.LinearFilter;
-  //   videoTexture.magFilter = THREE.LinearFilter;
-  //   videoTexture.format = THREE.RGBFormat;
-
-  //   // Adjust the video texture scaling
-  //   videoTexture.repeat.set(6.06 / 0.56, 1); // Scale horizontally
-  //   videoTexture.offset.set(0, 0); // Optional: adjust centering
-  //   videoTexture.wrapS = THREE.ClampToEdgeWrapping;
-  //   videoTexture.wrapT = THREE.ClampToEdgeWrapping;
-
-  //   // Apply the video texture to the mesh
-  //   modelRef.current.traverse((child) => {
-  //     if (child.name === "Selection1") {
-  //       const videoMaterial = new THREE.MeshBasicMaterial({
-  //         map: videoTexture,
-  //       });
-
-  //       child.material = videoMaterial;
-
-  //       // Scale the mesh to match the video aspect ratio
-  //       child.scale.set(1, 0.56 / 6.06, 1);
-  //     }
-  //   });
-  // }, [modelRef]);
-
-  const candleCache = {
-    bodies: new Map(), // ZCandle -> {flame, topMesh}
-    tops: new Map(), // ZCandleTop -> originalScale
-  };
-
   // Fetch results from Firestore
   useEffect(() => {
     const q = query(collection(db, "results"), orderBy("createdAt", "desc"));
@@ -873,6 +435,8 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
       const fetchedResults = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         userName: doc.data().userName || "Anonymous",
+        image: doc.data().image,
+        message: doc.data().message,
         burnedAmount: doc.data().burnedAmount || 1,
       }));
       setResults(fetchedResults);
@@ -880,176 +444,223 @@ if (uv.y > 0.60) { // Only calculate the flame for the upper half
     return () => unsubscribe();
   }, []);
 
-  const initializeCandleCache = (model) => {
-    model.traverse((child) => {
-      if (child.name.startsWith("XCandle")) {
-        let flame;
-        let candleMesh; // This will be our Candle_default_ mesh
+  const findCandleComponent = (parent, type) => {
+    const candleNumber = parent.name.slice(-3);
 
-        // Find associated components
-        child.traverse((descendant) => {
-          if (descendant.name.startsWith("XFlame")) {
-            flame = descendant;
-          }
-          if (descendant.name.startsWith("")) {
-            candleMesh = descendant;
-          }
-        });
+    switch (type) {
+      case "FLAME":
+        // Look for any FLAME in children (since it has different numbering)
+        return parent.children.find((child) => child.name.startsWith("FLAME"));
 
-        // Store references and initial height of the actual candle mesh
-        candleCache.bodies.set(child, {
-          flame,
-          candleMesh,
-          initialHeight: candleMesh ? candleMesh.scale.z : 1,
-        });
-      }
-    });
+      case "TooltipPlane":
+        // Look for TooltipPlane with matching candle number
+        return parent.children.find(
+          (child) => child.name === `TooltipPlane${candleNumber}`
+        );
+
+      case "wax":
+        // Find shared wax mesh
+        return parent.children.find((child) => child.name.includes("wax"));
+
+      default:
+        return null;
+    }
+  };
+
+  const applyUserImageToLabel = (candle, imageUrl) => {
+    console.log("Applying image to candle:", candle.name, imageUrl);
+
+    // Find the Label2 mesh in the candle's children
+    const label = candle.children.find((child) =>
+      child.name.includes("Label2")
+    );
+    console.log("Found label:", label?.name);
+
+    if (label && imageUrl) {
+      // Create a new texture loader
+      const textureLoader = new THREE.TextureLoader();
+
+      // Load the image as a texture
+      textureLoader.load(
+        imageUrl,
+        (texture) => {
+          console.log("Texture loaded successfully for", candle.name);
+          // Create a new material with the loaded texture
+          const material = new THREE.MeshStandardMaterial({
+            map: texture,
+            transparent: true,
+            side: THREE.DoubleSide,
+          });
+
+          // Apply texture settings
+          texture.encoding = THREE.sRGBEncoding;
+          texture.flipY = false;
+          texture.needsUpdate = true;
+
+          // Apply the new material to the label
+          label.material = material;
+          label.material.needsUpdate = true;
+        },
+        undefined,
+        (error) => {
+          console.error("Error loading texture:", error);
+        }
+      );
+    } else {
+      console.warn("Label2 not found or no image URL provided", {
+        hasLabel: !!label,
+        hasImageUrl: !!imageUrl,
+      });
+    }
   };
 
   useEffect(() => {
-    if (results.length === 0 || !modelRef.current) return;
+    if (results.length === 0 || !modelRef.current) {
+      console.log("No results or modelRef not ready");
+      return;
+    }
 
-    const shuffled = [...results].sort(() => Math.random() - 0.5);
+    console.log("Processing results:", results.length, "candles");
 
-    // Adjust for 001-009 format
-    const candleIndexes = Array.from({ length: 9 }, (_, i) => i + 1); // Will create [1,2,3,4,5,6,7,8,9]
-    const assignedIndices = candleIndexes
+    const availableIndices = [
+      "001",
+      "002",
+      "003",
+      "004",
+      "005",
+      "006",
+      "007",
+      "008",
+    ];
+
+    const selectedIndices = availableIndices
       .sort(() => Math.random() - 0.5)
-      .slice(0, shuffled.length);
+      .slice(0, results.length);
 
-    // console.log("Number of results:", results.length);
-    // console.log("Available candle indices:", candleIndexes);
-    // console.log("Assigned indices:", assignedIndices);
+    console.log("Selected candle indices:", selectedIndices);
 
-    // Reset all candles
+    // First reset ALL candles
     modelRef.current.traverse((child) => {
-      if (child.name.startsWith("XCandle")) {
-        // console.log("Found candle:", child.name); // Debug log
+      if (child.name.startsWith("VCANDLE")) {
+        const flame = findCandleComponent(child, "FLAME");
+        const label = child.children.find((c) => c.name.includes("Label2"));
 
-        // Store original scale first time we see it
-        if (!child.userData.originalScale) {
-          child.userData.originalScale = {
-            x: child.scale.x,
-            y: child.scale.y,
-            z: child.scale.z,
-          };
+        // Clean up existing textures and materials
+        if (label && label.material) {
+          if (label.material.map) {
+            label.material.map.dispose();
+          }
+          label.material.dispose();
+
+          // Reset to a basic material
+          label.material = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            transparent: true,
+            side: THREE.DoubleSide,
+          });
         }
 
         // Reset candle state
         child.userData = {
-          isMelting: false,
-          originalScale: child.userData.originalScale,
-          userName: "Anonymous",
-          burnedAmount: 1,
-          meltingProgress: undefined,
+          hasUser: false,
+          userName: null,
+          image: null,
+          message: null,
+          burnedAmount: 0,
+          meltingProgress: 0,
         };
 
-        // Find and reset flame
-        child.traverse((descendant) => {
-          if (descendant.name.startsWith("XFlame")) {
-            descendant.visible = false;
-          }
+        if (flame) {
+          flame.visible = false;
+        }
+      }
+    });
+
+    // Then activate selected candles
+    results.forEach((result, index) => {
+      const paddedIndex = selectedIndices[index];
+      if (!paddedIndex) return;
+
+      const candleName = `VCANDLE${paddedIndex}`;
+      const candle = modelRef.current.getObjectByName(candleName);
+
+      if (candle) {
+        console.log(`Setting up candle ${candleName} with data:`, {
+          userName: result.userName,
+          hasImage: !!result.image,
+          message: result.message?.substring(0, 20) + "...",
         });
+
+        // Set up the candle
+        candle.userData = {
+          hasUser: true,
+          userName: result.userName || "Anonymous",
+          image: result.image,
+          message: result.message,
+          burnedAmount: result.burnedAmount || 1,
+          meltingProgress: 0,
+        };
+
+        // Apply the user's image to the label using the separate function
+        if (result.image) {
+          applyUserImageToLabel(candle, result.image);
+        } else {
+          console.log(`No image provided for candle ${candleName}`);
+        }
+
+        const flame = findCandleComponent(candle, "FLAME");
+        if (flame) {
+          flame.visible = true;
+        }
       }
     });
 
-    // Assign selected candles
-    modelRef.current.traverse((child) => {
-      if (child.name.startsWith("XCandle")) {
-        // Parse the index, converting "001" to 1, "002" to 2, etc.
-        const candleIndex = parseInt(child.name.slice(-3), 10);
-        const userIndex = assignedIndices.indexOf(candleIndex);
-
-        if (userIndex !== -1) {
-          const user = shuffled[userIndex];
-          // console.log(
-          //   `Assigning user ${user.userName} to candle ${child.name}`
-          // ); // Debug log
-
-          child.userData = {
-            isMelting: true,
-            originalScale: child.userData.originalScale,
-            userName: user.userName,
-            burnedAmount: user.burnedAmount || 1,
-            meltingProgress: 0,
-          };
-
-          // Find and show flame
-          child.traverse((descendant) => {
-            if (descendant.name.startsWith("XFlame")) {
-              descendant.visible = true;
+    // Cleanup function
+    return () => {
+      modelRef.current?.traverse((child) => {
+        if (child.name.startsWith("VCANDLE")) {
+          const label = child.children.find((c) => c.name.includes("Label2"));
+          if (label?.material) {
+            if (label.material.map) {
+              label.material.map.dispose();
             }
-          });
+            label.material.dispose();
+          }
         }
-      }
-    });
+      });
+    };
+  }, [results, modelRef.current]);
 
-    setShuffledResults(shuffled);
-  }, [results, modelRef]);
-
-  // Modified useFrame for melting
-  useFrame((state, delta) => {
-    const { clock } = state;
-
-    if (mixerRef.current) {
-      mixerRef.current.update(delta);
-    }
-
-    if (!modelRef.current) return;
-
-    modelRef.current.traverse((child) => {
-      // Update shader time
-      if (
-        child.name.startsWith("Selection") &&
-        child.material.uniforms?.iTime
-      ) {
-        child.material.uniforms.iTime.value = clock.getElapsedTime();
-      }
-
-      // Handle melting for ZCandle objects
-      if (
-        child.name.startsWith("XCandle") &&
-        child.userData?.isMelting === true
-      ) {
-        // Update melting progress
-        child.userData.meltingProgress += delta;
-
-        const meltingSpeed = 0.01;
-        const MIN_SCALE = 0.1;
-
-        // Calculate scale as percentage of original height
-        const percentageRemaining = Math.max(
-          1 - meltingSpeed * child.userData.meltingProgress,
-          MIN_SCALE
-        );
-
-        // Apply scale if we have valid originalScale
-        if (child.userData.originalScale?.z) {
-          child.scale.z = child.userData.originalScale.z * percentageRemaining;
-        }
-      }
-    });
-  });
   // Set Markers
   useEffect(() => {
     if (typeof setMarkers === "function") setMarkers(DEFAULT_MARKERS);
   }, [setMarkers]);
 
   return (
-    <primitive
-      ref={modelRef}
-      object={gltf.scene}
-      position={[0, 0, -1.5]}
-      scale={scale}
-      rotation={rotation}
-      onClick={(e) => {
-        e.stopPropagation();
-        handlePointerMove(e.nativeEvent);
-        handleClick(e);
-      }}
-      onPointerMove={(e) => handlePointerMove(e.nativeEvent)}
-    />
+    <>
+      <primitive
+        ref={modelRef}
+        object={gltf.scene}
+        // position={[2.4, 12.7, 37.4]}
+        scale={scale}
+        rotation={rotation}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!showFloatingViewer) {
+            handleCandleClick(e);
+          }
+        }}
+        onPointerMove={(e) => {
+          if (!showFloatingViewer) {
+            handlePointerMove(e);
+          }
+        }}
+        style={{
+          pointerEvents: showFloatingViewer ? "none" : "auto",
+        }}
+      />
+      <DarkClouds />
+    </>
   );
 }
-
 export default Model;

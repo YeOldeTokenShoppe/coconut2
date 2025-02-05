@@ -127,7 +127,7 @@ export const Annotations = ({
 
   return (
     <div
-      className="gold_container gold_card"
+      className="annotation"
       style={{
         position: "fixed",
         left: `${Math.max(
@@ -162,14 +162,15 @@ export const Annotations = ({
         onClick={() => setIsVisible(false)}
         style={{
           position: "absolute",
-          top: "5px",
+          top: "-10px",
           right: "-10px",
           backgroundColor: "transparent",
           color: "#fff",
           border: "none",
           fontSize: "2rem",
-          width: "3rem",
-          height: "3rem",
+          zIndex: "100",
+          width: "4rem",
+          height: "4rem",
           lineHeight: "3rem", // Matches the button's height
           display: "inline-block",
           fontWeight: "bold",
@@ -211,7 +212,7 @@ export const Annotations = ({
       </p>
 
       <button
-        className="gold_container"
+        // className="gold_container"
         onClick={(e) => {
           e.stopPropagation();
           onReset();

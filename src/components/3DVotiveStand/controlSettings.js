@@ -8,7 +8,7 @@ export const CONTROL_SETTINGS = {
     dampingFactor: 0.03,
     minDistance: 0, // Single definition
     maxDistance: 50, // Single definition
-    minPolarAngle: 0,
+    minPolarAngle: -Math.PI / 1.6,
     maxPolarAngle: Math.PI / 1.6,
     enablePan: true,
     enableZoom: true,
@@ -23,8 +23,8 @@ export const CONTROL_SETTINGS = {
     autoRotate: false,
     enableDamping: false,
     minDistance: 0,
-    maxDistance: Infinity,
-    minPolarAngle: 0,
+    // maxDistance: Infinity,
+    minPolarAngle: -Math.PI / 1.6,
     maxPolarAngle: Math.PI / 1.6,
     enablePan: true,
     enableZoom: true,

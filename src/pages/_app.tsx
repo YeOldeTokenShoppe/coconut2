@@ -42,8 +42,8 @@ function MyApp({ Component, pageProps }: MyAppProps) {
     const html = document.documentElement;
     html.setAttribute("data-theme", "dark");
     html.style.colorScheme = "dark";
-    html.style.backgroundColor = "#000000";
-    html.style.color = "white";
+    html.style.backgroundColor = "";
+    // html.style.color = "white";
   }, []);
   const router = useRouter();
 
@@ -64,7 +64,13 @@ function MyApp({ Component, pageProps }: MyAppProps) {
   let HeaderComponent = null;
   if (isNumerologyPage) {
     HeaderComponent = Header2;
-  } else if (!isIndexPage && !isScenePage && !isRocketPage && !isScenePage) {
+  } else if (
+    !isIndexPage &&
+    !isScenePage &&
+    !isRocketPage &&
+    !isScenePage &&
+    !isGalleryPage
+  ) {
     // Modify this line
     HeaderComponent = Header;
   }
@@ -84,7 +90,7 @@ function MyApp({ Component, pageProps }: MyAppProps) {
               }`.trim()} // Dynamically add class names
               style={{
                 backgroundColor: isGalleryPage
-                  ? "#000000"
+                  ? ""
                   : isScenePage
                   ? "#0d0d0d"
                   : "transparent",

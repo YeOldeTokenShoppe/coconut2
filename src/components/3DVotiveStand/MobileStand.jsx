@@ -111,11 +111,11 @@ function MobileStand({ scale, onBack, onTooltipUpdate }) {
       .slice(0, shuffled.length);
 
     modelRef.current.traverse((child) => {
-      if (child.name.startsWith("ZCandle")) {
+      if (child.name.startsWith("XCandle")) {
         // Get the candle's flame by traversing its children
         let flame;
         child.traverse((descendant) => {
-          if (descendant.name.startsWith("ZFlame")) {
+          if (descendant.name.startsWith("XFlame")) {
             flame = descendant;
           }
         });
@@ -139,8 +139,8 @@ function MobileStand({ scale, onBack, onTooltipUpdate }) {
 
     // Then assign only the selected candles
     modelRef.current.traverse((child) => {
-      if (child.name.startsWith("ZCandle")) {
-        const candleIndex = parseInt(child.name.replace("ZCandle", ""), 10);
+      if (child.name.startsWith("XCandle")) {
+        const candleIndex = parseInt(child.name.replace("XCandle", ""), 10);
         const userIndex = assignedIndices.indexOf(candleIndex);
 
         if (userIndex !== -1) {
@@ -155,8 +155,8 @@ function MobileStand({ scale, onBack, onTooltipUpdate }) {
         }
       }
       // Handle flame visibility
-      else if (child.name.startsWith("ZFlame")) {
-        const flameIndex = parseInt(child.name.replace("ZFlame", ""), 10);
+      else if (child.name.startsWith("XFlame")) {
+        const flameIndex = parseInt(child.name.replace("XFlame", ""), 10);
         child.visible = assignedIndices.includes(flameIndex);
       }
     });
@@ -169,7 +169,7 @@ function MobileStand({ scale, onBack, onTooltipUpdate }) {
 
     modelRef.current.traverse((child) => {
       if (
-        child.name.startsWith("ZCandle") &&
+        child.name.startsWith("XCandle") &&
         child.userData?.isMelting === true
       ) {
         // Initialize original values if not already set
@@ -237,9 +237,9 @@ function MobileStand({ scale, onBack, onTooltipUpdate }) {
     modelRef.current.traverse((object) => {
       // Collect candle-related objects
       if (
-        object.name.startsWith("ZCandle") ||
+        object.name.startsWith("XCandle") ||
         object.name.startsWith("CandleWax") ||
-        object.name.startsWith("ZFlame")
+        object.name.startsWith("XFlame")
       ) {
         interactiveObjects.push(object);
       }
@@ -255,7 +255,7 @@ function MobileStand({ scale, onBack, onTooltipUpdate }) {
       if (candleNumber) {
         let zCandle = null;
         modelRef.current.traverse((object) => {
-          if (object.name === `ZCandle${candleNumber}`) {
+          if (object.name === `XCandle${candleNumber}`) {
             zCandle = object;
           }
         });

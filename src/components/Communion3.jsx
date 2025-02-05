@@ -25,10 +25,10 @@ function Communion({ setCommunionLoaded }) {
               { src: "/3d_discord.png", alt: "Discord" },
               { src: "/3d_X.png", alt: "X" },
               { src: "/3d_instagram.png", alt: "Instagram" },
+              { src: "/3d_spotify.png", alt: "Spotify" },
               {
                 src: "/3d_tg2.png",
                 alt: "Telegram",
-                style: { marginBottom: "0.5rem" },
               },
             ].map((icon, index) => (
               <li key={index}>

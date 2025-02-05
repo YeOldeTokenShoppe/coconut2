@@ -204,9 +204,9 @@ function BurnGallery({ setBurnGalleryLoaded }) {
     <>
       <Box py="0" position="relative" height="100vh" width="100%">
         <Grid gap={0} width="100%">
-          <GridItem width="100%" zIndex={isChandelierVisible ? 5 : 3}>
+          {/* <GridItem width="100%" zIndex={isChandelierVisible ? 5 : 3}>
             {!isMobileView && isMounted && <Scene visible={isVisible} />}
-          </GridItem>
+          </GridItem> */}
 
           <GridItem width="100%" zIndex={4}>
             {currentView === "main" ? (

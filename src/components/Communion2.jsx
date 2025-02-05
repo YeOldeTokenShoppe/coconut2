@@ -87,6 +87,19 @@ function Communion2() {
               </Link>
             </li>
           </ul>
+          <li>
+            <Link href="#">
+              <div className="socials" style={{ zIndex: "-2" }}>
+                <Image
+                  src="/3d_spotify.png"
+                  alt="Spotify"
+                  width={258}
+                  height={257}
+                  style={{ width: "4rem", height: "4rem" }}
+                />
+              </div>
+            </Link>
+          </li>
           <div
             style={{
               display: "flex",

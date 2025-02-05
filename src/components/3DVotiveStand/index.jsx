@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  Suspense,
 } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Center, useHelper } from "@react-three/drei";
@@ -16,13 +17,15 @@ import * as THREE from "three";
 import gsap from "gsap";
 import Model from "./Model";
 import { DEFAULT_MARKERS } from "./markers";
-import { DEFAULT_CAMERA, getCameraSettings } from "./defaultCamera";
+// import { DEFAULT_CAMERA, getCameraSettings } from "./defaultCamera";
+// In your Canvas component
+import { getCameraConfig, getScreenCategory } from "./cameraConfig";
 import { CONTROL_SETTINGS } from "./controlSettings";
 import { Annotations, ANNOTATION_SETTINGS } from "./annotations";
 import { MODEL_SETTINGS } from "./modelConfig";
-import { getScreenCategory } from "./screenCategories";
+// import { getScreenCategory } from "./screenCategories";
 import { Box } from "@chakra-ui/react";
-import CameraGUI from "./CameraGUI";
+// import CameraGUI from "./CameraGUI";
 import LightControlPanel from "./LightControlPanel";
 import RoomWalls from "./RoomWalls";
 import dynamic from "next/dynamic";
@@ -36,6 +39,13 @@ import { debounce } from "lodash";
 import MobileModel from "./MobileModel";
 import TickerDisplay from "./TickerDisplay";
 import { db } from "../../utilities/firebaseClient";
+import TourCamera from "./TourCamera";
+import LightGUI from "./LightGUI";
+import CameraGUI from "./CameraGUI";
+import { TooltipContainer } from "../UserTooltip";
+import FloatingCandleViewer from "./CandleInteraction";
+import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
+import HolographicStatue from "./HolographicStatue";
 
 function ThreeDVotiveStand({
   setIsLoading,
@@ -47,9 +57,15 @@ function ThreeDVotiveStand({
   onScreenClick,
 }) {
   const [userData, setUserData] = useState([]);
+  // Add in index.jsx
   const [tooltipData, setTooltipData] = useState([]);
+  const [selectedCandleData, setSelectedCandleData] = useState(null);
+  const [results, setResults] = useState([]);
+  const [shuffledCandleIndices, setShuffledCandleIndices] = useState([]);
+
+  const [isHovered, setIsHovered] = useState(false);
   const [isMarkerMovement, setIsMarkerMovement] = useState(false);
-  const [modelScale, setModelScale] = useState(7);
+  const [modelScale, setModelScale] = useState(0.2);
   const [buttonPopupVisible, setButtonPopupVisible] = useState(false);
   // const [clickedButtonName, setClickedButtonName] = useState("");
   const [buttonData, setButtonData] = useState("");
@@ -72,84 +88,107 @@ function ThreeDVotiveStand({
   const cameraRef = useRef(null); // Reference to the camera
   const controlsRef = useRef(null); // Reference to OrbitControls
   const spotlightRef = useRef();
+  const directionalLightRef = useRef();
   const directionalLight1Ref = useRef();
   const directionalLight2Ref = useRef();
+  const hemisphereLightRef = useRef();
+  const ambientLightRef = useRef(null);
   const pointLightRef = useRef();
-  // Change this line
-  const [screenCategory, setScreenCategory] = useState(
-    () => getScreenCategory() || "desktop-medium"
-  );
+  const rendererRef = useRef(null);
 
+  const [showFloatingViewer, setShowFloatingViewer] = useState(false);
   const [isPanelVisible, setIsPanelVisible] = useState(true);
-
+  const [selectedCandle, setSelectedCandle] = useState(null);
   const panelRef = useRef();
 
   const togglePanel = () => {
     panelRef.current?.togglePanel();
   };
-  const currentSettings = DEFAULT_CAMERA[screenCategory];
-  useEffect(() => {
-    setScreenCategory(getScreenCategory());
-  }, []);
 
-  const commonSettings = DEFAULT_CAMERA.common;
   const [isGuiMode, setIsGuiMode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const cameraSettings = getCameraSettings(screenCategory || "desktop-medium");
+  const screenCategory = getScreenCategory();
+  const cameraSettings = getCameraConfig();
 
   // Access the camera settings safely
   const defaultPosition = cameraSettings.position;
   const defaultTarget = cameraSettings.target;
-
+  const initialPosition = new THREE.Vector3(...cameraSettings.position);
+  const initialTarget = new THREE.Vector3(...cameraSettings.target);
   const resetTimeline = gsap.timeline();
 
+  // const pointsOfInterest = [
+  //   { position: [-2.8, 6.21, 36.9], lookAt: [-2.4, 9.7, 3] },
+  //   { position: [0.32, 2.64, 4.93], lookAt: [1.8, 3, 1.8] },
+  //   { position: [0.32, 2.64, 4.93], lookAt: [1.8, 3, 1.8] },
+  //   { position: [-2.8, 6.21, 36.9], lookAt: [-2.4, 9.7, 3] },
+  // ];
+
   // Add mobile detection logic
+  // useEffect(() => {
+  //   const checkMobile = () => {
+  //     const mobile = window.innerWidth <= 576; // You can adjust this breakpoint
+  //     setIsMobile(mobile);
+  //     setModelScale(mobile ? 5 : 7); // Adjust scale for mobile if needed
+  //   };
+
+  //   // Initial check
+  //   checkMobile();
+
+  //   // Add event listener for window resize
+  //   window.addEventListener("resize", checkMobile);
+
+  //   // Cleanup
+  //   return () => window.removeEventListener("resize", checkMobile);
+  // }, []);
+  console.log("Initial camera settings:", {
+    screenCategory,
+    settings: cameraSettings,
+  });
+
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth <= 576; // You can adjust this breakpoint
-      setIsMobile(mobile);
-      setModelScale(mobile ? 5 : 7); // Adjust scale for mobile if needed
+    const handleResize = () => {
+      // Get new settings directly from config
+      const newSettings = getCameraConfig();
+
+      if (cameraRef.current && controlsRef.current) {
+        // Create Vector3s for precise position handling
+        const newPosition = new THREE.Vector3(...newSettings.position);
+        const newTarget = new THREE.Vector3(...newSettings.target);
+
+        // Update camera position and settings
+        cameraRef.current.position.copy(newPosition);
+        cameraRef.current.fov = newSettings.fov;
+        cameraRef.current.near = newSettings.near;
+        cameraRef.current.far = newSettings.far;
+        cameraRef.current.updateProjectionMatrix();
+
+        // Update controls with new settings
+        controlsRef.current.target.copy(newTarget);
+        controlsRef.current.minDistance = newSettings.minDistance;
+        controlsRef.current.maxDistance = newSettings.maxDistance;
+        controlsRef.current.minPolarAngle = newSettings.minPolarAngle;
+        controlsRef.current.maxPolarAngle = newSettings.maxPolarAngle;
+        controlsRef.current.enablePan = newSettings.enablePan;
+        controlsRef.current.enableZoom = newSettings.enableZoom;
+        controlsRef.current.update();
+
+        console.log("Resize - Updated camera settings:", {
+          position: newPosition.toArray(),
+          target: newTarget.toArray(),
+          fov: newSettings.fov,
+        });
+      }
     };
 
-    // Initial check
-    checkMobile();
+    // Debounce the resize handler
+    const debouncedResize = debounce(handleResize, 250);
 
-    // Add event listener for window resize
-    window.addEventListener("resize", checkMobile);
-
-    // Cleanup
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  // Then use this useEffect
-  useEffect(() => {
-    // Get initial screen category and set initial size
-    const initialCategory = getScreenCategory();
-    setScreenCategory(initialCategory);
-    setSize({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
-
-    // Debounced resize handler
-    const handleResize = debounce(() => {
-      setSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-
-      const newCategory = getScreenCategory();
-      if (newCategory !== screenCategory) {
-        setScreenCategory(newCategory);
-      }
-    }, 250);
-
-    // Initial call
-    handleResize();
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [screenCategory]);
+    window.addEventListener("resize", debouncedResize);
+    return () => {
+      window.removeEventListener("resize", debouncedResize);
+    };
+  }, []); // Empty dependency array since we're not tracking screen category
 
   useEffect(() => {
     setIsLoading(true);
@@ -162,80 +201,72 @@ function ThreeDVotiveStand({
     initializeScene();
   }, [setIsLoading]);
   useEffect(() => {
-    const initializeCamera = () => {
-      if (!cameraRef.current || !controlsRef.current) return;
+    if (controlsRef.current) {
+      controlsRef.current.enabled = !showFloatingViewer;
+    }
 
-      const currentCategory = getScreenCategory();
+    if (showFloatingViewer) {
+      setIsAnnotationVisible(false);
+      document.body.style.pointerEvents = "none"; // 🚨 Disables all clicks
+    } else {
+      setTimeout(() => {
+        document.body.style.pointerEvents = "auto"; // ✅ Restore interactions
+      }, 50);
+    }
+  }, [showFloatingViewer]);
 
-      try {
-        // Calculate center of model or use default
-        const center = new THREE.Vector3();
-        if (modelRef.current) {
-          const box = new THREE.Box3().setFromObject(modelRef.current);
-          box.getCenter(center);
-        }
+  const handleCandleSelect = (candleData) => {
+    setSelectedCandleData(candleData);
+    setShowFloatingViewer(true);
+  };
 
-        // Get camera settings with fallback
-        const cameraSettings = getCameraConfig(currentCategory);
+  useEffect(() => {
+    const q = query(collection(db, "results"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const fetchedResults = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        userName: doc.data().userName || "Anonymous",
+        image: doc.data().image,
+        message: doc.data().message,
+        burnedAmount: doc.data().burnedAmount || 1,
+      }));
+      setResults(fetchedResults);
+      const indices = Array.from({ length: 40 }, (_, i) => i + 1);
+      const shuffled = indices
+        .slice(0, fetchedResults.length)
+        .sort(() => Math.random() - 0.5);
+      setShuffledCandleIndices(shuffled);
+    });
+    return () => unsubscribe();
+  }, []);
 
-        // Set camera position
-        cameraRef.current.position.set(
-          cameraSettings.position[0],
-          cameraSettings.position[1],
-          cameraSettings.position[2]
-        );
+  // useEffect(() => {
+  //   if (!cameraRef.current || !controlsRef.current) return;
 
-        // Get target position from settings or fallback
-        const targetSettings =
-          DEFAULT_CAMERA[currentCategory]?.target ||
-          DEFAULT_CAMERA["desktop-medium"].target;
+  //   // Add a small delay to ensure initial setup is complete
+  //   const timeoutId = setTimeout(() => {
+  //     console.log("Camera initialization effect running");
+  //     const position = [-4.8, 20, 39.8];
+  //     const target = [-2.4, 15.8, 0];
 
-        // Set OrbitControls target
-        controlsRef.current.target.set(
-          targetSettings[0],
-          targetSettings[1],
-          targetSettings[2]
-        );
+  //     cameraRef.current.position.set(...position);
+  //     cameraRef.current.updateProjectionMatrix();
 
-        // Update FOV if needed
-        if (cameraRef.current.fov !== cameraSettings.fov) {
-          cameraRef.current.fov = cameraSettings.fov;
-          cameraRef.current.updateProjectionMatrix();
-        }
+  //     controlsRef.current.target.set(...target);
+  //     controlsRef.current.update();
 
-        controlsRef.current.update(); // Ensure changes are applied
-      } catch (error) {
-        console.warn(
-          "Error initializing camera, falling back to defaults:",
-          error
-        );
-        // Use desktop-medium as fallback
-        const fallbackSettings = DEFAULT_CAMERA["desktop-medium"];
-        cameraRef.current.position.set(
-          fallbackSettings.position[0],
-          fallbackSettings.position[1],
-          fallbackSettings.position[2]
-        );
-        cameraRef.current.fov = fallbackSettings.fov;
-        cameraRef.current.updateProjectionMatrix();
+  //     console.log(
+  //       "Camera position after initialization:",
+  //       cameraRef.current.position
+  //     );
+  //     console.log(
+  //       "Camera target after initialization:",
+  //       controlsRef.current.target
+  //     );
+  //   }, 100);
 
-        controlsRef.current.target.set(
-          fallbackSettings.target[0],
-          fallbackSettings.target[1],
-          fallbackSettings.target[2]
-        );
-        controlsRef.current.update();
-      }
-    };
-
-    // Run initialization
-    initializeCamera();
-  }, [
-    modelRef.current,
-    cameraRef.current,
-    controlsRef.current,
-    screenCategory,
-  ]);
+  //   return () => clearTimeout(timeoutId);
+  // }, []); // Empty dependency array - run only once
 
   const handleGuiStart = (panel) => {
     if (controlsRef.current) {
@@ -252,322 +283,106 @@ function ThreeDVotiveStand({
     }
     setIsGuiMode(false);
   };
-  // const handleButtonClick = (buttonNumber) => {
-  //   if (!modelRef.current) return;
-
-  //   const selectionMesh = modelRef.current.getObjectByName(
-  //     `Selection${buttonNumber}`
-  //   );
-  //   if (selectionMesh && selectionMesh.material) {
-  //     gsap.to(selectionMesh.material.uniforms.emission, {
-  //       value: 1,
-  //       duration: 0.9,
-  //       ease: "power2.out",
-  //       onComplete: () => {
-  //         gsap.to(selectionMesh.material.uniforms.emission, {
-  //           value: 0,
-  //           duration: 0.9,
-  //           ease: "power2.in",
-  //         });
-  //       },
-  //     });
-  //   }
-  // };
 
   // Animate function for billboarding
   useEffect(() => {
+    // Ensure canvasRef and scene exist before creating renderer
+    if (!canvasRef.current) return;
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvasRef.current,
+      antialias: true,
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    rendererRef.current = renderer;
+
     const animate = () => {
-      if (sceneRef.current && camera) {
+      requestAnimationFrame(animate);
+
+      // Billboard logic
+      if (sceneRef.current && cameraRef.current) {
         sceneRef.current.traverse((object) => {
           if (object.userData.isBillboard) {
-            object.lookAt(camera.position); // Make the object face the camera
-            // object.rotation.set(0, object.rotation.y, 0); // Reset unwanted rotation
+            object.lookAt(cameraRef.current.position);
           }
         });
       }
-      requestAnimationFrame(animate);
+
+      // Render scene
+      if (rendererRef.current && cameraRef.current) {
+        rendererRef.current.render(scene, cameraRef.current);
+      }
     };
 
-    animate(); // Start the animation loop
-  }, [camera]);
+    animate();
 
+    return () => {
+      renderer.dispose();
+    };
+  }, [canvasRef.current]); // Depend only on canvas existence
   let previousTooltipData = []; // Track previous tooltip data to prevent unnecessary updates
+  const findCandleComponent = (parent, type) => {
+    const candleNumber = parent.name.slice(-3);
 
+    switch (type) {
+      case "FLAME":
+        // Look for any FLAME in children (since it has different numbering)
+        return parent.children.find((child) => child.name.startsWith("FLAME"));
+
+      case "TooltipPlane":
+        // Look for TooltipPlane with matching candle number
+        return parent.children.find(
+          (child) => child.name === `TooltipPlane${candleNumber}`
+        );
+
+      case "wax":
+        // Find shared wax mesh
+        return parent.children.find((child) => child.name.includes("wax"));
+
+      default:
+        return null;
+    }
+  };
   const handlePointerMove = (event) => {
     if (!camera || !modelRef.current) return;
-    const canvas = event.target;
-    const rect = canvas.getBoundingClientRect();
+
+    // Get normalized coordinates from the event
     const mouse = new THREE.Vector2(
-      ((event.clientX - rect.left) / canvas.clientWidth) * 2 - 1,
-      -((event.clientY - rect.top) / canvas.clientHeight) * 2 + 1
+      (event.offsetX / event.target.clientWidth) * 2 - 1,
+      -(event.offsetY / event.target.clientHeight) * 2 + 1
     );
 
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
-    raycaster.near = 0.1;
-    raycaster.far = 1000;
 
-    // Collect all interactive objects at once
-    const screenObjects = [];
-    const markerObjects = [];
+    // Only handle hover effects here
     const interactiveObjects = [];
-    const laserObjects = [];
-    const tvObjects = [];
-    const tv1Objects = [];
-    const tv3Objects = [];
-    const tv4Objects = [];
-
-    // First pass: ensure all laser objects have unique materials
-    if (!window.lasersInitialized) {
-      modelRef.current.traverse((object) => {
-        if (
-          object.isMesh &&
-          object.material &&
-          object.material.name === "Laser"
-        ) {
-          // Clone the material for this specific object
-          object.material = object.material.clone();
-          // Store the original color in userData
-          object.userData.originalColor = object.material.color.clone();
-        }
-      });
-      window.lasersInitialized = true;
-    }
-
-    // Second pass: collect all objects
     modelRef.current.traverse((object) => {
-      if (object.name === "tv1") {
-        tv1Objects.push(object);
-      }
-      if (object.name === "tv2") {
-        tvObjects.push(object);
-      }
-      if (object.name === "tv3") {
-        tv3Objects.push(object);
-      }
-      if (object.name === "tv4") {
-        tv4Objects.push(object);
-      }
-      if (
-        object.isMesh &&
-        object.material &&
-        object.material.name === "Laser"
-      ) {
-        laserObjects.push(object);
-      }
-      // Collect screens
       if (
         (object.isMesh && object.name.startsWith("Screen")) ||
-        (object.isMesh && object.parent?.name.includes("Screen"))
-      ) {
-        screenObjects.push(object);
-      }
-      // Collect markers
-      if (object.isMarker || object.parent?.isMarker) {
-        markerObjects.push(object);
-      }
-      // Collect candle-related objects
-      if (
-        object.name.startsWith("Candle") ||
-        object.name.startsWith("XBase") ||
-        object.name.startsWith("XFlame") ||
-        object.name.startsWith("XRope")
+        (object.isMesh && object.parent?.name.includes("Screen")) ||
+        object.isMarker ||
+        object.parent?.isMarker ||
+        object.name.startsWith("VCANDLE") ||
+        object.name === "Console"
       ) {
         interactiveObjects.push(object);
       }
     });
-    // Handle tvScreen interactions
-    const tvIntersects = raycaster.intersectObjects(tvObjects, true);
 
-    if (tvIntersects.length > 0) {
-      const clickedObject = tvIntersects[0].object;
+    const intersects = raycaster.intersectObjects(interactiveObjects, true);
 
-      if (event.type === "click") {
-        // Open hyperlink on click
-        window.open("https://rl80.xyz", "_blank");
-      }
-    }
-    // Handle tv3 interactions
-    const tv1Intersects = raycaster.intersectObjects(tv1Objects, true);
+    // Update hover states or tooltips as needed
+    if (intersects.length > 0) {
+      document.body.style.cursor = "pointer";
 
-    if (tv1Intersects.length > 0) {
-      const clickedObject = tv1Intersects[0].object;
-
-      if (event.type === "click") {
-        // Open hyperlink for tv3
-        window.open("https://costco.com/", "_blank");
-      }
-    }
-    const tv3Intersects = raycaster.intersectObjects(tv3Objects, true);
-
-    if (tv3Intersects.length > 0) {
-      const clickedObject = tv3Intersects[0].object;
-
-      if (event.type === "click") {
-        // Open hyperlink for tv3
-        window.open("https://costco.com/", "_blank");
-      }
-    }
-    const tv4Intersects = raycaster.intersectObjects(tv4Objects, true);
-
-    if (tv4Intersects.length > 0) {
-      const clickedObject = tv4Intersects[0].object;
-
-      if (event.type === "click") {
-        // Open hyperlink for tv3
-        window.open("https://costco.com/", "_blank");
-      }
-    }
-    // Check laser intersections first
-    if (laserObjects.length > 0) {
-      const laserIntersects = raycaster.intersectObjects(laserObjects, true);
-
-      // Reset all laser colors and emissive properties first
-      laserObjects.forEach((laser) => {
-        if (laser.userData.originalColor) {
-          laser.material.color.copy(laser.userData.originalColor);
-          laser.material.emissive.setHex(0x000000);
-          laser.material.emissiveIntensity = 0;
-        }
-      });
-
-      if (laserIntersects.length > 0) {
-        // Change color and add emissive glow to intersected laser
-        const intersectedLaser = laserIntersects[0].object;
-        const glowColor = 0x39ff14; // Neon green
-        intersectedLaser.material.color.setHex(glowColor);
-        intersectedLaser.material.emissive.setHex(glowColor);
-        intersectedLaser.material.emissiveIntensity = 5.0; // Adjust this value to control glow strength
-
-        // Play sound if not already playing
-        if (!window.laserSoundPlaying) {
-          const laserSound = new Audio("/beep1.mp3");
-          laserSound.play().catch((error) => {
-            console.error("Error playing laser sound:", error);
-          });
-          window.laserSoundPlaying = true;
-        }
-      } else {
-        // Reset sound playing state when mouse leaves all laser objects
-        if (window.laserSoundPlaying) {
-          window.laserSoundPlaying = false;
-        }
-      }
-    }
-
-    // Rest of your existing intersection checks...
-    // Check screen intersections
-    const screenIntersects = raycaster.intersectObjects(screenObjects, true);
-    if (screenIntersects.length > 0 && event.type === "click") {
-      const clickedObject = screenIntersects[0].object;
-      let screenName = clickedObject.name.startsWith("Screen")
-        ? clickedObject.name
-        : clickedObject.parent.name.replace("001", "");
-
-      const screenView = SCREEN_VIEWS[screenName];
-
-      if (screenView) {
-        const currentContent = screenStateManager.screenContent[screenName];
-        const viewWithDescription = {
-          ...screenView,
-          fromScreen: true,
-          screenName: screenName,
-          description: currentContent ? currentContent.userName : null,
-          showAnnotation: !!currentContent,
-        };
-
-        moveCamera(viewWithDescription, null);
-        return;
-      }
-    }
-
-    // Check marker intersections
-    const markerIntersects = raycaster.intersectObjects(markerObjects, true);
-    if (markerIntersects.length > 0) {
-      let markerObject = markerIntersects[0].object;
-      while (markerObject && !markerObject.isMarker) {
-        markerObject = markerObject.parent;
-      }
-
-      if (markerObject?.markerIndex !== undefined) {
-        const markerData = markers?.[markerObject.markerIndex];
-        if (markerData && event.type === "click") {
-          moveCamera(markerData, markerObject.markerIndex);
-        }
-      }
-      setTooltipData([]);
-      return;
-    }
-
-    // Check candle intersections
-    const candleIntersects = raycaster.intersectObjects(
-      interactiveObjects,
-      true
-    );
-    const newTooltipData = [];
-
-    candleIntersects.forEach((intersection) => {
-      const intersectedObject = intersection.object;
-      const candleNumber = intersectedObject.name.match(/\d+/)?.[0];
-
-      if (candleNumber) {
-        let xCandle = null;
-        modelRef.current.traverse((object) => {
-          if (object.name === `XCandle${candleNumber}`) {
-            xCandle = object;
-          }
-        });
-
-        if (xCandle && xCandle.userData?.isMelting) {
-          const worldPos = new THREE.Vector3();
-          xCandle.getWorldPosition(worldPos);
-          worldPos.y += 0.5;
-          worldPos.project(camera);
-
-          const x = (0.5 + worldPos.x / 2) * canvas.clientWidth;
-          const y = (0.5 - worldPos.y / 2) * canvas.clientHeight;
-
-          newTooltipData.push({
-            userName: xCandle.userData?.userName || "Anonymous",
-            position: { x, y },
-            distance: intersection.distance,
-          });
-        }
-      }
-    });
-
-    newTooltipData.sort((a, b) => a.distance - b.distance);
-
-    if (newTooltipData.length > 0) {
-      setTooltipData(newTooltipData);
+      // Optional: Log what we're hovering over for debugging
+      const hitObject = intersects[0].object;
+      console.log("Hovering over:", hitObject.name);
     } else {
-      setTooltipData([]);
+      document.body.style.cursor = "auto";
     }
-
-    // if (event.type === "click") {
-    //   const buttonObjects = [];
-    //   modelRef.current.traverse((object) => {
-    //     if (object.name.includes("Button")) {
-    //       buttonObjects.push(object);
-    //     }
-    //   });
-
-    //   const buttonIntersects = raycaster.intersectObjects(buttonObjects, true);
-    //   if (buttonIntersects.length > 0) {
-    //     const hitObject = buttonIntersects[0].object;
-    //     const buttonNumber = hitObject.name.replace("Button", "");
-    //     const buttonData =
-    //       BUTTON_MESSAGES[hitObject.name] || BUTTON_MESSAGES.default;
-
-    //     console.log(`${hitObject.name} clicked!`);
-    //     setClickedButtonName(hitObject.name);
-    //     setButtonData(buttonData); // Make sure this state exists
-    //     setButtonPopupVisible(true);
-    //     handleButtonClick(buttonNumber); // Keep the glow effect
-    //   }
-    // }
   };
-  //
 
   const getCameraView = (view, currentCategory) => {
     try {
@@ -576,7 +391,6 @@ function ThreeDVotiveStand({
 
       // Check if view and cameraView exist
       if (!view?.cameraView) {
-        console.warn("Invalid view data, using default settings");
         return {
           position: defaultSettings.position,
           target: defaultSettings.target,
@@ -779,24 +593,27 @@ function ThreeDVotiveStand({
       controlsRef.current.autoRotate = true;
     });
   };
-  const getCameraConfig = (category) => {
-    if (!DEFAULT_CAMERA[category]) {
-      console.warn(
-        `Invalid category: ${category}. Falling back to desktop-medium.`
-      );
-      category = "desktop-medium";
-    }
+  // const getCameraConfig = (category) => {
+  //   if (!DEFAULT_CAMERA[category]) {
+  //     console.warn(
+  //       `Invalid category: ${category}. Falling back to desktop-medium.`
+  //     );
+  //     category = "desktop-medium";
+  //   }
 
-    const settings = DEFAULT_CAMERA[category];
-    return {
-      position: settings.position,
-      fov: settings.fov,
-      near: DEFAULT_CAMERA.common.near,
-      far: DEFAULT_CAMERA.common.far,
-    };
-  };
+  //   const settings = DEFAULT_CAMERA[category];
+  //   return {
+  //     position: settings.position,
+  //     target: settings.target,
+  //     fov: settings.fov,
+  //     near: DEFAULT_CAMERA.common.near,
+  //     far: DEFAULT_CAMERA.common.far,
+  //   };
+  // };
+
   const lastCameraPosition = useRef(null);
   const lastFOV = useRef(null);
+
   return (
     <>
       {isMobileView ? (
@@ -809,6 +626,10 @@ function ThreeDVotiveStand({
             maxHeight: "none",
           }}
           onCreated={({ camera }) => {
+            console.log(
+              "Canvas onCreated - Initial camera position:",
+              camera.position.toArray()
+            );
             cameraRef.current = camera;
             setCamera(camera);
           }}
@@ -823,159 +644,134 @@ function ThreeDVotiveStand({
         <div
           className="votiveContainer"
           style={{
-            position: "absolute",
+            position: "relative",
             top: 0,
             margin: "auto",
             height: "100vh",
             width: "100%",
             maxWidth: "1400px",
             pointerEvents: "auto",
+            overflow: "hidden",
           }}
         >
-          {/* <button
-          onClick={togglePanel}
-          style={{
-            position: "absolute",
-            top: "10px",
-            right: "10px",
-            zIndex: 1000,
-            padding: "10px",
-          }}
-        >
-          Toggle Panel
-        </button>
-
-        {isPanelVisible && (
-          <LightControlPanel
-            lights={{
-              spotlight: spotlightRef.current,
-              directionalLight1: directionalLight1Ref.current,
-              directionalLight2: directionalLight2Ref.current,
-              pointLight: pointLightRef.current,
+          <Canvas
+            shadows
+            camera={{
+              fov: cameraSettings.fov,
+              near: cameraSettings.near,
+              far: cameraSettings.far,
+              position: cameraSettings.position,
             }}
-            scene={sceneRef.current}
-            onGuiStart={() => console.log("GUI started")}
-            onGuiEnd={() => console.log("GUI ended")}
-          />
-        )} */}
+            onCreated={({ camera, gl }) => {
+              console.log("Canvas created - Setting initial camera position");
+              cameraRef.current = camera;
+              setCamera(camera);
 
-          <CameraGUI
+              // Force exact position
+              camera.position.copy(initialPosition);
+              camera.updateProjectionMatrix();
+
+              console.log(
+                "Camera position after initialization:",
+                camera.position.toArray()
+              );
+
+              // Set up controls with exact target
+              if (controlsRef.current) {
+                controlsRef.current.target.copy(initialTarget);
+                controlsRef.current.update();
+
+                // Log final state
+                console.log("Camera and controls initialized:", {
+                  position: camera.position.toArray(),
+                  target: controlsRef.current.target.toArray(),
+                  fov: camera.fov,
+                });
+              }
+            }}
+            gl={{
+              alpha: true,
+              antialias: true,
+              logarithmicDepthBuffer: true,
+            }}
+          >
+            {/* <FlyInEffect
+              cameraRef={cameraRef}
+              screenCategory={screenCategory} // Ensure this prop is set correctly
+              duration={3}
+            /> */}
+            {/* <TourCamera points={pointsOfInterest} /> */}
+            {/* <Perf position="top-left" /> */}
+            {/* <RoomWalls db={db} /> */}
+
+            {/* <TickerDisplay /> */}
+            <Suspense fallback={null}>
+              <Model
+                // url="/nyseMiniplus.glb"
+                scale={modelScale}
+                setIsLoading={setIsLoading}
+                controlsRef={controlsRef}
+                modelRef={modelRef}
+                handlePointerMove={handlePointerMove}
+                setCamera={setCamera}
+                setMarkers={setMarkers}
+                markers={markers}
+                userData={userData}
+                moveCamera={moveCamera}
+                setTooltipData={setTooltipData}
+                directionalLightRef={directionalLightRef}
+                ambientLightRef={ambientLightRef}
+                hemisphereLightRef={hemisphereLightRef}
+                showFloatingViewer={showFloatingViewer}
+                setShowFloatingViewer={setShowFloatingViewer}
+                setSelectedCandle={setSelectedCandle}
+                onCandleSelect={handleCandleSelect}
+                // onButtonClick={handleClick}
+              />
+              {/* use this version only when using gui */}
+
+              <OrbitControls
+                ref={controlsRef}
+                makeDefault
+                target={initialTarget}
+                enableDamping={false}
+                minDistance={cameraSettings.minDistance}
+                maxDistance={cameraSettings.maxDistance}
+                minPolarAngle={cameraSettings.minPolarAngle}
+                maxPolarAngle={cameraSettings.maxPolarAngle}
+                enablePan={cameraSettings.enablePan}
+                enableZoom={cameraSettings.enableZoom}
+                onChange={() => {
+                  // Log any changes to camera position
+                  // if (cameraRef.current && controlsRef.current) {
+                  //   console.log("Camera state changed:", {
+                  //     position: cameraRef.current.position.toArray(),
+                  //     target: controlsRef.current.target.toArray(),
+                  //   });
+                  // }
+                }}
+              />
+              <PostProcessingEffects />
+              <HolographicStatue />
+            </Suspense>
+          </Canvas>
+          {selectedCandleData && (
+            <FloatingCandleViewer
+              isVisible={showFloatingViewer}
+              onClose={() => {
+                setShowFloatingViewer(false);
+                setSelectedCandleData(null);
+              }}
+              userData={selectedCandleData}
+              key={selectedCandleData?.image}
+            />
+          )}
+          {/* <CameraGUI
             cameraRef={cameraRef}
             controlsRef={controlsRef}
             onGuiStart={handleGuiStart}
             onGuiEnd={handleGuiEnd}
-            activeAnnotation={activeAnnotation}
-            style={{ pointerEvents: "auto" }} // Add this
-          />
-          <Canvas
-            onPointerMove={handlePointerMove}
-            onPointerOut={() => setTooltipData([])} // Clear tooltips when pointer leaves canvas
-            style={{
-              // backgroundColor: "#1b1724",
-              // opacity: 0.9,
-              width: "100vw", // Full viewport width
-              height: "100vh", // Full viewport height
-              maxWidth: "1400px", // Override parent constraints
-              maxHeight: "none",
-            }}
-            camera={getCameraConfig(screenCategory)}
-            gl={commonSettings.gl}
-            onCreated={({ camera }) => {
-              cameraRef.current = camera;
-              setCamera(camera);
-            }}
-          >
-            <FlyInEffect
-              cameraRef={cameraRef}
-              screenCategory={screenCategory} // Ensure this prop is set correctly
-              duration={3}
-            />
-            {/* <Perf position="top-left" /> */}
-            <RoomWalls db={db} />
-
-            <TickerDisplay />
-            <ambientLight intensity={0.7} />
-            <directionalLight position={[4, 4, 0]} castShadow />
-            <directionalLight
-              position={[-2.85, 3, -3]}
-              intensity={2}
-              castShadow
-            />
-            <Model
-              url="/testUltima.glb"
-              scale={modelScale}
-              setIsLoading={setIsLoading}
-              controlsRef={controlsRef}
-              modelRef={modelRef}
-              handlePointerMove={handlePointerMove}
-              setCamera={setCamera}
-              setMarkers={setMarkers}
-              markers={markers}
-              userData={userData}
-              moveCamera={moveCamera}
-              setTooltipData={setTooltipData}
-              // onButtonClick={handleClick}
-            />
-            {/* use this version only when using gui */}
-            <OrbitControls
-              autoRotate={false}
-              autoRotateSpeed={0.001}
-              ref={controlsRef}
-              {...CONTROL_SETTINGS.default}
-              touches={{
-                ONE: THREE.TOUCH.ROTATE,
-                TWO: THREE.TOUCH.DOLLY_PAN,
-              }}
-              onStart={() => {
-                if (!isGuiMode) {
-                  const defaultSettings = CONTROL_SETTINGS.default;
-                  Object.assign(controlsRef.current, defaultSettings);
-                  controlsRef.current.update();
-                }
-                if (
-                  lastCameraPosition.current === null &&
-                  controlsRef.current?.object
-                ) {
-                  lastCameraPosition.current =
-                    controlsRef.current.object.position.z;
-                }
-              }}
-              onChange={(event) => {
-                const camera = event.target?.object;
-                if (camera && !isInMarkerView) {
-                  if (lastCameraPosition.current === null) {
-                    lastCameraPosition.current = camera.position.z;
-                    if (camera.position.z < 20) {
-                      onZoom?.();
-                    }
-                    return;
-                  }
-
-                  const zDifference = Math.abs(
-                    camera.position.z - lastCameraPosition.current
-                  );
-
-                  // If we're in a zoomed state (z < 10), stay zoomed
-                  if (camera.position.z < 20) {
-                    onZoom?.();
-                  }
-                  // Only reset view if we're actually returning to main view
-                  else if (camera.position.z > 20) {
-                    onResetView?.();
-                  }
-
-                  lastCameraPosition.current = camera.position.z;
-                }
-              }}
-              onTouchStart={(event) => {
-                event.preventDefault();
-              }}
-              onTouchMove={(event) => {
-                event.preventDefault();
-              }}
-            />
-            <PostProcessingEffects />
-          </Canvas>
+          /> */}
           {activeAnnotation && activeAnnotation.fromScreen ? (
             <ScreenAnnotation
               text={activeAnnotation.text}
@@ -1009,101 +805,6 @@ function ThreeDVotiveStand({
                 primary
               />
             )
-          )}
-
-          <div className="tooltip-wrapper">
-            {tooltipData.map((tooltip, index) => (
-              <div
-                key={index}
-                className="tooltip-container"
-                style={{
-                  position: "absolute",
-                  padding: "8px 12px",
-                  left: `${tooltip.position.x}px`,
-                  top: `${tooltip.position.y}px`,
-                  transform: "translate(-50%, -100%)",
-                  backgroundColor: "rgba(0, 0, 0, 0.9)",
-                  color: "white",
-                  borderRadius: "4px",
-                  zIndex: 1000,
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  opacity: tooltip.userName ? 1 : 0,
-                  visibility: tooltip.userName ? "visible" : "hidden",
-                  pointerEvents: "none",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {tooltip.userName}
-              </div>
-            ))}
-          </div>
-          {/* After your existing annotation div */}
-          {buttonPopupVisible && (
-            <div
-              style={{
-                position: "fixed",
-                left: "50%",
-                top: "50%",
-                transform: "translate(-50%, -50%)",
-                backgroundColor: "rgba(0, 0, 0, 0.8)",
-                color: "#fff",
-                borderRadius: "5%",
-                zIndex: 100000,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "20px",
-                border: "2px solid goldenrod",
-                pointerEvents: "auto",
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  marginBottom: "10px",
-                  fontSize: "18px",
-                  fontWeight: "bold",
-                }}
-              >
-                {buttonData.title}
-              </h3>
-              <p
-                style={{
-                  margin: 0,
-                  paddingBottom: "15px",
-                  textAlign: "center",
-                }}
-              >
-                {buttonData.message}
-              </p>
-              <button
-                // onClick={() => setButtonPopupVisible(false)}
-                style={{
-                  position: "relative",
-                  zIndex: 100001,
-                  pointerEvents: "auto",
-                  cursor: "pointer",
-                  padding: "10px",
-                  marginTop: "auto",
-                  backgroundColor: "goldenrod",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "8px",
-                  width: "70px",
-                  height: "30px",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  fontSize: "16px",
-                  fontWeight: "bold",
-                  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-                }}
-              >
-                OK
-              </button>
-            </div>
           )}
         </div>
       )}

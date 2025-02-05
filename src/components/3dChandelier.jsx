@@ -157,33 +157,6 @@ function PhysicsChandelier({ url, visible = true }) {
       }
     }
   });
-
-  // useEffect(() => {
-  //   if (modelRef.current) {
-  //     // Traverse all materials in the model and animate their opacity
-  //     modelRef.current.traverse((child) => {
-  //       if (child.material) {
-  //         if (Array.isArray(child.material)) {
-  //           child.material.forEach((mat) => {
-  //             mat.transparent = true;
-  //             gsap.to(mat, {
-  //               opacity: visible ? 1 : 0,
-  //               duration: 1.5,
-  //               ease: "power2.inOut",
-  //             });
-  //           });
-  //         } else {
-  //           child.material.transparent = true;
-  //           gsap.to(child.material, {
-  //             opacity: visible ? 1 : 0,
-  //             duration: 1.5,
-  //             ease: "power2.inOut",
-  //           });
-  //         }
-  //       }
-  //     });
-  //   }
-  // }, [visible]);
   return (
     <group>
       <RigidBody
