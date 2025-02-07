@@ -37,7 +37,8 @@ import { useAuth } from "@clerk/nextjs"; // Add this line if it's missing
 import EmojiPicker from "emoji-picker-react";
 import { Theme } from "emoji-picker-react";
 import { EmojiStyle } from "emoji-picker-react";
-const Carousel = ({ images, logos, setCarouselLoaded }) => {
+const Carousel = ({ images, setCarouselLoaded }) => {
+  const [loadedImages, setLoadedImages] = useState(0);
   const { isSignedIn, user, isLoaded } = useUser();
   const { openSignIn } = useClerk();
   const { getToken } = useAuth(); // Move useAuth to the top level of the component
@@ -88,15 +89,54 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showEmojiPicker]);
-  useEffect(() => {
-    // Simulate async data or image loading
-    const loadCarouselContent = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setCarouselLoaded(true);
-    };
+  // Trigger setCarouselLoaded when all images are loaded
+  const handleImageLoad = () => {
+    setLoadedImages((prevCount) => prevCount + 1);
+  };
 
-    loadCarouselContent();
-  }, [setCarouselLoaded]);
+  // ✅ Handle failed image load
+  const handleImageError = (src) => {
+    console.error(`Failed to load image: ${src}`);
+    setLoadedImages((prevCount) => prevCount + 1); // Still increment to prevent loader hang
+  };
+
+  // ✅ Trigger loader to hide only when ALL images are loaded
+  useEffect(() => {
+    if (loadedImages === images.length) {
+      setCarouselLoaded(true);
+    }
+  }, [loadedImages, images.length, setCarouselLoaded]);
+
+  useEffect(() => {
+    console.log(`Loaded images: ${loadedImages}/${images.length}`);
+    if (loadedImages === images.length) {
+      console.log("✅ All images loaded.");
+      setCarouselLoaded(true);
+    }
+  }, [loadedImages, images.length]);
+
+  useEffect(() => {
+    const imgElements = []; // Track image elements for cleanup
+
+    images.forEach((image) => {
+      const img = new window.Image();
+      img.src = image.src;
+      img.onload = handleImageLoad;
+      img.onerror = () => {
+        console.error(`❌ Failed to load image: ${img.src}`);
+        handleImageLoad();
+      };
+      imgElements.push(img); // Store the image for cleanup
+    });
+
+    // ✅ Cleanup function to remove event listeners
+    return () => {
+      imgElements.forEach((img) => {
+        img.onload = null;
+        img.onerror = null;
+      });
+    };
+  }, [images]);
 
   useEffect(() => {
     const path = router.asPath;
@@ -485,7 +525,7 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
         const currentTime = Date.now();
 
         if (beastsSnapshot.empty) {
-          console.log("No active rides to process.");
+          // console.log("No active rides to process.");
           return;
         }
 
@@ -494,9 +534,9 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
           const rideStartTime = rideData.timestamp?.toMillis();
 
           if (!rideStartTime) {
-            console.warn(
-              `Invalid rideStartTime for beast ${doc.id}. Skipping.`
-            );
+            // console.warn(
+            //   `Invalid rideStartTime for beast ${doc.id}. Skipping.`
+            // );
             continue;
           }
 
@@ -863,7 +903,7 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
         const currentTime = Date.now();
 
         if (beastsSnapshot.empty) {
-          console.log("No active rides to process.");
+          // console.log("No active rides to process.");
           return;
         }
 
@@ -1075,6 +1115,13 @@ const Carousel = ({ images, logos, setCarouselLoaded }) => {
                           </div>
                         </div>
                       )}
+                      <img
+                        src={image.src}
+                        alt={image.title}
+                        onLoad={handleImageLoad}
+                        onError={() => handleImageError(image.src)} // Catch failed loads
+                        style={{ display: "none" }} // Hidden from view
+                      />
                     </div>
                   </div>
                 </div>

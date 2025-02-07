@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 
 function HolographicStatue() {
   const statueRef = useRef();
+  const groupRef = useRef();
   const { scene } = useThree();
   const loader = new GLTFLoader();
   const initialY = useRef(0);
@@ -92,26 +93,41 @@ function HolographicStatue() {
     object3.getWorldPosition(worldPosition);
     console.log("World Position:", worldPosition);
   }
+
   useEffect(() => {
     loader.load("/statue3.glb", (gltf) => {
       const statue = gltf.scene;
+
+      // Create an anchor group with initial position
+      const anchorGroup = new THREE.Group();
+      const basePosition = [-6.35, 11.9, 12.8]; // Store base position
+      anchorGroup.position.set(...basePosition);
+      initialY.current = basePosition[1]; // Set initialY to match the base y-position
+      // Create a rotation group
+      const rotationGroup = new THREE.Group();
+
+      // Set up the hierarchy
+      anchorGroup.add(rotationGroup);
+      rotationGroup.add(statue);
+
+      // Store refs
       statueRef.current = statue;
+      groupRef.current = { anchor: anchorGroup, rotation: rotationGroup };
 
-      // const box = new THREE.Box3().setFromObject(statue);
-      // const size = box.getSize(new THREE.Vector3());
-      // console.log("Statue dimensions:", size);
-
+      // Apply your existing transformations
       statue.scale.set(0.2, 0.2, 0.2);
-      statue.position.set(0, 0, 0);
-
       statue.rotation.y = Math.PI / 180;
-      initialY.current = statue.position.y;
 
-      // Create a separate holographic material for the halo with a gold color
+      // Center the statue in the rotation group
+      const box = new THREE.Box3().setFromObject(statue);
+      const center = box.getCenter(new THREE.Vector3());
+      statue.position.sub(center);
+
+      // Your existing material application code
       const goldHolographicMaterial = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
-          uColor: { value: new THREE.Color(0xffd700) }, // Gold color
+          uColor: { value: new THREE.Color(0xffd700) },
         },
         vertexShader: holographicMaterial.vertexShader,
         fragmentShader: holographicMaterial.fragmentShader,
@@ -119,40 +135,38 @@ function HolographicStatue() {
         blending: THREE.AdditiveBlending,
       });
 
-      // Apply materials
       statue.traverse((child) => {
         if (child.isMesh) {
           if (child.name.toLowerCase().includes("halo")) {
             console.log("Found halo:", child.name);
-            // Apply the gold holographic material to the halo
             child.material = goldHolographicMaterial;
           } else {
-            // Apply the regular holographic material to the rest
             child.material = holographicMaterial;
           }
         }
       });
 
-      scene.add(statue);
+      // Add the anchor group to the scene instead of the statue directly
+      scene.add(anchorGroup);
     });
 
     return () => {
-      if (statueRef.current) {
-        scene.remove(statueRef.current);
+      if (groupRef.current?.anchor) {
+        scene.remove(groupRef.current.anchor);
       }
     };
   }, [scene]);
+
   useFrame((state, delta) => {
-    if (statueRef.current) {
-      // Hover animation for floating effect
-      statueRef.current.position.y =
+    if (statueRef.current && groupRef.current) {
+      // Apply hover animation to the anchor group
+      groupRef.current.anchor.position.y =
         initialY.current + Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
 
-      // Slowly rotate the statue group
-      // statueRef.current.rotation.y += delta * 0.1;
-      // Adjust 0.1 to change the rotation speed
+      // Apply rotation to the rotation group
+      groupRef.current.rotation.rotation.y += delta * 0.1;
 
-      // Update shader time for holographic effect
+      // Keep your existing shader update logic
       statueRef.current.traverse((child) => {
         if (child.material?.uniforms?.uTime) {
           child.material.uniforms.uTime.value += delta;
@@ -160,6 +174,7 @@ function HolographicStatue() {
       });
     }
   });
+
   return null;
 }
 

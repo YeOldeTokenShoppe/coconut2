@@ -15,12 +15,12 @@ const BurningEffect = dynamic(() => import("../components/BurningEffect"), {
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true); // Track the overall loading state
   const [heroLoaded, setHeroLoaded] = useState(false); // Track when Hero is loaded
-  const [communionLoaded, setCommunionLoaded] = useState(false); // Track when Communion is loaded
+  // const [communionLoaded, setCommunionLoaded] = useState(false); // Track when Communion is loaded
   useEffect(() => {
-    if (heroLoaded && communionLoaded) {
+    if (heroLoaded) {
       setIsLoading(false);
     }
-  }, [heroLoaded, communionLoaded]);
+  }, [heroLoaded]);
 
   return (
     <>
@@ -31,7 +31,7 @@ export default function Home() {
 
         <NavBar />
       </div>
-      <Communion setCommunionLoaded={setCommunionLoaded} />
+      <Communion />
     </>
   );
 }

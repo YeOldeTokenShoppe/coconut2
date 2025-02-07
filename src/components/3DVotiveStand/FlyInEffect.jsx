@@ -1,34 +1,10 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import * as THREE from "three";
-import { DEFAULT_CAMERA } from "./defaultCamera"; // Centralized configuration
-import { getScreenCategory } from "./screenCategories"; // Dynamic screen detection
+import { getCameraConfig, getScreenCategory } from "./cameraConfig";
 
 function FlyInEffect({ cameraRef, duration = 4 }) {
-  const animationCompleted = useRef(false); // Track if animation has completed
-
-  // Fetch responsive camera settings dynamically
-  const getResponsivePositions = () => {
-    const screenCategory = getScreenCategory(); // Detect screen category
-    const settings = DEFAULT_CAMERA[screenCategory];
-
-    if (settings) {
-      return {
-        targetPosition: settings.position, // From configuration
-        targetLookAt: settings.target, // From configuration
-        fov: settings.fov, // From configuration
-        useFlyIn: screenCategory !== "phone-small", // Skip fly-in for phones
-      };
-    }
-
-    // Fallback to desktop-medium
-    return {
-      targetPosition: DEFAULT_CAMERA["desktop-medium"].position,
-      targetLookAt: DEFAULT_CAMERA["desktop-medium"].target,
-      fov: DEFAULT_CAMERA["desktop-medium"].fov,
-      useFlyIn: true,
-    };
-  };
+  const animationCompleted = useRef(false);
 
   useEffect(() => {
     if (!cameraRef.current || animationCompleted.current) return;
@@ -36,37 +12,49 @@ function FlyInEffect({ cameraRef, duration = 4 }) {
     const camera = cameraRef.current;
     animationCompleted.current = true;
 
-    // Get responsive positions
-    const { targetPosition, targetLookAt, useFlyIn } = getResponsivePositions();
+    const config = getCameraConfig();
+    const category = getScreenCategory();
 
-    // Directly set camera for phone screens
-    if (!useFlyIn) {
-      camera.position.set(...targetPosition);
-      camera.lookAt(new THREE.Vector3(...targetLookAt));
+    if (category.startsWith("phone")) {
+      camera.position.set(...config.position);
+      camera.lookAt(new THREE.Vector3(...config.target));
       return;
     }
 
-    // Initial Camera Setup for Fly-In
-    const startDistance = 40; // Starting far away, can be dynamic if needed
-    camera.position.set(-startDistance, startDistance, -startDistance);
+    // Initial setup
+    const startDistance = 100;
+    camera.position.set(0, startDistance, 0);
 
     const tempLookAt = new THREE.Vector3();
+    const targetLookAt = new THREE.Vector3(...config.target);
 
-    // GSAP Animation for Camera Position
-    gsap.to(camera.position, {
-      x: targetPosition[0],
-      y: targetPosition[1],
-      z: targetPosition[2],
-      duration,
+    // Create a timeline for sequential animations
+    const tl = gsap.timeline();
+
+    // First animation: fly in to initial position
+    tl.to(camera.position, {
+      x: config.position[0],
+      y: config.position[1],
+      z: config.position[2],
+      duration: duration * 0.8, // Use 70% of total duration for first animation
       ease: "power2.inOut",
       onUpdate: () => {
-        tempLookAt.lerp(new THREE.Vector3(...targetLookAt), 0.1);
+        tempLookAt.lerp(targetLookAt, 0.1);
         camera.lookAt(tempLookAt);
       },
-      onComplete: () => {
-        camera.lookAt(new THREE.Vector3(...targetLookAt));
-      },
     });
+
+    // Second animation: subtle zoom in
+    // tl.to(camera.position, {
+    //   x: config.position[0] * 0.75, // Move 15% closer
+    //   y: config.position[1] * 0.75,
+    //   z: config.position[2] * 0.75,
+    //   duration: duration * 0.4, // Use remaining 30% of duration
+    //   ease: "power1.inOut",
+    //   onUpdate: () => {
+    //     camera.lookAt(targetLookAt);
+    //   },
+    // });
   }, [cameraRef, duration]);
 
   return null;

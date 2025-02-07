@@ -7,7 +7,13 @@ body {
   margin: 0;
   background-color: #ffeff5;
 } */
-
+.music-player {
+  transform: scale(0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center items horizontally */
+  justify-content: center;
+}
 #app-cover {
   position: absolute;
   top: 50%;
@@ -52,6 +58,7 @@ body {
 
 #player-track {
   position: absolute;
+  height: rem;
   top: 0;
   right: 15px;
   left: 15px;
@@ -308,4 +315,27 @@ body {
 
 .button:hover i {
   color: #fff;
+}
+/* Add to your existing styles */
+.volume-control input[type="range"] {
+  -webkit-appearance: none;
+  margin: 0;
+  padding: 0;
+}
+
+.volume-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  margin-top: -4px;
+}
+
+.volume-control input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: transparent;
 }

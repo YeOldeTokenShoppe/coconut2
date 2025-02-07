@@ -69,17 +69,19 @@ const contract = getContract({
   chain: defineChain(11155111),
   address: "0xde7Cc5B93e0c1A2131c0138d78d0D0a33cc36e42",
 });
-function BurnGallery({ setBurnGalleryLoaded }) {
+function BurnGallery({
+  setComponentLoaded,
+  setThreeDSceneLoaded,
+  setShowSpotify,
+}) {
   useEffect(() => {
-    // Simulate async data or image loading
-    const loadBurnGalleryContent = async () => {
-      // Example: simulate loading (replace with real logic)
+    const loadContent = async () => {
       await new Promise((resolve) => setTimeout(resolve, 500));
-      setBurnGalleryLoaded(true); // Notify parent that loading is complete
+      setComponentLoaded(true);
     };
+    loadContent();
+  }, [setComponentLoaded]);
 
-    loadBurnGalleryContent();
-  }, [setBurnGalleryLoaded]);
   const router = useRouter();
   const { user } = useUser();
   const { openSignIn } = useClerk();
@@ -213,7 +215,8 @@ function BurnGallery({ setBurnGalleryLoaded }) {
               <ThreeDVotiveStand
                 isMobileView={isMobileView}
                 onScreenClick={handleScreenClick}
-                setIsLoading={() => setIsLoading(true)}
+                setIsLoading={setThreeDSceneLoaded}
+                setShowSpotify={setShowSpotify}
                 onCameraMove={() => {
                   setIsInMarkerView(true);
                   setIsChandelierVisible(false);

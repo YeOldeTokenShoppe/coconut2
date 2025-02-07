@@ -13,13 +13,12 @@ const Numerology = dynamic(() => import("../components/Numerology"), {
 export default function NumerologyPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [numerologyLoaded, setNumerologyLoaded] = useState(false); // Track when Thesis is loaded
-  const [communionLoaded, setCommunionLoaded] = useState(false); // Track when Communion is loaded
 
   useEffect(() => {
-    if (numerologyLoaded && communionLoaded) {
+    if (numerologyLoaded) {
       setIsLoading(false);
     }
-  }, [numerologyLoaded, communionLoaded]);
+  }, [numerologyLoaded]);
   return (
     <>
       {isLoading && <Loader />}
@@ -30,7 +29,7 @@ export default function NumerologyPage() {
         <NavBar />
       </div>
       <div style={{ marginTop: "3rem" }}>
-        <Communion setCommunionLoaded={setCommunionLoaded} />
+        <Communion />
       </div>
     </>
   );

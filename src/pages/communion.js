@@ -18,10 +18,10 @@ export default function CommunionPage() {
   const [communionLoaded, setCommunionLoaded] = useState(false);
 
   useEffect(() => {
-    if (carouselLoaded && communionLoaded) {
+    if (carouselLoaded) {
       setIsLoading(false);
     }
-  }, [carouselLoaded, communionLoaded]);
+  }, [carouselLoaded]);
   const [isLargeScreen, setIsLargeScreen] = useState(false);
   const canvasRef = useRef(null);
 
@@ -255,7 +255,7 @@ export default function CommunionPage() {
         </div>
       </div>
 
-      {/* <Box
+      <Box
         display="flex"
         flexDirection={{ base: "column", md: "row" }} // Column on small screens, row on larger screens
         alignItems="center"
@@ -284,11 +284,8 @@ export default function CommunionPage() {
           <MoonRoomModal isOpen={isOpen} onClose={onClose} />
         </Box>
 
-        <Box
-  
-          style={{ border: "3px solid goldenrod", borderRadius: "10px" }}
-        >
-          <iframe
+        <Box style={{ border: "3px solid goldenrod", borderRadius: "10px" }}>
+          {/* <iframe
             src="https://open.spotify.com/embed/playlist/5wWiiVDG0Q83zVitjPf6fj?utm_source=generator"
             width="100%"
             height="352"
@@ -296,9 +293,9 @@ export default function CommunionPage() {
             allowfullscreen=""
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
             loading="lazy"
-          ></iframe>
+          ></iframe> */}
         </Box>
-      </Box> */}
+      </Box>
 
       <div
         style={{

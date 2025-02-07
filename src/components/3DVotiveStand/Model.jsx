@@ -17,13 +17,21 @@ import DarkClouds from "./Clouds";
 import HolographicStatue from "./HolographicStatue";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 import FloatingCandleViewer from "./CandleInteraction";
-import html2canvas from "html2canvas";
-import { TextureLoader, MeshBasicMaterial } from "three";
+import gui from "lil-gui";
+import BackgroundEffects from "./BackgroundEffects";
+import FloatingPhoneViewer from "./FloatingPhoneViewer";
+
+import {
+  VideoTexture,
+  LinearFilter,
+  DoubleSide,
+  MeshBasicMaterial,
+} from "three";
 
 function Model({
   scale,
   setTooltipData,
-
+  setShowSpotify,
   setCamera,
   setMarkers,
   markers,
@@ -35,6 +43,8 @@ function Model({
   controlsRef,
   showFloatingViewer,
   setShowFloatingViewer,
+  setShowPhoneViewer,
+  showPhoneViewer,
   onCandleSelect,
 }) {
   const gltf = useGLTF("/isometricScene.glb");
@@ -46,15 +56,15 @@ function Model({
   const mixerRef = useRef();
   const scene = gltf.scene;
   const rotateStandsRef = useRef(null);
-
+  // const [showSpotify, setShowSpotify] = useState(false);
   const directionalLightRef = useRef();
   const ambientLightRef = useRef();
   const hemisphereLightRef = useRef();
   const directionalLightHelperRef = useRef();
   const hemisphereLightHelperRef = useRef();
-  const guiRef = useRef();
+  // const guiRef = useRef();
   const box = new THREE.Box3();
-
+  // const gui = new GUI();
   const previousCandleRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const mouseDelta = useRef({ x: 0, y: 0 });
@@ -65,8 +75,24 @@ function Model({
     closeup: new THREE.Vector3(-13.8, 22.8, -16.8),
   };
   const [selectedCandle, setSelectedCandle] = useState(null);
+
+  // const [isPlaying, setIsPlaying] = useState(false);
+  // const audioRef = useRef(null);
+
+  // useEffect(() => {
+  //   audioRef.current = new Audio("/every1.mp3");
+  //   audioRef.current.loop = true;
+
+  //   return () => {
+  //     if (audioRef.current) {
+  //       audioRef.current.pause();
+  //       audioRef.current.currentTime = 0;
+  //     }
+  //   };
+  // }, []);
+
   const handleCandleClick = (event) => {
-    console.log("Candle click detected");
+    // console.log("Candle click detected");
     event.stopPropagation();
 
     if (showFloatingViewer) return;
@@ -80,13 +106,25 @@ function Model({
       -(event.nativeEvent.offsetY / event.nativeEvent.target.clientHeight) * 2 +
       1;
 
-    console.log("Mouse coordinates:", mouse);
+    // console.log("Mouse coordinates:", mouse);
 
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
     const intersectableObjects = [];
     modelRef.current.traverse((object) => {
+      if (object.name === "Object_5" || object.parent?.name === "Object_5") {
+        intersectableObjects.push(object);
+      }
+
+      if (object.name.startsWith("Boombox")) {
+        console.log("Found Boombox object:", object.name);
+        intersectableObjects.push(object);
+      }
+      if (object.name.toLowerCase().includes("ball")) {
+        console.log("Found ball object:", object.name);
+        intersectableObjects.push(object);
+      }
       if (object.name.startsWith("VCANDLE")) {
         intersectableObjects.push(object);
 
@@ -106,6 +144,40 @@ function Model({
     const intersects = raycaster.intersectObjects(intersectableObjects, true);
 
     if (intersects.length > 0) {
+      if (
+        intersects[0].object.name === "Object_5" ||
+        intersects[0].object.parent?.name === "Object_5.001"
+      ) {
+        const modal = document.getElementById("phoneModal");
+        if (modal) {
+          modal.style.display = "flex";
+
+          modal.onclick = (e) => {
+            if (e.target === modal) {
+              modal.style.display = "none";
+            }
+          };
+        }
+        return;
+      }
+      if (
+        intersects[0].object.name === "Boombox" ||
+        intersects[0].object.name.startsWith("Boombox") ||
+        (intersects[0].object.parent &&
+          intersects[0].object.parent.name.startsWith("Boombox"))
+      ) {
+        console.log("Boombox clicked!");
+        setShowSpotify((prev) => !prev); // Toggle Spotify widget
+        return;
+      }
+      if (intersects[0].object.name.toLowerCase().includes("ball")) {
+        console.log("Ball clicked!");
+        const modal = document.getElementById("magic8Modal");
+        if (modal) {
+          modal.style.display = "flex"; // Use flex instead of block
+        }
+        return;
+      }
       let candleParent = intersects[0].object;
       while (candleParent && !candleParent.name.startsWith("VCANDLE")) {
         candleParent = candleParent.parent;
@@ -127,81 +199,246 @@ function Model({
     }
   };
 
-  // useEffect(() => {
-  //   if (modelRef.current) {
-  //     const screen = modelRef.current.getObjectByName("Screen1");
+  useEffect(() => {
+    if (modelRef.current) {
+      const screen = modelRef.current.getObjectByName("Screen1");
 
-  //     if (screen) {
-  //       const iframe = document.createElement("iframe");
-  //       iframe.src = "/html/magic.html"; // Ensure correct path
-  //       iframe.style.width = "1024px";
-  //       iframe.style.height = "846px";
-  //       iframe.style.border = "none";
-  //       iframe.style.position = "absolute";
-  //       iframe.style.top = "-10000px"; // Hide off-screen
-  //       document.body.appendChild(iframe);
+      if (screen) {
+        // ✅ Create a video element
+        const video = document.createElement("video");
+        video.src = "/13.mp4"; // Place your video in public/videos
+        video.loop = true; // Loop the video
+        video.muted = true; // Mute the video if needed
+        video.autoplay = true; // Autoplay the video
+        video.playsInline = true; // Important for mobile autoplay
+        video.crossOrigin = "anonymous"; // Handle cross-origin if necessary
 
-  //       let isRendered = false;
+        // Start the video
+        video.play();
 
-  //       iframe.onload = () => {
-  //         if (isRendered) return;
-  //         isRendered = true;
+        // ✅ Create a VideoTexture
+        const videoTexture = new VideoTexture(video);
+        videoTexture.minFilter = LinearFilter;
+        videoTexture.magFilter = LinearFilter;
+        videoTexture.format = THREE.RGBAFormat;
+        videoTexture.anisotropy = 16; // For better texture quality
 
-  //         const iframeDoc =
-  //           iframe.contentDocument || iframe.contentWindow.document;
-  //         const iframeBody = iframeDoc.body;
+        videoTexture.rotation = Math.PI / -2; // Rotate 90 degrees
+        videoTexture.center.set(0.5, 0.5); // Rotate around the center
+        videoTexture.flipY = false;
+        // ✅ Apply the VideoTexture to the Screen1 material
+        screen.material = new MeshBasicMaterial({
+          map: videoTexture,
+          side: DoubleSide,
+          transparent: false,
+          opacity: 1,
+          color: 0xffffff,
+        });
 
-  //         const canvasWidth = 1024;
-  //         const canvasHeight = 846;
-  //         const canvas = document.createElement("canvas");
-  //         canvas.width = canvasWidth;
-  //         canvas.height = canvasHeight;
-  //         const ctx = canvas.getContext("2d");
+        screen.material.needsUpdate = true;
+      }
+    }
+  }, [modelRef.current]);
+  useEffect(() => {
+    if (modelRef.current) {
+      const screen = modelRef.current.getObjectByName("Screen2");
 
-  //         try {
-  //           html2canvas(iframeBody, {
-  //             width: canvasWidth,
-  //             height: canvasHeight,
-  //             useCORS: true,
-  //             backgroundColor: null,
-  //             logging: true,
-  //             scale: 1,
-  //           }).then((iframeCanvas) => {
-  //             // Draw the captured iframe content onto the canvas
-  //             ctx.drawImage(iframeCanvas, 0, 0, canvasWidth, canvasHeight);
+      if (screen) {
+        // ✅ Create a video element
+        const video = document.createElement("video");
+        video.src = "/14.mp4"; // Place your video in public/videos
+        video.loop = true; // Loop the video
+        video.muted = true; // Mute the video if needed
+        video.autoplay = true; // Autoplay the video
+        video.playsInline = true; // Important for mobile autoplay
+        video.crossOrigin = "anonymous"; // Handle cross-origin if necessary
 
-  //             // Apply canvas as texture
-  //             const texture = new THREE.CanvasTexture(canvas);
-  //             texture.flipY = false; // Correct for Three.js coordinates
+        // Start the video
+        video.play();
 
-  //             // ✅ Rotate the texture 90 degrees (clockwise)
-  //             texture.rotation = Math.PI / -2; // 90 degrees in radians
-  //             texture.center.set(0.5, 0.5); // Rotate around the center
-  //             // texture.offset.set(-0.55, -0.25);
+        // ✅ Create a VideoTexture
+        const videoTexture = new VideoTexture(video);
+        videoTexture.minFilter = LinearFilter;
+        videoTexture.magFilter = LinearFilter;
+        videoTexture.format = THREE.RGBAFormat;
+        videoTexture.anisotropy = 16; // For better texture quality
 
-  //             texture.needsUpdate = true;
+        videoTexture.rotation = Math.PI / -2; // Rotate 90 degrees
+        videoTexture.center.set(0.5, 0.5); // Rotate around the center
+        videoTexture.flipY = false;
+        // ✅ Apply the VideoTexture to the Screen1 material
+        screen.material = new MeshBasicMaterial({
+          map: videoTexture,
+          side: DoubleSide,
+          transparent: false,
+          opacity: 1,
+          color: 0xffffff,
+        });
 
-  //             screen.material = new THREE.MeshBasicMaterial({
-  //               map: texture,
-  //               side: THREE.DoubleSide,
-  //               transparent: false,
-  //               opacity: 1,
-  //               color: 0xffffff,
-  //             });
-  //             screen.material.needsUpdate = true;
+        screen.material.needsUpdate = true;
+      }
+    }
+  }, [modelRef.current]);
+  useEffect(() => {
+    if (modelRef.current) {
+      const screen = modelRef.current.getObjectByName("Screen3");
 
-  //             // ✅ Clean up: Remove the iframe
-  //             if (iframe.parentNode) {
-  //               document.body.removeChild(iframe);
-  //             }
-  //           });
-  //         } catch (error) {
-  //           console.error("Error rendering iframe:", error);
-  //         }
-  //       };
-  //     }
-  //   }
-  // }, [modelRef.current]);
+      if (screen) {
+        // ✅ Create a video element
+        const video = document.createElement("video");
+        video.src = "/15.mp4"; // Place your video in public/videos
+        video.loop = true; // Loop the video
+        video.muted = true; // Mute the video if needed
+        video.autoplay = true; // Autoplay the video
+        video.playsInline = true; // Important for mobile autoplay
+        video.crossOrigin = "anonymous"; // Handle cross-origin if necessary
+
+        // Start the video
+        video.play();
+
+        // ✅ Create a VideoTexture
+        const videoTexture = new VideoTexture(video);
+        videoTexture.minFilter = LinearFilter;
+        videoTexture.magFilter = LinearFilter;
+        videoTexture.format = THREE.RGBAFormat;
+        videoTexture.anisotropy = 16; // For better texture quality
+
+        videoTexture.rotation = Math.PI / 1; // Rotate 90 degrees
+        videoTexture.center.set(0.5, 0.5); // Rotate around the center
+        videoTexture.flipY = false;
+        // ✅ Apply the VideoTexture to the Screen1 material
+        screen.material = new MeshBasicMaterial({
+          map: videoTexture,
+          side: DoubleSide,
+          transparent: false,
+          opacity: 1,
+          color: 0xffffff,
+        });
+
+        screen.material.needsUpdate = true;
+      }
+    }
+  }, [modelRef.current]);
+  useEffect(() => {
+    if (modelRef.current) {
+      const screen = modelRef.current.getObjectByName("Screen4");
+
+      if (screen) {
+        // ✅ Create a video element
+        const video = document.createElement("video");
+        video.src = "/12.mp4"; // Place your video in public/videos
+        video.loop = true; // Loop the video
+        video.muted = true; // Mute the video if needed
+        video.autoplay = true; // Autoplay the video
+        video.playsInline = true; // Important for mobile autoplay
+        video.crossOrigin = "anonymous"; // Handle cross-origin if necessary
+
+        // Start the video
+        video.play();
+
+        // ✅ Create a VideoTexture
+        const videoTexture = new VideoTexture(video);
+        videoTexture.minFilter = LinearFilter;
+        videoTexture.magFilter = LinearFilter;
+        videoTexture.format = THREE.RGBAFormat;
+        videoTexture.anisotropy = 16; // For better texture quality
+
+        videoTexture.rotation = Math.PI / 2; // Rotate 90 degrees
+        videoTexture.center.set(0.5, 0.5); // Rotate around the center
+        videoTexture.flipY = false;
+        // ✅ Apply the VideoTexture to the Screen1 material
+        screen.material = new MeshBasicMaterial({
+          map: videoTexture,
+          side: DoubleSide,
+          transparent: false,
+          opacity: 1,
+          color: 0xffffff,
+        });
+
+        screen.material.needsUpdate = true;
+      }
+    }
+  }, [modelRef.current]);
+  useEffect(() => {
+    if (modelRef.current) {
+      const screen = modelRef.current.getObjectByName("Screen5");
+
+      if (screen) {
+        // ✅ Create a video element
+        const video = document.createElement("video");
+        video.src = "/3.mp4"; // Place your video in public/videos
+        video.loop = true; // Loop the video
+        video.muted = true; // Mute the video if needed
+        video.autoplay = true; // Autoplay the video
+        video.playsInline = true; // Important for mobile autoplay
+        video.crossOrigin = "anonymous"; // Handle cross-origin if necessary
+
+        // Start the video
+        video.play();
+
+        // ✅ Create a VideoTexture
+        const videoTexture = new VideoTexture(video);
+        videoTexture.minFilter = LinearFilter;
+        videoTexture.magFilter = LinearFilter;
+        videoTexture.format = THREE.RGBAFormat;
+        videoTexture.anisotropy = 16; // For better texture quality
+
+        videoTexture.rotation = Math.PI / -2; // Rotate 90 degrees
+        videoTexture.center.set(0.5, 0.5); // Rotate around the center
+        videoTexture.flipY = false;
+        // ✅ Apply the VideoTexture to the Screen1 material
+        screen.material = new MeshBasicMaterial({
+          map: videoTexture,
+          side: DoubleSide,
+          transparent: false,
+          opacity: 1,
+          color: 0xffffff,
+        });
+
+        screen.material.needsUpdate = true;
+      }
+    }
+  }, [modelRef.current]);
+  useEffect(() => {
+    if (modelRef.current) {
+      const screen = modelRef.current.getObjectByName("Screen6");
+
+      if (screen) {
+        // ✅ Create a video element
+        const video = document.createElement("video");
+        video.src = "/20.mp4"; // Place your video in public/videos
+        video.loop = true; // Loop the video
+        video.muted = true; // Mute the video if needed
+        video.autoplay = true; // Autoplay the video
+        video.playsInline = true; // Important for mobile autoplay
+        video.crossOrigin = "anonymous"; // Handle cross-origin if necessary
+
+        // Start the video
+        video.play();
+
+        // ✅ Create a VideoTexture
+        const videoTexture = new VideoTexture(video);
+        videoTexture.minFilter = LinearFilter;
+        videoTexture.magFilter = LinearFilter;
+        videoTexture.format = THREE.RGBAFormat;
+        videoTexture.anisotropy = 16; // For better texture quality
+
+        videoTexture.rotation = Math.PI / 1; // Rotate 90 degrees
+        videoTexture.center.set(0.5, 0.5); // Rotate around the center
+        videoTexture.flipY = false;
+        // ✅ Apply the VideoTexture to the Screen1 material
+        screen.material = new MeshBasicMaterial({
+          map: videoTexture,
+          side: DoubleSide,
+          transparent: false,
+          opacity: 1,
+          color: 0xffffff,
+        });
+
+        screen.material.needsUpdate = true;
+      }
+    }
+  }, [modelRef.current]);
   // useEffect(() => {
   //   if (modelRef.current) {
   //     const screen = modelRef.current.getObjectByName("Screen1");
@@ -218,30 +455,218 @@ function Model({
   //     }
   //   }
   // }, [modelRef.current]);
-  // const object3 = scene.getObjectByName("Object_3");
+  // const object5 = scene.getObjectByName("Object_5");
 
-  // if (object3) {
+  // if (object5) {
   //   const worldPosition = new THREE.Vector3();
-  //   object3.getWorldPosition(worldPosition);
-  //   console.log("Object 3 World Position:", worldPosition);
+  //   object5.getWorldPosition(worldPosition);
+  //   console.log("Object 5 World Position:", worldPosition);
   // }
+
+  // const helpers = useRef({});
+
+  // useEffect(() => {
+  //   const gui = new GUI();
+
+  //   // === Point Light 1 ===
+  //   const pointLight1 = new THREE.PointLight(0xff00ff, 10, 100);
+  //   pointLight1.position.set(4, 23, -90);
+  //   pointLight1.decay = 2;
+  //   pointLight1.castShadow = true;
+
+  //   const helper1 = new THREE.PointLightHelper(pointLight1, 15);
+  //   helpers.current.pointLight1 = helper1;
+  //   scene.add(pointLight1);
+
+  //   const pointLight1Folder = gui.addFolder("Point Light 1");
+  //   const pointLight1Settings = {
+  //     color: "#ff00ff",
+  //     showHelper: false,
+  //   };
+  //   pointLight1Folder
+  //     .add(pointLight1, "intensity", 0, 10, 0.1)
+  //     .name("Intensity");
+  //   pointLight1Folder
+  //     .add(pointLight1.position, "x", -300, 300, 1)
+  //     .name("Position X");
+  //   pointLight1Folder
+  //     .add(pointLight1.position, "y", -300, 300, 1)
+  //     .name("Position Y");
+  //   pointLight1Folder
+  //     .add(pointLight1.position, "z", -300, 300, 1)
+  //     .name("Position Z");
+
+  //   // Color Picker
+  //   pointLight1Folder
+  //     .addColor(pointLight1Settings, "color")
+  //     .name("Color")
+  //     .onChange((value) => pointLight1.color.set(value));
+
+  //   // Helper Toggle
+  //   pointLight1Folder
+  //     .add(pointLight1Settings, "showHelper")
+  //     .name("Toggle Helper")
+  //     .onChange((value) =>
+  //       value ? scene.add(helper1) : scene.remove(helper1)
+  //     );
+
+  //   // === Point Light 2 ===
+  //   const pointLight2 = new THREE.PointLight(0xa6ffff, 10, 200);
+  //   pointLight2.position.set(-220, 195, 300);
+  //   pointLight2.decay = 2;
+  //   pointLight2.castShadow = true;
+
+  //   const helper2 = new THREE.PointLightHelper(pointLight2, 15);
+  //   helpers.current.pointLight2 = helper2;
+  //   scene.add(pointLight2);
+
+  //   const pointLight2Folder = gui.addFolder("Point Light 2");
+  //   const pointLight2Settings = {
+  //     color: "#a6ffff",
+  //     showHelper: false,
+  //   };
+  //   pointLight2Folder
+  //     .add(pointLight2, "intensity", 0, 10, 0.1)
+  //     .name("Intensity");
+  //   pointLight2Folder
+  //     .add(pointLight2.position, "x", -300, 300, 1)
+  //     .name("Position X");
+  //   pointLight2Folder
+  //     .add(pointLight2.position, "y", -300, 300, 1)
+  //     .name("Position Y");
+  //   pointLight2Folder
+  //     .add(pointLight2.position, "z", -300, 300, 1)
+  //     .name("Position Z");
+
+  //   // Color Picker
+  //   pointLight2Folder
+  //     .addColor(pointLight2Settings, "color")
+  //     .name("Color")
+  //     .onChange((value) => pointLight2.color.set(value));
+
+  //   // Helper Toggle
+  //   pointLight2Folder
+  //     .add(pointLight2Settings, "showHelper")
+  //     .name("Toggle Helper")
+  //     .onChange((value) =>
+  //       value ? scene.add(helper2) : scene.remove(helper2)
+  //     );
+
+  //   // === Ambient Light ===
+  //   const ambientLight = new THREE.AmbientLight(0x888888, 1);
+  //   scene.add(ambientLight);
+
+  //   const ambientFolder = gui.addFolder("Ambient Light");
+  //   ambientFolder.add(ambientLight, "intensity", 0, 5, 0.1).name("Intensity");
+
+  //   // === Hemisphere Light ===
+  //   const hemiLight = new THREE.HemisphereLight(0x0055ff, 0xff0000, 0.9);
+  //   hemiLight.position.set(0, 30, 30);
+  //   scene.add(hemiLight);
+
+  //   const hemiHelper = new THREE.HemisphereLightHelper(hemiLight, 20);
+  //   helpers.current.hemiLight = hemiHelper;
+
+  //   const hemiLightSettings = {
+  //     color: "#0055ff",
+  //     groundColor: "#ff0000",
+  //     showHelper: false,
+  //   };
+
+  //   const hemiFolder = gui.addFolder("Hemisphere Light");
+  //   hemiFolder.add(hemiLight, "intensity", 0, 5, 0.1).name("Intensity");
+  //   hemiFolder.add(hemiLight.position, "x", -300, 300, 1).name("Position X");
+  //   hemiFolder.add(hemiLight.position, "y", -300, 300, 1).name("Position Y");
+  //   hemiFolder.add(hemiLight.position, "z", -300, 300, 1).name("Position Z");
+
+  //   // Color Pickers for Sky and Ground
+  //   hemiFolder
+  //     .addColor(hemiLightSettings, "color")
+  //     .name("Sky Color")
+  //     .onChange((value) => hemiLight.color.set(value));
+
+  //   hemiFolder
+  //     .addColor(hemiLightSettings, "groundColor")
+  //     .name("Ground Color")
+  //     .onChange((value) => hemiLight.groundColor.set(value));
+
+  //   // Helper Toggle
+  //   hemiFolder
+  //     .add(hemiLightSettings, "showHelper")
+  //     .name("Toggle Helper")
+  //     .onChange((value) =>
+  //       value ? scene.add(hemiHelper) : scene.remove(hemiHelper)
+  //     );
+
+  //   // === Copy Settings Button ===
+  //   const copySettings = () => {
+  //     const lightSettings = {
+  //       pointLight1: {
+  //         color: pointLight1Settings.color,
+  //         intensity: pointLight1.intensity,
+  //         position: {
+  //           x: pointLight1.position.x,
+  //           y: pointLight1.position.y,
+  //           z: pointLight1.position.z,
+  //         },
+  //       },
+  //       pointLight2: {
+  //         color: pointLight2Settings.color,
+  //         intensity: pointLight2.intensity,
+  //         position: {
+  //           x: pointLight2.position.x,
+  //           y: pointLight2.position.y,
+  //           z: pointLight2.position.z,
+  //         },
+  //       },
+  //       ambientLight: {
+  //         intensity: ambientLight.intensity,
+  //       },
+  //       hemisphereLight: {
+  //         skyColor: hemiLightSettings.color,
+  //         groundColor: hemiLightSettings.groundColor,
+  //         intensity: hemiLight.intensity,
+  //         position: {
+  //           x: hemiLight.position.x,
+  //           y: hemiLight.position.y,
+  //           z: hemiLight.position.z,
+  //         },
+  //       },
+  //     };
+
+  //     navigator.clipboard
+  //       .writeText(JSON.stringify(lightSettings, null, 2))
+  //       .then(() => alert("Light settings copied to clipboard!"))
+  //       .catch((err) => console.error("Error copying settings:", err));
+  //   };
+
+  //   gui.add({ copySettings }, "copySettings").name("📋 Copy Settings");
+
+  //   // === Cleanup ===
+  //   return () => {
+  //     scene.remove(pointLight1, pointLight2, ambientLight, hemiLight);
+  //     Object.values(helpers.current).forEach((helper) => scene.remove(helper));
+  //     gui.destroy();
+  //   };
+  // }, [scene]);
+
   useEffect(() => {
-    const pointLight1 = new THREE.PointLight(0xff00ff, 10, 200);
-    pointLight1.position.set(2, 35, -89); // Adjusted position
+    const pointLight1 = new THREE.PointLight(0xff00ff, 3.5);
+    pointLight1.position.set(2, 43, -20); // Adjusted position
     pointLight1.decay = 2;
     pointLight1.castShadow = true; // Optional: enables shadows
-    const pointLight2 = new THREE.PointLight(0xa6ffff, 10, 200);
-    pointLight2.position.set(-220, 195, 300); // Adjusted position
+    const pointLight2 = new THREE.PointLight(0xa6ffff, 10);
+    pointLight2.position.set(-43, 57, 64); // Adjusted position
     pointLight2.decay = 2;
     pointLight2.castShadow = true;
     const lightHelper = new THREE.PointLightHelper(pointLight2, 15);
     scene.add(pointLight1);
-    // scene.add(pointLight2);
+    scene.add(pointLight2);
     // scene.add(lightHelper);
 
-    const ambientLight = new THREE.AmbientLight(0x888888, 0.45);
-    const hemiLight = new THREE.HemisphereLight(0x0055ff, 0xff0000, 0.8);
-    hemiLight.position.set(0, 30, 30);
+    const ambientLight = new THREE.AmbientLight(0x888888, 1.9);
+    const hemiLight = new THREE.HemisphereLight(0x7300ff, 0xff0000, 1);
+    hemiLight.position.set(32, 33, 89);
 
     scene.add(ambientLight);
     scene.add(hemiLight);
@@ -468,13 +893,13 @@ function Model({
   };
 
   const applyUserImageToLabel = (candle, imageUrl) => {
-    console.log("Applying image to candle:", candle.name, imageUrl);
+    // console.log("Applying image to candle:", candle.name, imageUrl);
 
     // Find the Label2 mesh in the candle's children
     const label = candle.children.find((child) =>
       child.name.includes("Label2")
     );
-    console.log("Found label:", label?.name);
+    // console.log("Found label:", label?.name);
 
     if (label && imageUrl) {
       // Create a new texture loader
@@ -484,7 +909,7 @@ function Model({
       textureLoader.load(
         imageUrl,
         (texture) => {
-          console.log("Texture loaded successfully for", candle.name);
+          // console.log("Texture loaded successfully for", candle.name);
           // Create a new material with the loaded texture
           const material = new THREE.MeshStandardMaterial({
             map: texture,
@@ -503,7 +928,7 @@ function Model({
         },
         undefined,
         (error) => {
-          console.error("Error loading texture:", error);
+          // console.error("Error loading texture:", error);
         }
       );
     } else {
@@ -520,7 +945,8 @@ function Model({
       return;
     }
 
-    console.log("Processing results:", results.length, "candles");
+    const DEFAULT_IMAGE = "Triumph.jpg";
+    // console.log("Processing results:", results.length, "candles");
 
     const availableIndices = [
       "001",
@@ -537,7 +963,7 @@ function Model({
       .sort(() => Math.random() - 0.5)
       .slice(0, results.length);
 
-    console.log("Selected candle indices:", selectedIndices);
+    // console.log("Selected candle indices:", selectedIndices);
 
     // First reset ALL candles
     modelRef.current.traverse((child) => {
@@ -552,7 +978,7 @@ function Model({
           }
           label.material.dispose();
 
-          // Reset to a basic material
+          // Reset to basic material
           label.material = new THREE.MeshStandardMaterial({
             color: 0xffffff,
             transparent: true,
@@ -576,7 +1002,7 @@ function Model({
       }
     });
 
-    // Then activate selected candles
+    // Then activate selected candles with user data
     results.forEach((result, index) => {
       const paddedIndex = selectedIndices[index];
       if (!paddedIndex) return;
@@ -585,11 +1011,11 @@ function Model({
       const candle = modelRef.current.getObjectByName(candleName);
 
       if (candle) {
-        console.log(`Setting up candle ${candleName} with data:`, {
-          userName: result.userName,
-          hasImage: !!result.image,
-          message: result.message?.substring(0, 20) + "...",
-        });
+        // console.log(`Setting up candle ${candleName} with data:`, {
+        //   userName: result.userName,
+        //   hasImage: !!result.image,
+        //   message: result.message?.substring(0, 20) + "...",
+        // });
 
         // Set up the candle
         candle.userData = {
@@ -601,16 +1027,41 @@ function Model({
           meltingProgress: 0,
         };
 
-        // Apply the user's image to the label using the separate function
+        // Apply user image if available
         if (result.image) {
           applyUserImageToLabel(candle, result.image);
-        } else {
-          console.log(`No image provided for candle ${candleName}`);
         }
 
         const flame = findCandleComponent(candle, "FLAME");
         if (flame) {
           flame.visible = true;
+        }
+      }
+    });
+
+    // Finally, apply default image to unused candles
+    availableIndices.forEach((index) => {
+      if (!selectedIndices.includes(index)) {
+        const candleName = `VCANDLE${index}`;
+        const candle = modelRef.current.getObjectByName(candleName);
+        if (candle) {
+          // console.log(`Applying default image to unused candle ${candleName}`);
+
+          // Make the candle selectable with default data
+          candle.userData = {
+            hasUser: true, // Set to true to make it selectable
+            userName: "Triumph",
+            image: DEFAULT_IMAGE,
+            message: "In memory of triumph",
+            burnedAmount: 1,
+            meltingProgress: 0,
+          };
+
+          applyUserImageToLabel(candle, DEFAULT_IMAGE);
+          const flame = findCandleComponent(candle, "FLAME");
+          if (flame) {
+            flame.visible = false;
+          }
         }
       }
     });
@@ -630,7 +1081,6 @@ function Model({
       });
     };
   }, [results, modelRef.current]);
-
   // Set Markers
   useEffect(() => {
     if (typeof setMarkers === "function") setMarkers(DEFAULT_MARKERS);
@@ -638,6 +1088,7 @@ function Model({
 
   return (
     <>
+      {/* <BackgroundEffects /> */}
       <primitive
         ref={modelRef}
         object={gltf.scene}

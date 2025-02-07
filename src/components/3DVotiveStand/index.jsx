@@ -46,7 +46,7 @@ import { TooltipContainer } from "../UserTooltip";
 import FloatingCandleViewer from "./CandleInteraction";
 import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
 import HolographicStatue from "./HolographicStatue";
-
+import FloatingPhoneViewer from "./FloatingPhoneViewer";
 function ThreeDVotiveStand({
   setIsLoading,
   onCameraMove,
@@ -55,6 +55,7 @@ function ThreeDVotiveStand({
   isInMarkerView,
   isMobileView,
   onScreenClick,
+  setShowSpotify,
 }) {
   const [userData, setUserData] = useState([]);
   // Add in index.jsx
@@ -95,7 +96,7 @@ function ThreeDVotiveStand({
   const ambientLightRef = useRef(null);
   const pointLightRef = useRef();
   const rendererRef = useRef(null);
-
+  const [showPhoneViewer, setShowPhoneViewer] = useState(false);
   const [showFloatingViewer, setShowFloatingViewer] = useState(false);
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   const [selectedCandle, setSelectedCandle] = useState(null);
@@ -141,10 +142,10 @@ function ThreeDVotiveStand({
   //   // Cleanup
   //   return () => window.removeEventListener("resize", checkMobile);
   // }, []);
-  console.log("Initial camera settings:", {
-    screenCategory,
-    settings: cameraSettings,
-  });
+  // console.log("Initial camera settings:", {
+  //   screenCategory,
+  //   settings: cameraSettings,
+  // });
 
   useEffect(() => {
     const handleResize = () => {
@@ -191,14 +192,11 @@ function ThreeDVotiveStand({
   }, []); // Empty dependency array since we're not tracking screen category
 
   useEffect(() => {
-    setIsLoading(true);
-    const initializeScene = async () => {
-      // Simulate loading logic or wait for model to load
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setIsLoading(false); // Signal completion
+    const loadThreeJSScene = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate 3D scene load
+      setIsLoading(true); // Notify parent that 3D scene is loaded
     };
-
-    initializeScene();
+    loadThreeJSScene();
   }, [setIsLoading]);
   useEffect(() => {
     if (controlsRef.current) {
@@ -619,6 +617,7 @@ function ThreeDVotiveStand({
       {isMobileView ? (
         // Mobile version - much simpler Canvas setup
         <Canvas
+          id="three-canvas"
           style={{
             width: "100vw",
             height: "100vh",
@@ -655,6 +654,7 @@ function ThreeDVotiveStand({
           }}
         >
           <Canvas
+            id="three-canvas"
             shadows
             camera={{
               fov: cameraSettings.fov,
@@ -695,11 +695,7 @@ function ThreeDVotiveStand({
               logarithmicDepthBuffer: true,
             }}
           >
-            {/* <FlyInEffect
-              cameraRef={cameraRef}
-              screenCategory={screenCategory} // Ensure this prop is set correctly
-              duration={3}
-            /> */}
+            <FlyInEffect cameraRef={cameraRef} duration={6} />
             {/* <TourCamera points={pointsOfInterest} /> */}
             {/* <Perf position="top-left" /> */}
             {/* <RoomWalls db={db} /> */}
@@ -724,9 +720,11 @@ function ThreeDVotiveStand({
                 hemisphereLightRef={hemisphereLightRef}
                 showFloatingViewer={showFloatingViewer}
                 setShowFloatingViewer={setShowFloatingViewer}
+                setShowPhoneViewer={setShowPhoneViewer}
                 setSelectedCandle={setSelectedCandle}
                 onCandleSelect={handleCandleSelect}
                 // onButtonClick={handleClick}
+                setShowSpotify={setShowSpotify}
               />
               {/* use this version only when using gui */}
 
@@ -751,10 +749,11 @@ function ThreeDVotiveStand({
                   // }
                 }}
               />
-              <PostProcessingEffects />
               <HolographicStatue />
+              <PostProcessingEffects />
             </Suspense>
           </Canvas>
+
           {selectedCandleData && (
             <FloatingCandleViewer
               isVisible={showFloatingViewer}
@@ -766,12 +765,16 @@ function ThreeDVotiveStand({
               key={selectedCandleData?.image}
             />
           )}
-          {/* <CameraGUI
+          <FloatingPhoneViewer
+            isVisible={showPhoneViewer}
+            onClose={() => setShowPhoneViewer(false)}
+          />
+          <CameraGUI
             cameraRef={cameraRef}
             controlsRef={controlsRef}
             onGuiStart={handleGuiStart}
             onGuiEnd={handleGuiEnd}
-          /> */}
+          />
           {activeAnnotation && activeAnnotation.fromScreen ? (
             <ScreenAnnotation
               text={activeAnnotation.text}

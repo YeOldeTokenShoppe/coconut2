@@ -2,7 +2,7 @@ import "../../styles/globals.css";
 import "../../styles/RotatingText.css";
 import "../../styles/Carousel.css";
 import "../../styles/candle.css";
-// import "../../styles/Carousel8.module.css";
+import "../../styles/phoneViewer.css";
 import "../../styles/gradientEffect.css";
 import "../../styles/matrix.css";
 import "../../styles/RotatingText.css";

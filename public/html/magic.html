@@ -16,12 +16,27 @@
           "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
         justify-content: center;
         font-size: 0.8rem;
-        min-height: 100vh;
+        min-height: unset;
         text-align: center;
         letter-spacing: 1px;
-        background: rgb(219, 10, 91);
+        background: #c48901;
         margin: 0;
         padding: 0;
+        overflow: hidden;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+      }
+      /* Webkit browsers */
+      body::-webkit-scrollbar {
+        display: none;
+      }
+
+      form {
+        overflow: hidden; /* Add this */
+      }
+
+      .eight {
+        overflow: hidden; /* Add this */
       }
 
       form {
@@ -217,6 +232,63 @@
         display: block;
       }
 
+      .mesh-name {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 1.2rem;
+        color: white;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        z-index: 100;
+      }
+
+      #closeBtn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        z-index: 100;
+      }
+
+      #closeBtn:hover {
+        color: #ffeb3b;
+      }
+
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-content {
+        width: 350px;
+        height: 400px;
+        position: relative;
+        animation: modalFadeIn 0.3s ease-out;
+      }
+
+      @keyframes modalFadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.8);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
       @keyframes scale {
         to {
           transform: translateY(-100%);
@@ -254,6 +326,8 @@
     </style>
   </head>
   <body>
+    <!-- <div id="meshName" class="mesh-name"></div> -->
+    <button id="closeBtn">×</button>
     <form>
       <input type="reset" />
       <div class="eight__backdrop"></div>
@@ -288,40 +362,37 @@
         </ul>
       </div>
     </form>
-
     <script>
       const possibilities = [
         '<a href="https://example.com">Click here</a>', // Example of a linked answer
-        // "It is<br> decidedly<br> so",
-        // 'Without<br> a<br> doubt',
-        // 'Yes<br> definitely',
-        // 'You may<br> rely<br> on it',
-        // 'As I<br> see it,<br> yes',
-        // 'Most<br> likely',
-        // 'Outlook<br> good',
-        // 'Yes',
-        // 'Signs<br> point to<br> yes',
-        // 'Reply<br> hazy, try<br> again',
-        // 'Ask<br> again<br> later',
-        // 'Better not<br> tell you<br> now',
-        // 'Cannot<br> predict<br> now',
-        // 'Concentrate<br> and ask<br> again',
-        // 'Don\'t<br> count<br> on it',
-        // 'My reply<br> is<br> no',
-        // 'My<br> sources<br> say no',
-        // 'Outlook<br> not so<br> good',
+        "It is<br> decidedly<br> so",
+        "Without<br> a<br> doubt",
+        "Yes<br> definitely",
+        "You may<br> rely<br> on it",
+        "As I<br> see it,<br> yes",
+        "Most<br> likely",
+        "Outlook<br> good",
+        "Yes",
+        "Signs<br> point to<br> yes",
+        "Reply<br> hazy, try<br> again",
+        "Ask<br> again<br> later",
+        "Better not<br> tell you<br> now",
+        "Cannot<br> predict<br> now",
+        "Concentrate<br> and ask<br> again",
+        "Don't<br> count<br> on it",
+        "My reply<br> is<br> no",
+        "My<br> sources<br> say no",
+        "Outlook<br> not so<br> good",
         "Very<br> doubtful",
       ];
-
-      // Create radio inputs and spans for each possibility
-      // Create radio inputs and answer containers
-      // Create radio inputs and answer containers
+      // Modify your radio creation code:
       possibilities.forEach((text, i) => {
         const radio = document.createElement("input");
         radio.type = "radio";
         radio.name = "answer";
         radio.id = `answer${i + 1}`;
         radio.value = text;
+        radio.checked = false; // Ensure no radio is checked initially
 
         const container = document.createElement("div");
         container.className = "answer-container";
@@ -335,22 +406,45 @@
           .insertBefore(radio, document.querySelector("form").firstChild);
       });
 
-      // Add click event to form
+      // Add a flag to prevent immediate animation
+      let isFirstClick = true;
+
+      // Modify your form click handler:
       document.querySelector("form").addEventListener("click", function (e) {
-        // If clicking a link, prevent 8-ball behavior
+        // Don't trigger 8-ball if clicking a link
         if (e.target.tagName === "A") {
-          e.preventDefault(); // Allow the link to work without triggering the form
-          window.open(e.target.href, "_blank"); // Open link in a new tab
+          e.stopPropagation();
           return;
         }
 
-        // For any other click, trigger the 8-ball
-        if (e.target.tagName !== "INPUT" && e.target.type !== "reset") {
+        // Don't trigger if clicking within an answer that's already shown
+        if (
+          e.target.closest(".answer-container") &&
+          e.target.closest(".answer-container").style.opacity === "1" &&
+          !isFirstClick
+        ) {
+          return;
+        }
+
+        isFirstClick = false;
+
+        if (e.target.tagName !== "INPUT") {
           const radios = Array.from(this.querySelectorAll('[type="radio"]'));
           const randomRadio = radios[Math.floor(Math.random() * radios.length)];
           randomRadio.checked = true;
         }
       });
+      document.getElementById("closeBtn").addEventListener("click", () => {
+        window.parent.document.getElementById("magic8Modal").style.display =
+          "none";
+      });
+
+      // Get mesh name from URL
+      const urlParam = new URLSearchParams(window.location.search);
+      const meshName = urlParam.get("mesh");
+      if (meshName) {
+        document.getElementById("meshName").textContent = meshName;
+      }
     </script>
   </body>
 </html>

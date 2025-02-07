@@ -11,10 +11,10 @@ export default function ThesisPage() {
   const [communionLoaded, setCommunionLoaded] = useState(false);
 
   useEffect(() => {
-    if (thesisLoaded && communionLoaded) {
+    if (thesisLoaded) {
       setIsLoading(false);
     }
-  }, [thesisLoaded, communionLoaded]);
+  }, [thesisLoaded]);
 
   return (
     <div style={{ marginTop: "4rem", position: "relative" }}>
@@ -30,7 +30,7 @@ export default function ThesisPage() {
         <div style={{ paddingTop: "1rem" }}>
           <NavBar />
         </div>
-        <Communion setCommunionLoaded={setCommunionLoaded} />
+        <Communion />
       </div>
 
       {/* Loader on top */}

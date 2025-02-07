@@ -1,23 +1,27 @@
-// cameraConfig.js
 import * as THREE from "three";
 
-// Base camera views matching your defaultCamera.js settings
+// Base camera views
 export const CAMERA_VIEWS = {
   desktop: {
-    position: [29, 17.08, 43.6], // Moved closer and centered
-    target: [0, 17, 0], // Looking at center of model
-    fov: 41,
+    position: [35.5, 14.86, 72.4],
+    target: [0, 17, 0],
+    fov: 33,
   },
   tablet: {
-    position: [29, 17.08, 43.6],
+    position: [35.5, 14.86, 72.4],
     target: [0, 17, 0],
-    fov: 41,
+    fov: 33,
+  },
+  phone: {
+    position: [33.4, 20.41, 55.2], // Closer view for phones
+    target: [0, 17, 0],
+    fov: 45, // Slightly wider FOV for better mobile viewing
   },
 };
 
 // Screen breakpoints
 export const SCREEN_BREAKPOINTS = {
-  mobile: 576,
+  phone: 576, // Renamed from mobile for consistency
   tablet: 768,
   desktop: 1024,
   wide: 1440,
@@ -25,58 +29,67 @@ export const SCREEN_BREAKPOINTS = {
 
 // Camera settings per device type
 export const CAMERA_SETTINGS = {
-  // iPad Mini and similar
+  // Phone settings
+  "phone-small-landscape": {
+    ...CAMERA_VIEWS.phone,
+    maxDistance: 70,
+    minDistance: 5,
+  },
+  "phone-small-portrait": {
+    ...CAMERA_VIEWS.phone,
+    maxDistance: 40,
+    minDistance: 5,
+  },
+  // Tablet settings (rest remain the same)
   "tablet-small-landscape": {
-    ...CAMERA_VIEWS.desktop,
+    ...CAMERA_VIEWS.tablet,
     maxDistance: 90,
-    minDistance: 25,
+    minDistance: 5,
   },
   "tablet-small-portrait": {
     ...CAMERA_VIEWS.tablet,
     maxDistance: 50,
-    minDistance: 15,
+    minDistance: 5,
   },
-  // iPad Air/Pro 11"
   "tablet-medium-landscape": {
-    ...CAMERA_VIEWS.desktop,
+    ...CAMERA_VIEWS.tablet,
     maxDistance: 90,
-    minDistance: 25,
+    minDistance: 5,
   },
   "tablet-medium-portrait": {
     ...CAMERA_VIEWS.tablet,
     maxDistance: 50,
-    minDistance: 15,
+    minDistance: 5,
   },
-  // iPad Pro 12.9"
   "tablet-large-landscape": {
-    ...CAMERA_VIEWS.desktop,
+    ...CAMERA_VIEWS.tablet,
     maxDistance: 90,
-    minDistance: 25,
+    minDistance: 5,
   },
   "tablet-large-portrait": {
     ...CAMERA_VIEWS.tablet,
     maxDistance: 50,
-    minDistance: 15,
+    minDistance: 5,
   },
-  // Desktop sizes
+  // Desktop settings
   "desktop-small": {
     ...CAMERA_VIEWS.desktop,
     maxDistance: 100,
-    minDistance: 30,
+    minDistance: 10,
   },
   "desktop-medium": {
     ...CAMERA_VIEWS.desktop,
     maxDistance: 100,
-    minDistance: 30,
+    minDistance: 10,
   },
   "desktop-large": {
     ...CAMERA_VIEWS.desktop,
     maxDistance: 100,
-    minDistance: 30,
+    minDistance: 10,
   },
 };
 
-// Common settings
+// Rest of the common settings remain the same
 export const COMMON_SETTINGS = {
   near: 0.1,
   far: 500,
@@ -99,12 +112,13 @@ export const getScreenCategory = () => {
   }
 
   const width = window.innerWidth;
-  const isLandscape = width > window.innerHeight;
+  const height = window.innerHeight;
+  const isLandscape = width > height;
 
-  if (width < SCREEN_BREAKPOINTS.mobile) {
-    return isLandscape ? "tablet-small-landscape" : "tablet-small-portrait";
+  if (width < SCREEN_BREAKPOINTS.phone) {
+    return isLandscape ? "phone-small-landscape" : "phone-small-portrait";
   } else if (width < SCREEN_BREAKPOINTS.tablet) {
-    return isLandscape ? "tablet-medium-landscape" : "tablet-medium-portrait";
+    return isLandscape ? "tablet-small-landscape" : "tablet-small-portrait";
   } else if (width < SCREEN_BREAKPOINTS.desktop) {
     return "desktop-small";
   } else if (width < SCREEN_BREAKPOINTS.wide) {
@@ -116,31 +130,23 @@ export const getScreenCategory = () => {
 export const getCameraConfig = () => {
   const category = getScreenCategory();
   const settings = CAMERA_SETTINGS[category];
-
-  //   console.log("getCameraConfig:", {
-  //     category,
-  //     position: settings.position,
-  //     target: settings.target,
-  //   });
-
   return {
     ...COMMON_SETTINGS,
     ...settings,
   };
 };
-
 export const formatCameraPosition = (position, target, fov) => {
   return {
-    position: [
-      parseFloat(position.x.toFixed(2)),
-      parseFloat(position.y.toFixed(2)),
-      parseFloat(position.z.toFixed(2)),
-    ],
-    target: [
-      parseFloat(target.x.toFixed(2)),
-      parseFloat(target.y.toFixed(2)),
-      parseFloat(target.z.toFixed(2)),
-    ],
-    fov: parseFloat(fov.toFixed(1)),
+    position: {
+      x: Number(position.x.toFixed(3)),
+      y: Number(position.y.toFixed(3)),
+      z: Number(position.z.toFixed(3)),
+    },
+    target: {
+      x: Number(target.x.toFixed(3)),
+      y: Number(target.y.toFixed(3)),
+      z: Number(target.z.toFixed(3)),
+    },
+    fov: Number(fov.toFixed(3)),
   };
 };

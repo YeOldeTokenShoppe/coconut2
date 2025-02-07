@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
+import MusicPlayer from "../components/MusicPlayer2";
 
 import ShelfStand from "../components/3DVotiveStand/CandleInstances";
 
@@ -25,12 +26,13 @@ export default function TestPage() {
           zIndex: "100",
         }}
       >
-        <Canvas
+        <MusicPlayer />
+        {/* <Canvas
           camera={{ position: [0, 5, 10], fov: 75 }}
           style={{ height: "100vh" }}
         >
           <ShelfStand />
-        </Canvas>
+        </Canvas> */}
       </div>
     </div>
   );

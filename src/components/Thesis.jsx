@@ -8,13 +8,15 @@ const scrollUrl = "/html/scroll.html";
 
 function Thesis({ setThesisLoaded }) {
   useEffect(() => {
-    // Simulate async data or image loading
     const loadThesisContent = async () => {
-      // Example: simulate loading (replace with real logic)
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setThesisLoaded(true); // Notify parent that loading is complete
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        setThesisLoaded(true);
+        console.log("✅ Thesis loaded successfully.");
+      } catch (error) {
+        console.error("❌ Error loading Thesis:", error);
+      }
     };
-
     loadThesisContent();
   }, [setThesisLoaded]);
   const handleSwipeIconDisappear = () => {
@@ -81,7 +83,7 @@ function Thesis({ setThesisLoaded }) {
             mt={"3rem"}
             mb={"5rem"}
           >
-            <h1 className="thelma1" style={{ fontSize: "3em", zIndex: "0" }}>
+            <h1 className="thelma1" style={{ fontSize: "4em", zIndex: "0" }}>
               Thesis
             </h1>
             <Text fontSize="lg" mb={5} ml={8}>

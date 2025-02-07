@@ -1,40 +1,64 @@
 import React, { useState, useRef, useEffect } from "react";
 
-const MusicPlayer = () => {
+const MusicPlayer = ({ isVisible }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState("00:00");
   const [duration, setDuration] = useState("00:00");
   const [playProgress, setPlayProgress] = useState(0);
   const audioRef = useRef(null); // Initialize as `null` and set in `useEffect`
-
+  const [volume, setVolume] = useState(1);
   const albums = [
-    "Doo-Wops & Hooligans",
+    "Like A Prayer          ",
     "Every 1's A Winner",
     "The Cold Vein",
     "Hozier",
     "Proxy (Original Mix)",
   ];
   const trackNames = [
-    "Talking To The Moon - Bruo Mars",
+    "Like A Prayer - Madonna",
     "Every 1's A Winner - Hot Chocolate",
     "Ox out the Cage - Cannibal Ox",
     "Take Me To Church - Hozier",
     "Martin Garrix - Proxy",
   ];
   const trackUrls = [
-    "https://raw.githubusercontent.com/abxlfazl/music-player-widget/main/src/assets/media/songs/1/song.mp3",
-    "/Winner.mp3",
+    "likeAPrayer.m4a",
+    "/every1.mp3",
     "/Ox.mp3",
     "/takeMeToChurch.mp3",
     "https://raw.githubusercontent.com/himalayasingh/music-player-1/master/music/5.mp3",
   ];
 
+  useEffect(() => {
+    if (isVisible && audioRef.current && !isPlaying) {
+      audioRef.current
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch((error) => {
+          console.error("Auto-play failed:", error);
+        });
+    } else if (!isVisible && audioRef.current && isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, [isVisible]);
+
+  const handleVolumeChange = (e) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+  };
   // Initialize the audio element and event listeners only once on client-side mount
   useEffect(() => {
     // Only run this code on the client side
     const audio = new Audio(trackUrls[currentTrackIndex]);
     audioRef.current = audio;
+    audio.volume = volume;
 
     // Sync `isPlaying` state with audio play/pause events
     const handlePlay = () => setIsPlaying(true);
@@ -156,6 +180,51 @@ const MusicPlayer = () => {
               <div className="control" onClick={() => changeTrack(1)}>
                 <div className="button" id="play-next">
                   <i className="fa-solid fa-forward"></i>
+                </div>
+              </div>
+              <div className="control">
+                <div
+                  className="volume-control"
+                  style={{ display: "flex", alignItems: "center" }}
+                >
+                  <i
+                    className={`fa-solid ${
+                      volume === 0 ? "fa-volume-mute" : "fa-volume-up"
+                    }`}
+                    style={{
+                      marginRight: "8px",
+                      cursor: "pointer",
+                      position: "absolute",
+                      bottom: "25px",
+                      left: "50%",
+                    }}
+                    onClick={() =>
+                      handleVolumeChange({
+                        target: { value: volume === 0 ? 1 : 0 },
+                      })
+                    }
+                  />
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={volume}
+                    onChange={handleVolumeChange}
+                    style={{
+                      position: "absolute",
+                      bottom: "10px",
+                      left: "60%",
+                      width: "60px",
+                      height: "4px",
+                      WebkitAppearance: "none",
+                      background: `linear-gradient(to right, #fff ${
+                        volume * 100
+                      }%, #4a4a4a ${volume * 100}%)`,
+                      borderRadius: "2px",
+                      cursor: "pointer",
+                    }}
+                  />
                 </div>
               </div>
               <div
