@@ -10,17 +10,22 @@ import {
   setupVideoTextures,
   initializeScreenManagement,
 } from "./modelUtilities";
-import { OrbitControls } from "@react-three/drei";
+// import { OrbitControls } from "@react-three/drei";
+import { BoxHelper, AxesHelper, PointLightHelper } from "three";
 import { DirectionalLight, PointLight, DirectionalLightHelper } from "three";
 import gsap from "gsap";
 import DarkClouds from "./Clouds";
 import HolographicStatue from "./HolographicStatue";
-import { GUI } from "three/addons/libs/lil-gui.module.min.js";
+// import { GUI } from "three/addons/libs/lil-gui.module.min.js";
+import { GUI } from "lil-gui";
 import FloatingCandleViewer from "./CandleInteraction";
 import gui from "lil-gui";
 import BackgroundEffects from "./BackgroundEffects";
 import FloatingPhoneViewer from "./FloatingPhoneViewer";
-
+import coffeeSmokeVertexShader from "./shaders/coffeeSmoke/vertex.glsl";
+import coffeeSmokeFragmentShader from "./shaders/coffeeSmoke/fragment.glsl";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import CoffeeSmoke from "./CoffeeSmoke";
 import {
   VideoTexture,
   LinearFilter,
@@ -46,6 +51,9 @@ function Model({
   setShowPhoneViewer,
   showPhoneViewer,
   onCandleSelect,
+
+  showWebContent,
+  setShowWebContent,
 }) {
   const gltf = useGLTF("/isometricScene.glb");
   const { actions, mixer } = useAnimations(gltf.animations, modelRef);
@@ -69,13 +77,95 @@ function Model({
   const [isDragging, setIsDragging] = useState(false);
   const mouseDelta = useRef({ x: 0, y: 0 });
   const previousMousePosition = useRef({ x: 0, y: 0 });
-  // const controlsRef = useRef(); // Reference to OrbitControls
+
+  const videoRef = useRef(null);
   const cameraPositions = {
     default: new THREE.Vector3(-4.03, 25.2, 64.78),
     closeup: new THREE.Vector3(-13.8, 22.8, -16.8),
   };
   const [selectedCandle, setSelectedCandle] = useState(null);
+  const textureLoader = new THREE.TextureLoader();
+  // Smoke effect references
+  // const SmokeComponent = CoffeeSmoke();
+  // function CoffeeSmoke() {
+  //   const smokeRef = useRef();
+  //   const canvas = document.querySelector("canvas.webgl");
+  //   const clockRef = useRef(new THREE.Clock());
 
+  //   // Scene
+  //   const scene = new THREE.Scene();
+
+  //   // Loaders
+  //   const sizes = {
+  //     width: window.innerWidth,
+  //     height: window.innerHeight,
+  //   };
+
+  //   window.addEventListener("resize", () => {
+  //     // Update sizes
+  //     sizes.width = window.innerWidth;
+  //     sizes.height = window.innerHeight;
+
+  //     // Update camera
+  //     camera.aspect = sizes.width / sizes.height;
+  //     camera.updateProjectionMatrix();
+
+  //     // Update renderer
+  //     renderer.setSize(sizes.width, sizes.height);
+  //     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  //   });
+  //   // Create geometry
+  //   const smokeGeometry = new THREE.PlaneGeometry(1, 1, 16, 64);
+  //   smokeGeometry.translate(0, 0.5, 0);
+  //   smokeGeometry.scale(0.75, 3, 0.75);
+
+  //   // Load perlin texture
+  //   const textureLoader = new THREE.TextureLoader();
+  //   const perlinTexture = textureLoader.load("./perlin.png");
+  //   perlinTexture.wrapS = THREE.RepeatWrapping;
+  //   perlinTexture.wrapT = THREE.RepeatWrapping;
+
+  //   // Material
+  //   const smokeMaterial = new THREE.ShaderMaterial({
+  //     vertexShader: coffeeSmokeVertexShader,
+  //     fragmentShader: coffeeSmokeFragmentShader,
+  //     uniforms: {
+  //       uTime: new THREE.Uniform(0),
+  //       uPerlinTexture: new THREE.Uniform(perlinTexture),
+  //     },
+  //     side: THREE.DoubleSide,
+  //     transparent: true,
+  //     depthWrite: false,
+  //     depthTest: false,
+  //   });
+  //   const smoke = new THREE.Mesh(smokeGeometry, smokeMaterial);
+  //   smoke.position.y = 1.83;
+  //   scene.add(smoke);
+
+  //   // Animation
+  //   // useFrame((state) => {
+  //   //   if (smokeRef.current) {
+  //   //     smokeRef.current.material.uniforms.uTime.value = state.clock.elapsedTime;
+  //   //   }
+  //   // });
+  //   useFrame(() => {
+  //     const elapsedTime = clockRef.current.getElapsedTime();
+
+  //     // Update smoke
+  //     if (smokeRef.current) {
+  //       smokeRef.current.material.uniforms.uTime.value = elapsedTime;
+  //     }
+  //   });
+
+  //   return (
+  //     <mesh
+  //       // ref={smokeRef}
+  //       geometry={smokeGeometry}
+  //       material={smokeMaterial}
+  //       position={[11.5, 9, -4.9]}
+  //     />
+  //   );
+  // }
   // const [isPlaying, setIsPlaying] = useState(false);
   // const audioRef = useRef(null);
 
@@ -89,15 +179,12 @@ function Model({
   //       audioRef.current.currentTime = 0;
   //     }
   //   };
-  // }, []);
 
   const handleCandleClick = (event) => {
-    // console.log("Candle click detected");
     event.stopPropagation();
 
     if (showFloatingViewer) return;
 
-    // Use normalized coordinates directly from the event
     const mouse = new THREE.Vector2();
     mouse.x =
       (event.nativeEvent.offsetX / event.nativeEvent.target.clientWidth) * 2 -
@@ -106,52 +193,104 @@ function Model({
       -(event.nativeEvent.offsetY / event.nativeEvent.target.clientHeight) * 2 +
       1;
 
-    // console.log("Mouse coordinates:", mouse);
-
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
     const intersectableObjects = [];
     modelRef.current.traverse((object) => {
-      if (object.name === "Object_5" || object.parent?.name === "Object_5") {
-        intersectableObjects.push(object);
-      }
-
-      if (object.name.startsWith("Boombox")) {
-        console.log("Found Boombox object:", object.name);
-        intersectableObjects.push(object);
-      }
-      if (object.name.toLowerCase().includes("ball")) {
-        console.log("Found ball object:", object.name);
-        intersectableObjects.push(object);
-      }
-      if (object.name.startsWith("VCANDLE")) {
+      if (
+        object.name === "Object_5" ||
+        object.parent?.name === "Object_5" ||
+        object.name.startsWith("Boombox") ||
+        object.name.toLowerCase().includes("ball") ||
+        object.name.startsWith("VCANDLE") ||
+        object.name.startsWith("Keyboard") // Added Keyboard to click detection
+      ) {
+        console.log("Found clickable object:", object.name); // Debug log
         intersectableObjects.push(object);
 
-        object.children.forEach((child) => {
-          if (
-            child.name.includes("wax") ||
-            child.name.includes("glass") ||
-            child.name.startsWith("FLAME")
-          ) {
-            intersectableObjects.push(child);
-          }
-        });
+        // Handle VCANDLE children
+        if (object.name.startsWith("VCANDLE")) {
+          object.children.forEach((child) => {
+            if (
+              child.name.includes("wax") ||
+              child.name.includes("glass") ||
+              child.name.startsWith("FLAME")
+            ) {
+              intersectableObjects.push(child);
+            }
+          });
+        }
       }
     });
 
-    console.log("Checking intersections with candles");
+    console.log("Total clickable objects:", intersectableObjects.length); // Debug log
     const intersects = raycaster.intersectObjects(intersectableObjects, true);
+    console.log(
+      "Intersected objects:",
+      intersects.map((i) => i.object.name)
+    ); // Debug log
 
     if (intersects.length > 0) {
+      const hitObject = intersects[0].object;
+      console.log("Clicked object:", hitObject.name); // Debug log
+
+      if (hitObject.name.startsWith("Keyboard")) {
+        console.log("Processing keyboard click");
+        const screen = modelRef.current.getObjectByName("Screen1");
+
+        if (screen) {
+          if (showWebContent) {
+            // Switch back to video
+            const video = videoRef.current;
+            const videoTexture = new VideoTexture(video);
+            videoTexture.minFilter = LinearFilter;
+            videoTexture.magFilter = LinearFilter;
+            videoTexture.format = THREE.RGBAFormat;
+            videoTexture.anisotropy = 16;
+            videoTexture.rotation = Math.PI / -2;
+            videoTexture.center.set(0.5, 0.5);
+            videoTexture.flipY = false;
+
+            screen.material = new MeshBasicMaterial({
+              map: videoTexture,
+              side: DoubleSide,
+              transparent: false,
+              opacity: 1,
+              color: 0xffffff,
+            });
+
+            video.play().catch(console.error);
+          } else {
+            // Switch to HTML content
+            if (videoRef.current) {
+              videoRef.current.pause();
+            }
+
+            const htmlTexture = createHTMLTexture();
+            screen.material = new MeshBasicMaterial({
+              map: htmlTexture,
+              side: DoubleSide,
+              transparent: false,
+              opacity: 1,
+              color: 0xffffff,
+            });
+          }
+          screen.material.needsUpdate = true;
+        }
+
+        setShowWebContent((prev) => !prev);
+        return;
+      }
+
+      // Handle other clicks
       if (
-        intersects[0].object.name === "Object_5" ||
-        intersects[0].object.parent?.name === "Object_5.001"
+        hitObject.name === "Object_5" ||
+        hitObject.parent?.name === "Object_5.001"
       ) {
         const modal = document.getElementById("phoneModal");
         if (modal) {
           modal.style.display = "flex";
-
           modal.onclick = (e) => {
             if (e.target === modal) {
               modal.style.display = "none";
@@ -160,25 +299,27 @@ function Model({
         }
         return;
       }
+
       if (
-        intersects[0].object.name === "Boombox" ||
-        intersects[0].object.name.startsWith("Boombox") ||
-        (intersects[0].object.parent &&
-          intersects[0].object.parent.name.startsWith("Boombox"))
+        hitObject.name.startsWith("Boombox") ||
+        (hitObject.parent && hitObject.parent.name.startsWith("Boombox"))
       ) {
         console.log("Boombox clicked!");
-        setShowSpotify((prev) => !prev); // Toggle Spotify widget
+        setShowSpotify((prev) => !prev);
         return;
       }
-      if (intersects[0].object.name.toLowerCase().includes("ball")) {
+
+      if (hitObject.name.toLowerCase().includes("ball")) {
         console.log("Ball clicked!");
         const modal = document.getElementById("magic8Modal");
         if (modal) {
-          modal.style.display = "flex"; // Use flex instead of block
+          modal.style.display = "flex";
         }
         return;
       }
-      let candleParent = intersects[0].object;
+
+      // Handle candle click
+      let candleParent = hitObject;
       while (candleParent && !candleParent.name.startsWith("VCANDLE")) {
         candleParent = candleParent.parent;
       }
@@ -199,74 +340,175 @@ function Model({
     }
   };
 
+  // Helper function to create and setup a video element with iOS support
+  const createVideoElement = (src) => {
+    const video = document.createElement("video");
+
+    // Essential attributes for iOS
+    video.playsInline = true;
+    video.muted = true;
+    video.loop = true;
+    video.autoplay = true;
+    video.crossOrigin = "anonymous";
+    video.setAttribute("playsinline", "true");
+    video.setAttribute("webkit-playsinline", "true");
+    video.src = src;
+
+    // Return the video element immediately without trying to play
+    return video;
+  };
+
+  const createHTMLTexture = () => {
+    // Create canvas
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 768;
+    const ctx = canvas.getContext("2d");
+
+    // Fill background
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Add some content
+    ctx.fillStyle = "black";
+    ctx.font = "48px Arial";
+    ctx.fillText("Interactive Screen Content", 50, 100);
+
+    ctx.font = "24px Arial";
+    ctx.fillText(
+      "This is your HTML content displayed on the 3D screen.",
+      50,
+      200
+    );
+
+    // Create texture from canvas
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.rotation = Math.PI / -2;
+    texture.center.set(0.5, 0.5);
+    texture.flipY = false;
+
+    return texture;
+  };
   useEffect(() => {
-    if (modelRef.current) {
-      const screen = modelRef.current.getObjectByName("Screen1");
+    if (!modelRef.current) return;
 
-      if (screen) {
-        // ✅ Create a video element
-        const video = document.createElement("video");
-        video.src = "/13.mp4"; // Place your video in public/videos
-        video.loop = true; // Loop the video
-        video.muted = true; // Mute the video if needed
-        video.autoplay = true; // Autoplay the video
-        video.playsInline = true; // Important for mobile autoplay
-        video.crossOrigin = "anonymous"; // Handle cross-origin if necessary
+    const screen = modelRef.current.getObjectByName("Screen1");
+    const keyboards = [
+      modelRef.current.getObjectByName("Keyboard"),
+      modelRef.current.getObjectByName("Keyboard_1"),
+      modelRef.current.getObjectByName("Keyboard_2"),
+    ].filter(Boolean);
 
-        // Start the video
-        video.play();
+    if (!screen || keyboards.length === 0) return;
 
-        // ✅ Create a VideoTexture
-        const videoTexture = new VideoTexture(video);
-        videoTexture.minFilter = LinearFilter;
-        videoTexture.magFilter = LinearFilter;
-        videoTexture.format = THREE.RGBAFormat;
-        videoTexture.anisotropy = 16; // For better texture quality
+    // Create video and texture
+    const video = createVideoElement("/13.mp4");
+    videoRef.current = video;
 
-        videoTexture.rotation = Math.PI / -2; // Rotate 90 degrees
-        videoTexture.center.set(0.5, 0.5); // Rotate around the center
-        videoTexture.flipY = false;
-        // ✅ Apply the VideoTexture to the Screen1 material
-        screen.material = new MeshBasicMaterial({
-          map: videoTexture,
-          side: DoubleSide,
-          transparent: false,
-          opacity: 1,
-          color: 0xffffff,
-        });
+    const videoTexture = new VideoTexture(video);
+    videoTexture.minFilter = LinearFilter;
+    videoTexture.magFilter = LinearFilter;
+    videoTexture.format = THREE.RGBAFormat;
+    videoTexture.anisotropy = 16;
+    videoTexture.rotation = Math.PI / -2;
+    videoTexture.center.set(0.5, 0.5);
+    videoTexture.flipY = false;
 
-        screen.material.needsUpdate = true;
+    const videoMaterial = new MeshBasicMaterial({
+      map: videoTexture,
+      side: DoubleSide,
+      transparent: false,
+      opacity: 1,
+      color: 0xffffff,
+    });
+
+    screen.material = videoMaterial;
+    screen.material.needsUpdate = true;
+
+    // Define event handlers outside the forEach
+    const onKeyboardHover = (event) => {
+      console.log("Keyboard hover:", event.type);
+      document.body.style.cursor =
+        event.type === "pointerenter" ? "pointer" : "auto";
+    };
+
+    const onKeyboardClick = async () => {
+      console.log("Keyboard clicked");
+      setShowWebContent((prev) => {
+        const newState = !prev;
+        if (newState) {
+          video.pause();
+        } else {
+          video.play().catch(console.error);
+        }
+        return newState;
+      });
+    };
+
+    // Set up keyboard interactions
+    keyboards.forEach((keyboard) => {
+      keyboard.raycast = new THREE.Mesh().raycast;
+      keyboard.userData.interactive = true;
+    });
+
+    // Try to play the video after setup
+    const startPlayback = async () => {
+      try {
+        await video.play();
+        console.log("Video playing successfully");
+      } catch (error) {
+        console.log("Initial playback prevented:", error);
+        const playOnClick = async () => {
+          try {
+            await video.play();
+            document.removeEventListener("click", playOnClick);
+          } catch (e) {
+            console.error("Play on click failed:", e);
+          }
+        };
+        document.addEventListener("click", playOnClick);
       }
-    }
+    };
+
+    // Start video playback when loaded
+    video.addEventListener("loadeddata", () => {
+      console.log("Video loaded, starting playback");
+      startPlayback();
+    });
+
+    // Cleanup function
+    return () => {
+      keyboards.forEach((keyboard) => {});
+
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.src = "";
+        videoRef.current.load();
+      }
+      if (videoTexture) {
+        videoTexture.dispose();
+      }
+      if (videoMaterial) {
+        videoMaterial.dispose();
+      }
+    };
   }, [modelRef.current]);
   useEffect(() => {
     if (modelRef.current) {
       const screen = modelRef.current.getObjectByName("Screen2");
 
       if (screen) {
-        // ✅ Create a video element
-        const video = document.createElement("video");
-        video.src = "/14.mp4"; // Place your video in public/videos
-        video.loop = true; // Loop the video
-        video.muted = true; // Mute the video if needed
-        video.autoplay = true; // Autoplay the video
-        video.playsInline = true; // Important for mobile autoplay
-        video.crossOrigin = "anonymous"; // Handle cross-origin if necessary
+        const video = createVideoElement("/14.mp4");
 
-        // Start the video
-        video.play();
-
-        // ✅ Create a VideoTexture
         const videoTexture = new VideoTexture(video);
         videoTexture.minFilter = LinearFilter;
         videoTexture.magFilter = LinearFilter;
         videoTexture.format = THREE.RGBAFormat;
-        videoTexture.anisotropy = 16; // For better texture quality
-
-        videoTexture.rotation = Math.PI / -2; // Rotate 90 degrees
-        videoTexture.center.set(0.5, 0.5); // Rotate around the center
+        videoTexture.anisotropy = 16;
+        videoTexture.rotation = Math.PI / -2;
+        videoTexture.center.set(0.5, 0.5);
         videoTexture.flipY = false;
-        // ✅ Apply the VideoTexture to the Screen1 material
+
         screen.material = new MeshBasicMaterial({
           map: videoTexture,
           side: DoubleSide,
@@ -276,6 +518,14 @@ function Model({
         });
 
         screen.material.needsUpdate = true;
+
+        // Cleanup
+        return () => {
+          video.pause();
+          video.src = "";
+          video.load();
+          videoTexture.dispose();
+        };
       }
     }
   }, [modelRef.current]);
@@ -284,29 +534,17 @@ function Model({
       const screen = modelRef.current.getObjectByName("Screen3");
 
       if (screen) {
-        // ✅ Create a video element
-        const video = document.createElement("video");
-        video.src = "/15.mp4"; // Place your video in public/videos
-        video.loop = true; // Loop the video
-        video.muted = true; // Mute the video if needed
-        video.autoplay = true; // Autoplay the video
-        video.playsInline = true; // Important for mobile autoplay
-        video.crossOrigin = "anonymous"; // Handle cross-origin if necessary
+        const video = createVideoElement("/15.mp4");
 
-        // Start the video
-        video.play();
-
-        // ✅ Create a VideoTexture
         const videoTexture = new VideoTexture(video);
         videoTexture.minFilter = LinearFilter;
         videoTexture.magFilter = LinearFilter;
         videoTexture.format = THREE.RGBAFormat;
-        videoTexture.anisotropy = 16; // For better texture quality
-
-        videoTexture.rotation = Math.PI / 1; // Rotate 90 degrees
-        videoTexture.center.set(0.5, 0.5); // Rotate around the center
+        videoTexture.anisotropy = 16;
+        videoTexture.rotation = Math.PI / -2;
+        videoTexture.center.set(0.5, 0.5);
         videoTexture.flipY = false;
-        // ✅ Apply the VideoTexture to the Screen1 material
+
         screen.material = new MeshBasicMaterial({
           map: videoTexture,
           side: DoubleSide,
@@ -316,6 +554,14 @@ function Model({
         });
 
         screen.material.needsUpdate = true;
+
+        // Cleanup
+        return () => {
+          video.pause();
+          video.src = "";
+          video.load();
+          videoTexture.dispose();
+        };
       }
     }
   }, [modelRef.current]);
@@ -324,29 +570,17 @@ function Model({
       const screen = modelRef.current.getObjectByName("Screen4");
 
       if (screen) {
-        // ✅ Create a video element
-        const video = document.createElement("video");
-        video.src = "/12.mp4"; // Place your video in public/videos
-        video.loop = true; // Loop the video
-        video.muted = true; // Mute the video if needed
-        video.autoplay = true; // Autoplay the video
-        video.playsInline = true; // Important for mobile autoplay
-        video.crossOrigin = "anonymous"; // Handle cross-origin if necessary
+        const video = createVideoElement("/12.mp4");
 
-        // Start the video
-        video.play();
-
-        // ✅ Create a VideoTexture
         const videoTexture = new VideoTexture(video);
         videoTexture.minFilter = LinearFilter;
         videoTexture.magFilter = LinearFilter;
         videoTexture.format = THREE.RGBAFormat;
-        videoTexture.anisotropy = 16; // For better texture quality
-
-        videoTexture.rotation = Math.PI / 2; // Rotate 90 degrees
-        videoTexture.center.set(0.5, 0.5); // Rotate around the center
+        videoTexture.anisotropy = 16;
+        videoTexture.rotation = Math.PI / -2;
+        videoTexture.center.set(0.5, 0.5);
         videoTexture.flipY = false;
-        // ✅ Apply the VideoTexture to the Screen1 material
+
         screen.material = new MeshBasicMaterial({
           map: videoTexture,
           side: DoubleSide,
@@ -356,6 +590,14 @@ function Model({
         });
 
         screen.material.needsUpdate = true;
+
+        // Cleanup
+        return () => {
+          video.pause();
+          video.src = "";
+          video.load();
+          videoTexture.dispose();
+        };
       }
     }
   }, [modelRef.current]);
@@ -364,29 +606,17 @@ function Model({
       const screen = modelRef.current.getObjectByName("Screen5");
 
       if (screen) {
-        // ✅ Create a video element
-        const video = document.createElement("video");
-        video.src = "/3.mp4"; // Place your video in public/videos
-        video.loop = true; // Loop the video
-        video.muted = true; // Mute the video if needed
-        video.autoplay = true; // Autoplay the video
-        video.playsInline = true; // Important for mobile autoplay
-        video.crossOrigin = "anonymous"; // Handle cross-origin if necessary
+        const video = createVideoElement("/3.mp4");
 
-        // Start the video
-        video.play();
-
-        // ✅ Create a VideoTexture
         const videoTexture = new VideoTexture(video);
         videoTexture.minFilter = LinearFilter;
         videoTexture.magFilter = LinearFilter;
         videoTexture.format = THREE.RGBAFormat;
-        videoTexture.anisotropy = 16; // For better texture quality
-
-        videoTexture.rotation = Math.PI / -2; // Rotate 90 degrees
-        videoTexture.center.set(0.5, 0.5); // Rotate around the center
+        videoTexture.anisotropy = 16;
+        videoTexture.rotation = Math.PI / -2;
+        videoTexture.center.set(0.5, 0.5);
         videoTexture.flipY = false;
-        // ✅ Apply the VideoTexture to the Screen1 material
+
         screen.material = new MeshBasicMaterial({
           map: videoTexture,
           side: DoubleSide,
@@ -396,6 +626,14 @@ function Model({
         });
 
         screen.material.needsUpdate = true;
+
+        // Cleanup
+        return () => {
+          video.pause();
+          video.src = "";
+          video.load();
+          videoTexture.dispose();
+        };
       }
     }
   }, [modelRef.current]);
@@ -404,29 +642,17 @@ function Model({
       const screen = modelRef.current.getObjectByName("Screen6");
 
       if (screen) {
-        // ✅ Create a video element
-        const video = document.createElement("video");
-        video.src = "/20.mp4"; // Place your video in public/videos
-        video.loop = true; // Loop the video
-        video.muted = true; // Mute the video if needed
-        video.autoplay = true; // Autoplay the video
-        video.playsInline = true; // Important for mobile autoplay
-        video.crossOrigin = "anonymous"; // Handle cross-origin if necessary
+        const video = createVideoElement("/20.mp4");
 
-        // Start the video
-        video.play();
-
-        // ✅ Create a VideoTexture
         const videoTexture = new VideoTexture(video);
         videoTexture.minFilter = LinearFilter;
         videoTexture.magFilter = LinearFilter;
         videoTexture.format = THREE.RGBAFormat;
-        videoTexture.anisotropy = 16; // For better texture quality
-
-        videoTexture.rotation = Math.PI / 1; // Rotate 90 degrees
-        videoTexture.center.set(0.5, 0.5); // Rotate around the center
+        videoTexture.anisotropy = 16;
+        videoTexture.rotation = Math.PI / -2;
+        videoTexture.center.set(0.5, 0.5);
         videoTexture.flipY = false;
-        // ✅ Apply the VideoTexture to the Screen1 material
+
         screen.material = new MeshBasicMaterial({
           map: videoTexture,
           side: DoubleSide,
@@ -436,9 +662,18 @@ function Model({
         });
 
         screen.material.needsUpdate = true;
+
+        // Cleanup
+        return () => {
+          video.pause();
+          video.src = "";
+          video.load();
+          videoTexture.dispose();
+        };
       }
     }
   }, [modelRef.current]);
+
   // useEffect(() => {
   //   if (modelRef.current) {
   //     const screen = modelRef.current.getObjectByName("Screen1");
@@ -651,8 +886,8 @@ function Model({
   // }, [scene]);
 
   useEffect(() => {
-    const pointLight1 = new THREE.PointLight(0xff00ff, 3.5);
-    pointLight1.position.set(2, 43, -20); // Adjusted position
+    const pointLight1 = new THREE.PointLight(0x01ffed, 3.5);
+    pointLight1.position.set(1, 43, -24); // Adjusted position
     pointLight1.decay = 2;
     pointLight1.castShadow = true; // Optional: enables shadows
     const pointLight2 = new THREE.PointLight(0xa6ffff, 10);
@@ -1111,6 +1346,7 @@ function Model({
         }}
       />
       <DarkClouds />
+      <CoffeeSmoke />
     </>
   );
 }

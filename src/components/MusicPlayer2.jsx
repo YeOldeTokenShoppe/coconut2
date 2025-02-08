@@ -6,45 +6,106 @@ const MusicPlayer = ({ isVisible }) => {
   const [currentTime, setCurrentTime] = useState("00:00");
   const [duration, setDuration] = useState("00:00");
   const [playProgress, setPlayProgress] = useState(0);
-  const audioRef = useRef(null); // Initialize as `null` and set in `useEffect`
+  const audioRef = useRef(null);
   const [volume, setVolume] = useState(1);
+
   const albums = [
-    "Like A Prayer          ",
+    "Like A Prayer - Madonna",
     "Every 1's A Winner",
-    "The Cold Vein",
-    "Hozier",
-    "Proxy (Original Mix)",
+    "Take Me To Church - Hozier",
   ];
   const trackNames = [
     "Like A Prayer - Madonna",
     "Every 1's A Winner - Hot Chocolate",
-    "Ox out the Cage - Cannibal Ox",
     "Take Me To Church - Hozier",
-    "Martin Garrix - Proxy",
   ];
-  const trackUrls = [
-    "likeAPrayer.m4a",
-    "/every1.mp3",
-    "/Ox.mp3",
-    "/takeMeToChurch.mp3",
-    "https://raw.githubusercontent.com/himalayasingh/music-player-1/master/music/5.mp3",
-  ];
+  const trackUrls = ["likeAPrayer.m4a", "/every1.mp3", "/church.mp3"];
+
+  // Monitor track progress and handle auto-play
+  const updateProgress = () => {
+    const audio = audioRef.current;
+    if (audio) {
+      const currentTimeValue = audio.currentTime;
+      const durationValue = audio.duration;
+
+      setCurrentTime(formatTime(currentTimeValue));
+      setPlayProgress((currentTimeValue / durationValue) * 100);
+
+      // Check if we're near the end of the track (within 0.5 seconds)
+      if (durationValue - currentTimeValue <= 0.5 && durationValue > 0) {
+        const nextIndex = (currentTrackIndex + 1) % trackUrls.length;
+        setCurrentTrackIndex(nextIndex);
+      }
+    }
+  };
 
   useEffect(() => {
-    if (isVisible && audioRef.current && !isPlaying) {
-      audioRef.current
-        .play()
-        .then(() => {
-          setIsPlaying(true);
-        })
-        .catch((error) => {
-          console.error("Auto-play failed:", error);
-        });
-    } else if (!isVisible && audioRef.current && isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
+    const audio = new Audio();
+    audioRef.current = audio;
+
+    const setupAudio = () => {
+      audio.src = trackUrls[currentTrackIndex];
+      audio.volume = volume;
+
+      if (isPlaying) {
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => console.error("Playback error:", error));
+        }
+      }
+    };
+
+    setupAudio();
+
+    const handleTimeUpdate = () => updateProgress();
+    const handleLoadedMetadata = () => setDuration(formatTime(audio.duration));
+
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+
+    return () => {
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.pause();
+      audio.src = "";
+    };
+  }, [currentTrackIndex]);
+
+  // Handle visibility changes
+  useEffect(() => {
+    if (audioRef.current) {
+      if (isVisible && !isPlaying) {
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => setIsPlaying(true))
+            .catch((error) =>
+              console.error("Visibility playback error:", error)
+            );
+        }
+      } else if (!isVisible && isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
     }
   }, [isVisible]);
+
+  // Handle play state changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      if (isPlaying) {
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error) =>
+            console.error("Play state error:", error)
+          );
+        }
+      } else {
+        audio.pause();
+      }
+    }
+  }, [isPlaying]);
 
   const handleVolumeChange = (e) => {
     const newVolume = parseFloat(e.target.value);
@@ -53,92 +114,34 @@ const MusicPlayer = ({ isVisible }) => {
       audioRef.current.volume = newVolume;
     }
   };
-  // Initialize the audio element and event listeners only once on client-side mount
-  useEffect(() => {
-    // Only run this code on the client side
-    const audio = new Audio(trackUrls[currentTrackIndex]);
-    audioRef.current = audio;
-    audio.volume = volume;
 
-    // Sync `isPlaying` state with audio play/pause events
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    audio.addEventListener("play", handlePlay);
-    audio.addEventListener("pause", handlePause);
-    audio.addEventListener("timeupdate", updateProgress);
-    audio.addEventListener("loadedmetadata", () => {
-      setDuration(formatTime(audio.duration));
-    });
-
-    return () => {
-      // Cleanup listeners
-      audio.removeEventListener("play", handlePlay);
-      audio.removeEventListener("pause", handlePause);
-      audio.removeEventListener("timeupdate", updateProgress);
-    };
-  }, []);
-
-  // Update the audio source when track changes
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (audio) {
-      // Stop the current track and reset playback
-      audio.pause();
-      audio.currentTime = 0;
-
-      // Update source for the new track and load it
-      audio.src = trackUrls[currentTrackIndex];
-      audio.load();
-
-      // Automatically play if `isPlaying` is true
-      if (isPlaying) {
-        audio.play();
-      }
-    }
-  }, [currentTrackIndex, isPlaying]);
-
-  // Format time from seconds to MM:SS format
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins < 10 ? "0" : ""}${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  // Update current time and progress bar
-  const updateProgress = () => {
-    const audio = audioRef.current;
-    setCurrentTime(formatTime(audio.currentTime));
-    setPlayProgress((audio.currentTime / audio.duration) * 100);
+  const playPause = () => {
+    setIsPlaying(!isPlaying);
   };
 
-  // Handle play and pause
-  const playPause = () => {
+  const changeTrack = (direction) => {
+    const newIndex =
+      (currentTrackIndex + direction + trackUrls.length) % trackUrls.length;
+    setCurrentTrackIndex(newIndex);
+    setIsPlaying(true);
+  };
+
+  const handleSeek = (e) => {
     const audio = audioRef.current;
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      audio.play();
+    if (audio) {
+      const seekTime =
+        (e.nativeEvent.offsetX / e.target.clientWidth) * audio.duration;
+      audio.currentTime = seekTime;
+      updateProgress();
     }
   };
 
-  // Navigate to next or previous track
-  const changeTrack = (direction) => {
-    setCurrentTrackIndex(
-      (prevIndex) =>
-        (prevIndex + direction + trackUrls.length) % trackUrls.length
-    );
-  };
-
-  // Seek within the track
-  const handleSeek = (e) => {
-    const audio = audioRef.current;
-    const seekTime =
-      (e.nativeEvent.offsetX / e.target.clientWidth) * audio.duration;
-    audio.currentTime = seekTime;
-    updateProgress();
-  };
-
-  // Set the icon based on isPlaying state
   const playPauseIconClass = isPlaying
     ? "fa-solid fa-pause"
     : "fa-solid fa-play";
@@ -234,7 +237,6 @@ const MusicPlayer = ({ isVisible }) => {
                 {trackNames[currentTrackIndex]}
               </div>
             </div>
-            {/* Track Info */}
           </div>
         </div>
       </div>

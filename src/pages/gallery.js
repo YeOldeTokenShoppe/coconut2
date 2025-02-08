@@ -14,6 +14,7 @@ export default function GalleryPage() {
     threeDScene: false,
   });
   const [showSpotify, setShowSpotify] = useState(false);
+  const [showWebContent, setShowWebContent] = useState(false);
 
   useEffect(() => {
     if (
@@ -34,6 +35,52 @@ export default function GalleryPage() {
       document.body.style.backgroundColor = "#1b1724";
     };
   }, []);
+  const WebContentOverlay = () => {
+    if (!showWebContent) return null;
+
+    return (
+      <div
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "80vw",
+          maxWidth: "1024px",
+          height: "80vh",
+          maxHeight: "768px",
+          backgroundColor: "white",
+          zIndex: 1000,
+          borderRadius: "12px",
+          boxShadow: "0 4px 30px rgba(0, 0, 0, 0.3)",
+          padding: "20px",
+          overflow: "auto",
+          opacity: showWebContent ? 1 : 0,
+          transition: "opacity 0.3s ease",
+        }}
+      >
+        <div className="web-content">
+          <h1>Interactive Screen Content</h1>
+          <p>This is your HTML content displayed as an overlay.</p>
+          {/* Add your interactive content here */}
+        </div>
+        <button
+          onClick={() => setShowWebContent(false)}
+          style={{
+            position: "absolute",
+            top: "20px",
+            right: "20px",
+            background: "none",
+            border: "none",
+            fontSize: "24px",
+            cursor: "pointer",
+          }}
+        >
+          ×
+        </button>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -57,6 +104,8 @@ export default function GalleryPage() {
               setComponentsLoaded((prev) => ({ ...prev, threeDScene: status }))
             }
             setShowSpotify={setShowSpotify}
+            showWebContent={showWebContent}
+            setShowWebContent={setShowWebContent}
           />
 
           {/* <div className="canvasNavbar">
@@ -74,7 +123,7 @@ export default function GalleryPage() {
                   width: "100%",
                   height: "100%",
                   borderRadius: "20px",
-                  backgroundColor: "transparent", // Match the 8-ball background color
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
                   overflow: "hidden", // Prevent content from spilling out
                 }}
               />
@@ -102,7 +151,7 @@ export default function GalleryPage() {
                   height: "480px",
                   borderRadius: "20px",
                   overflow: "hidden",
-                  backgroundColor: "transparent",
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
                 }}
               />
             </div>

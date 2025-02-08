@@ -34,12 +34,56 @@ function FloatingCandleViewer({ isVisible, onClose, userData }) {
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
-      {/* Prevent clicks on canvas from closing the viewer */}
+      {/* Close button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        style={{
+          position: "fixed", // Changed to fixed
+          top: "20%",
+          right: "30%",
+          background: "white",
+          border: "2px solid #333",
+          borderRadius: "50%",
+          width: "44px",
+          height: "44px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          fontSize: "32px", // Increased font size
+          fontWeight: "bold", // Made text bold
+          color: "#000", // Changed to black
+          boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
+          zIndex: 9999, // Ensure it's always on top
+          touchAction: "manipulation",
+          transition: "all 0.2s ease",
+          userSelect: "none", // Prevent text selection
+          lineHeight: "1", // Better vertical centering
+          padding: "0 0 4px 0", // Slight adjustment for the × symbol
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.transform = "scale(1.1)";
+          e.currentTarget.style.background = "white";
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.transform = "scale(1)";
+          e.currentTarget.style.background = "rgba(255, 255, 255, 0.9)";
+        }}
+        aria-label="Close viewer"
+      >
+        ×
+      </button>
+
+      {/* Canvas container */}
       <div
         style={{
           width: "60vw",
           height: "80vh",
           borderRadius: "10px",
+          position: "relative",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -54,10 +98,32 @@ function FloatingCandleViewer({ isVisible, onClose, userData }) {
         >
           <SceneContent userData={userData} />
         </Canvas>
+
+        {/* Instructions overlay */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(255, 255, 255, 0.2)",
+            padding: "10px 20px",
+            borderRadius: "20px",
+            fontSize: "14px",
+            pointerEvents: "none",
+            zIndex: 12,
+            whiteSpace: "nowrap",
+          }}
+        >
+          Use one finger to rotate • Two fingers to zoom • Double-click or tap ×
+          to close
+        </div>
       </div>
     </div>
   );
 }
+// Rest of the SceneContent component remains the same...
+
 function SceneContent({ userData }) {
   const { scene } = useGLTF("/singleCandle.glb");
   const candleRef = useRef();
@@ -118,30 +184,25 @@ function SceneContent({ userData }) {
     const context = canvas.getContext("2d");
 
     // Clear canvas and set background
-    context.fillStyle = "#F5F5DC"; // Beige background
+    context.fillStyle = "#F5F5DC";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Save the current context state
     context.save();
 
-    // Flip the context
     context.translate(canvas.width / 2, canvas.height / 2);
     context.rotate(Math.PI);
     context.translate(-canvas.width / 2, -canvas.height / 2);
 
-    // Configure text with darker color and bold font
-    context.fillStyle = "#000000"; // Pure black for maximum contrast
+    context.fillStyle = "#000000";
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.font = "bold 32px UnifrakturCook"; // Made text bold
+    context.font = "bold 32px UnifrakturCook";
 
-    // Format the text
     const formattedText = text.replace(
       "{userName}",
       userData.userName || "Friend"
     );
 
-    // Handle text wrapping
     const maxWidth = 400;
     const lineHeight = 40;
     const words = formattedText.split(" ");
@@ -163,10 +224,8 @@ function SceneContent({ userData }) {
     });
     lines.push(currentLine);
 
-    // Draw the wrapped text
     const startY = (canvas.height - lines.length * lineHeight) / 2;
     lines.forEach((line, index) => {
-      // Add text stroke for even more contrast
       context.strokeStyle = "#000000";
       context.lineWidth = 2;
       context.strokeText(line, canvas.width / 2, startY + index * lineHeight);
@@ -185,14 +244,12 @@ function SceneContent({ userData }) {
     let labelMesh = null;
     scene.traverse((child) => {
       if (child.name.includes("Label1")) {
-        // Note: Looking for Label1 here
         labelMesh = child;
         console.log("Found Label1 mesh:", child.name);
       }
     });
 
     if (labelMesh) {
-      // Create dynamic text content
       const dynamicText = `On behalf of {userName},\n\nmay the light of Our Lady of Perepetual Profit illuminate the path to prosperity.`;
 
       const texture = createDynamicTextTexture(dynamicText, userData);
@@ -222,25 +279,20 @@ function SceneContent({ userData }) {
   useEffect(() => {
     if (!candleRef.current) return;
 
-    // Compute bounding box to find center
     const box = new THREE.Box3().setFromObject(candleRef.current);
     const center = box.getCenter(new THREE.Vector3());
 
-    // Adjust OrbitControls target to the center
     if (controlsRef.current) {
       controlsRef.current.target.set(center.x, center.y, center.z);
       controlsRef.current.update();
     }
 
-    // Apply image to Label2
     if (userData?.image) {
       applyUserImageToLabel(scene, userData.image);
     }
 
-    // Apply dynamic text to Label1
     applyDynamicTextToLabel(scene, userData);
 
-    // Control flame visibility
     scene.traverse((child) => {
       if (child.name.startsWith("FLAME")) {
         const isDefaultCandle =
@@ -266,6 +318,7 @@ function SceneContent({ userData }) {
         enablePan={false}
         minDistance={2}
         maxDistance={10}
+        touchAction="none"
       />
     </>
   );

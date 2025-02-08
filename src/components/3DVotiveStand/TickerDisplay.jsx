@@ -10,7 +10,7 @@ const TickerDisplay = ({ geometry, ...props }) => {
   const scrollPos = useRef(0);
   const [isInitialized, setIsInitialized] = useState(false);
   const [trendingData, setTrendingData] = useState([]);
-  const gltf = useGLTF("/testUltima.glb");
+  const gltf = useGLTF("/isometricScene.glb");
   const scene = gltf.scene;
 
   // Format large numbers
@@ -105,7 +105,8 @@ const TickerDisplay = ({ geometry, ...props }) => {
       texture.repeat.set(1, 1);
       texture.needsUpdate = true;
       textureRef.current = texture;
-      texture.repeat.set(-1, 1); // Negative X value flips horizontally
+      texture.repeat.set(1, -1);
+      texture.flipY = true;
 
       // Find the Ticker mesh in your model
       const ticker = scene.getObjectByName("Ticker");

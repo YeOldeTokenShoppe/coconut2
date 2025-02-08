@@ -73,6 +73,8 @@ function BurnGallery({
   setComponentLoaded,
   setThreeDSceneLoaded,
   setShowSpotify,
+  showWebContent,
+  setShowWebContent,
 }) {
   useEffect(() => {
     const loadContent = async () => {
@@ -217,6 +219,8 @@ function BurnGallery({
                 onScreenClick={handleScreenClick}
                 setIsLoading={setThreeDSceneLoaded}
                 setShowSpotify={setShowSpotify}
+                showWebContent={showWebContent}
+                setShowWebContent={setShowWebContent}
                 onCameraMove={() => {
                   setIsInMarkerView(true);
                   setIsChandelierVisible(false);

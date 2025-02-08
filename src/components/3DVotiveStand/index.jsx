@@ -26,7 +26,7 @@ import { MODEL_SETTINGS } from "./modelConfig";
 // import { getScreenCategory } from "./screenCategories";
 import { Box } from "@chakra-ui/react";
 // import CameraGUI from "./CameraGUI";
-import LightControlPanel from "./LightControlPanel";
+
 import RoomWalls from "./RoomWalls";
 import dynamic from "next/dynamic";
 import styled from "styled-components";
@@ -40,7 +40,7 @@ import MobileModel from "./MobileModel";
 import TickerDisplay from "./TickerDisplay";
 import { db } from "../../utilities/firebaseClient";
 import TourCamera from "./TourCamera";
-import LightGUI from "./LightGUI";
+
 import CameraGUI from "./CameraGUI";
 import { TooltipContainer } from "../UserTooltip";
 import FloatingCandleViewer from "./CandleInteraction";
@@ -56,6 +56,8 @@ function ThreeDVotiveStand({
   isMobileView,
   onScreenClick,
   setShowSpotify,
+  showWebContent,
+  setShowWebContent,
 }) {
   const [userData, setUserData] = useState([]);
   // Add in index.jsx
@@ -359,6 +361,7 @@ function ThreeDVotiveStand({
       if (
         (object.isMesh && object.name.startsWith("Screen")) ||
         (object.isMesh && object.parent?.name.includes("Screen")) ||
+        object.name.startsWith("Keyboard") ||
         object.isMarker ||
         object.parent?.isMarker ||
         object.name.startsWith("VCANDLE") ||
@@ -370,13 +373,10 @@ function ThreeDVotiveStand({
 
     const intersects = raycaster.intersectObjects(interactiveObjects, true);
 
-    // Update hover states or tooltips as needed
     if (intersects.length > 0) {
-      document.body.style.cursor = "pointer";
-
-      // Optional: Log what we're hovering over for debugging
       const hitObject = intersects[0].object;
-      console.log("Hovering over:", hitObject.name);
+      console.log("Hovering over:", hitObject.name); // Debug log
+      document.body.style.cursor = "pointer";
     } else {
       document.body.style.cursor = "auto";
     }
@@ -700,7 +700,7 @@ function ThreeDVotiveStand({
             {/* <Perf position="top-left" /> */}
             {/* <RoomWalls db={db} /> */}
 
-            {/* <TickerDisplay /> */}
+            <TickerDisplay />
             <Suspense fallback={null}>
               <Model
                 // url="/nyseMiniplus.glb"
@@ -725,6 +725,8 @@ function ThreeDVotiveStand({
                 onCandleSelect={handleCandleSelect}
                 // onButtonClick={handleClick}
                 setShowSpotify={setShowSpotify}
+                showWebContent={showWebContent}
+                setShowWebContent={setShowWebContent}
               />
               {/* use this version only when using gui */}
 
@@ -769,12 +771,12 @@ function ThreeDVotiveStand({
             isVisible={showPhoneViewer}
             onClose={() => setShowPhoneViewer(false)}
           />
-          <CameraGUI
+          {/* <CameraGUI
             cameraRef={cameraRef}
             controlsRef={controlsRef}
             onGuiStart={handleGuiStart}
             onGuiEnd={handleGuiEnd}
-          />
+          /> */}
           {activeAnnotation && activeAnnotation.fromScreen ? (
             <ScreenAnnotation
               text={activeAnnotation.text}
